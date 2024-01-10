@@ -1,5 +1,4 @@
 from __future__ import annotations
-import math
 
 
 def lerp(a: float, b: float, t: float) -> float:
