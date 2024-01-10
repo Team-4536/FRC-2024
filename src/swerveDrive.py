@@ -28,9 +28,9 @@ class SwerveDrive():
         self.turningPIDs = [PIDController(*self.turningPIDSettings) for i in range(4)]
 
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
-    def update(self, dt: float, hal: robotHAL.RobotHALBuffer, targetSpeed: tuple[float, float, float]):
+    def update(self, dt: float, hal: robotHAL.RobotHALBuffer, targetSpeed: ChassisSpeeds):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
-        targetStates = self.kinematics.toSwerveModuleStates(ChassisSpeeds(*targetSpeed))
+        targetStates = self.kinematics.toSwerveModuleStates(targetSpeed)
         # TODO: Why does the example discretize velocity?
         SwerveDrive4Kinematics.desaturateWheelSpeeds(targetStates, self.maxSpeed)
 

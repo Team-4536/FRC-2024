@@ -4,7 +4,7 @@ import timing
 import wpilib
 from ntcore import NetworkTableInstance
 from wpimath.geometry import Pose2d, Rotation2d
-from wpimath.kinematics import SwerveModulePosition
+from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 
 
 class RobotInputs():
@@ -41,7 +41,7 @@ class Robot(wpilib.TimedRobot):
     def teleopPeriodic(self) -> None:
         self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
 
-        speed = (self.input.driveX * 0.1, self.input.driveY * 0.1, self.input.turning * 0.1)
+        speed = ChassisSpeeds(self.input.driveX * 0.1, self.input.driveY * 0.1, -self.input.turning * 0.1)
         self.drive.update(self.time.dt, self.hal, speed)
 
         self.hardware.update(self.hal)
