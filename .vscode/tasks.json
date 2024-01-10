@@ -1,0 +1,65 @@
+// Docs: https://go.microsoft.com/fwlink/?LinkId=733558
+
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Py Sundial",
+            "type": "shell",
+            "command": "py -3 sundial/src/main.py",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build CSundial",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceFolder}\\cppsundial"
+            },
+            "command": "build\\build.cmd",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build CSundial dependencies",
+            "group": "build",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceFolder}\\cppsundial"
+            },
+            "command": "build\\builddeps.cmd",
+            "problemMatcher": []
+        },
+        {
+            "options": {
+                "shell": {
+                    "executable": "cmd.exe",
+                    "args": [
+                        "/d",
+                        "/c"
+                    ]
+                },
+                "cwd": "${workspaceFolder}\\cppsundial"
+            },
+            "label": "Build and run CSundial",
+            "group": {
+                "kind": "none"
+            },
+            "type": "shell",
+            "command": "build\\run.cmd",
+            "dependsOn": [
+                "Build CSundial"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy flymer",
+            "type": "shell",
+            "command": "py imperative/flymer.py deploy --nonstandard",
+            "options": { "cwd": "${workspaceFolder}"},
+            "problemMatcher": []
+        }
+    ]
+}
