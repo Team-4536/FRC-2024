@@ -5,39 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
             "name": "Python: Robot",
             "type": "python",
             "request": "launch",
-            "program": "${file} sim",
+            "cwd": "${workspaceFolder}",
+            "program": "src/robot.py",
+            "args": [
+                "sim"
+            ],
             "console": "integratedTerminal",
             "justMyCode": true
-        },
-        {
-            "name": "gdb debug",
-            "type": "cppdbg",
-            "request": "launch",
-            "args": [],
-            "stopAtEntry": false,
-            "externalConsole": false,
-            "cwd": "${workspaceFolder}/cppsundial",
-            "program": "${workspaceFolder}/cppsundial/out/sun.exe",
-            "MIMode": "gdb",
-            "miDebuggerPath": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
         },
     ]
 }

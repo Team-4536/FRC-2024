@@ -1,64 +1,23 @@
 // Docs: https://go.microsoft.com/fwlink/?LinkId=733558
-
 {
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Py Sundial",
+            "label": "Deploy robot code",
             "type": "shell",
-            "command": "py -3 sundial/src/main.py",
-            "problemMatcher": []
-        },
-        {
-            "label": "Build CSundial",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "type": "shell",
+            "command": "py src/robot.py deploy",
             "options": {
-                "cwd": "${workspaceFolder}\\cppsundial"
+                "cwd": "${workspaceFolder}"
             },
-            "command": "build\\build.cmd",
             "problemMatcher": []
         },
         {
-            "label": "Build CSundial dependencies",
-            "group": "build",
+            "label": "Run robot sim",
             "type": "shell",
+            "command": "py src/robot.py sim",
             "options": {
-                "cwd": "${workspaceFolder}\\cppsundial"
+                "cwd": "${workspaceFolder}"
             },
-            "command": "build\\builddeps.cmd",
-            "problemMatcher": []
-        },
-        {
-            "options": {
-                "shell": {
-                    "executable": "cmd.exe",
-                    "args": [
-                        "/d",
-                        "/c"
-                    ]
-                },
-                "cwd": "${workspaceFolder}\\cppsundial"
-            },
-            "label": "Build and run CSundial",
-            "group": {
-                "kind": "none"
-            },
-            "type": "shell",
-            "command": "build\\run.cmd",
-            "dependsOn": [
-                "Build CSundial"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "Deploy flymer",
-            "type": "shell",
-            "command": "py imperative/flymer.py deploy --nonstandard",
-            "options": { "cwd": "${workspaceFolder}"},
             "problemMatcher": []
         }
     ]
