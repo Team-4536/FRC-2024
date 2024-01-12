@@ -1,4 +1,4 @@
-import copy
+"""import copy
 
 import navx
 import ntcore
@@ -78,3 +78,4 @@ class RobotHAL():
         if(buf.yaw != prev.yaw):
             self.yawCenter = buf.yaw
         buf.yaw = self.gyro.getYaw() - self.yawCenter
+"""

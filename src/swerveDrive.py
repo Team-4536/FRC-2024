@@ -12,7 +12,7 @@ from wpimath.kinematics import (
 
 
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
-class SwerveDrive():
+"""class SwerveDrive():
     def __init__(self, angle: Rotation2d, pose: Pose2d, wheelStates: list[SwerveModulePosition]) -> None:
         # TODO: MAKE THESE ACCURATE BEFORE USING ON BOT
         self.maxSpeed = 1 # meters per sec
@@ -44,6 +44,7 @@ class SwerveDrive():
             hal.steeringSpeeds[i] = turnSpeed / self.maxTurnSpeed
             telemetryTable.putNumber(prefs[i] + "target", targetStates[i].angle.radians()) # type: ignore // radians >:(
 
-        self.odometry.update(Rotation2d(hal.yaw), *wheelPositions)
+        self.odometry.update(Rotation2d(hal.yaw), *wheelPositions)"""
+
 
     # TODO: reset state function
