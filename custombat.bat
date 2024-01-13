@@ -15,4 +15,12 @@ start https://www.ni.com/en/support/downloads/drivers/download/packaged.frc-game
 
 cd C:\Users\minut\Downloads
 
+::start ni-frc-2024-game-tools_24.0_online.exe
+
+:waitloop
+IF EXIST "ni-frc-2024-game-tools_24.0_online.exe" GOTO waitloopend
+timeout /t 1
+goto waitloop
+:waitloopend
+
 start ni-frc-2024-game-tools_24.0_online.exe
