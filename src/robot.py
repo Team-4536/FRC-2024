@@ -36,5 +36,6 @@ class Robot(wpilib.TimedRobot):
     def disabledPeriodic(self) -> None:
         pass
 
+
 if __name__ == "__main__":
     wpilib.run(Robot)
