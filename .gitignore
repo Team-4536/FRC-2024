@@ -13,3 +13,12 @@ ctre_sim/
 *.exe
 *.log
 
+# emacs
+*~
+\#*
+.\#*
+
+# virtualenv
+.venv/
+
+src/ctre_sim/
