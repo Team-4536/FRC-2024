@@ -5,7 +5,7 @@
         {
             "label": "Deploy robot code",
             "type": "shell",
-            "command": "py src/robot.py deploy",
+            "command": "py -m robotpy --main src/robot.py deploy",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -14,7 +14,7 @@
         {
             "label": "Run robot sim",
             "type": "shell",
-            "command": "py src/robot.py sim",
+            "command": "py -m robotpy --main src/robot.py sim",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

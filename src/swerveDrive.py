@@ -45,7 +45,7 @@ class SwerveDrive():
             telemetryTable.putNumber(prefs[i] + "target", targetStates[i].angle.radians()) # type: ignore // radians >:(
 
         # TODO: fix/test this
-        self.odometry.update(Rotation2d(hal.yaw), *wheelPositions)
+        self.odometry.update(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]))
 
 
     # TODO: reset state function
