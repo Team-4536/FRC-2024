@@ -20,5 +20,3 @@ ctre_sim/
 
 # virtualenv
 .venv/
-
-src/ctre_sim/
