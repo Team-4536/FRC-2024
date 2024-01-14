@@ -12,3 +12,10 @@ CppSundial/path.txt
 *.exe
 *.log
 
+# emacs
+*~
+\#*
+.\#*
+
+# virtualenv
+.venv/
