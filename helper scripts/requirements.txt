@@ -1,4 +1,4 @@
-instalation process expects device to be Windows 11 & 64 bit device
+installation process expects device to be Windows 11 & 64 bit device
 
 install VSCode at https://code.visualstudio.com/sha/download?build=stable&os=win32-x64-user
 launch from downloads folder
@@ -86,19 +86,14 @@ install python version 3.12.1 at https://www.python.org/ftp/python/3.12.1/python
 - Click close
 
 
+To setup the git repository go to c:\ and make a new folder named "repos" 
+open a cmd in the directory "c:\repos" and run the command "git clone https://github.com/Team-4536/FRC-2024.git"
+
 
 install robotpy information is taken from https://docs.wpilib.org/en/stable/docs/zero-to-robot/step-2/python-setup.html
-run py -3 -m pip install robotpy
-to update run:
-py -3 -m pip install --upgrade robotpy 
-
-install packages for robotpy
-packages being used acording to pyproject.toml under robotpy_extras: swerveDrive, wpilib, wpimath, navx, ntcore, rev, phoenix6, PIDController
-install by typing the command "py -3 -m pip install -U robotpy[packagename]" for each package
-
-install non-robotpy packages
-packages being used acording to pyproject.toml under requires: robotpy-commands-v2==2024.0.0b4, numpy
-instlal by using command "py -3 -m pip install packagename" for each
+run "py -3 -m pip install robotpy"
+to update run: "py -3 -m pip install --upgrade robotpy "
+run "py -3 -m robotpy sync" this installs packages defined in pyproject.toml
 
 
 
@@ -135,3 +130,7 @@ if a security page opens click more options and run anyways
     - just click next do not download anything
 - Finished
     - Click Finish
+
+
+To test that this works open a terminal in src of the repository and run "py -m robotpy sim"
+This should run wihtout error when running automomous or teleop
