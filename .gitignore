@@ -19,3 +19,5 @@ CppSundial/path.txt
 
 # virtualenv
 .venv/
+
+src/ctre_sim/
