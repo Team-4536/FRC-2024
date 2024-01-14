@@ -1,3 +1,18 @@
+
+start https://www.python.org/ftp/python/3.12.1/python-3.12.1-amd64.exe
+
+:waitlooppy
+IF EXIST "python-3.12.1-amd64.exe" GOTO waitloopendpy
+timeout /t 1
+goto waitlooppy
+:waitloopendpy
+
+start python-3.12.1-amd64.exe
+
+
+
+
+
 ::make new repos folder in c:\
 cd c:\
 md repos
@@ -14,17 +29,22 @@ cd c:\repos\FRC-2024\src
 ::downloads libraries found in src/pyproject.toml
 py -3 -m robotpy sync 
 
+::include pylance and python intellisense from vscode extensions
+
 ::download nitools
 start https://www.ni.com/en/support/downloads/drivers/download/packaged.frc-game-tools.500107.html
 
+
 cd C:\Users\minut\Downloads
 
+
+
 ::wait for file to be downloaded into downloads folder
-:waitloop
-IF EXIST "ni-frc-2024-game-tools_24.0_online.exe" GOTO waitloopend
+:waitloopni
+IF EXIST "ni-frc-2024-game-tools_24.0_online.exe" GOTO waitloopendni
 timeout /t 1
-goto waitloop
-:waitloopend
+goto waitloopni
+:waitloopendni
 
 ::opens ni file
 start ni-frc-2024-game-tools_24.0_online.exe
