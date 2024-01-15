@@ -44,6 +44,8 @@ class SwerveDrive():
             hal.steeringSpeeds[i] = turnSpeed / self.maxTurnSpeed
             telemetryTable.putNumber(prefs[i] + "target", targetStates[i].angle.radians()) # type: ignore // radians >:(
 
-        self.odometry.update(Rotation2d(hal.yaw), *wheelPositions)
+        # TODO: fix/test this
+        self.odometry.update(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]))
+
 
     # TODO: reset state function
