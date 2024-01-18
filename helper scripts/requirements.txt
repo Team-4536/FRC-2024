@@ -115,8 +115,7 @@ Goto the downloads folder and launch
     - After finishing installing click reboot now
 
 
-NOTE: I am not shure if this is needed for anything since we use python. 
-I am led to belive this due to the instalation gide (https://docs.wpilib.org/en/stable/docs/zero-to-robot/step-2/wpilib-setup.html) tels python teams to skip it.
+
 install wpitools at https://packages.wpilib.workers.dev/installer/v2024.1.1/Win64/WPILib_Windows-2024.1.1.iso
 click on the item in the downloads folder and mount it
 if promted with a security warning then click open
@@ -127,7 +126,7 @@ if a security page opens click more options and run anyways
     - Select Everything
     - Click Install for this user
 - VS code page
-    - just click next do not download anything
+    - choose download for this computer
 - Finished
     - Click Finish
 

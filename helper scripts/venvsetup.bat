@@ -19,6 +19,8 @@ mkdir .venv
 rem have pipvenv make the eviroment
 pipenv install
 
+.\.venv\scripts\activate
+
 rem go to src to sync
 cd .\src
-py -m robotpy sync
+pipenv run robotpy sync
