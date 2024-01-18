@@ -4,8 +4,8 @@ import navx
 import ntcore
 import rev
 import wpilib
-from ctre.sensors import CANCoder
-
+from phoenix6.hardware import CANcoder
+from phoenix6 import StatusCode
 
 class RobotHALBuffer():
     def __init__(self) -> None:
@@ -50,7 +50,7 @@ class RobotHAL():
                             rev.CANSparkMax(6, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(8, rev.CANSparkMax.MotorType.kBrushless)
                            ]
-        self.steerEncoders = [CANCoder(21), CANCoder(22), CANCoder(23), CANCoder(24) ]
+        self.steerEncoders = [CANcoder(21), CANcoder(22), CANcoder(23), CANcoder(24)]
 
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
         self.yawCenter: float = 0
@@ -72,9 +72,15 @@ class RobotHAL():
         for i in range(0, 4):
             e = self.steerEncoders[i]
             if(buf.steeringPositions[i] != prev.steeringPositions[i]):
-                e.setPosition(buf.steeringPositions[i])
-            buf.steeringPositions[i] = e.getPosition()
+                code = e.set_position(buf.steeringPositions[i])
+                if(code != StatusCode.OK):
+                    # TODO: proper error report system
+                    pass
+            c = buf.steeringPositions[i] = e.get_position().value_as_double
+            if(c != StatusCode.OK):
+                      # TODO: proper error report system
+                    pass
 
         if(buf.yaw != prev.yaw):
             self.yawCenter = buf.yaw
-        buf.yaw = self.gyro.getYaw() - self.yawCenter
+        buf.yaw = self.gyro.getYaw() + self.yawCenter
