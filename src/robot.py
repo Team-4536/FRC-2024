@@ -1,10 +1,14 @@
-import robotHAL
-import swerveDrive
-import timing
+from sqlite3 import Time
 import wpilib
 from ntcore import NetworkTableInstance
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
+from phoenix6.hardware import CANcoder
+import robotHAL
+from ntcore import NetworkTableInstance
+
+from swerveDrive import SwerveDrive
+from timing import TimeData
 
 
 class RobotInputs():
@@ -13,16 +17,27 @@ class RobotInputs():
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
-        pass
+        self.hal = robotHAL.RobotHALBuffer()
+        self.hardware = robotHAL.RobotHAL()
+        self.hardware.update(self.hal)
+
+        self.table = NetworkTableInstance.getDefault().getTable("telemetry")
+        self.driveCtrlr = wpilib.XboxController(0)
+        # self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), )
+        # self.time = TimeData(None)
 
     def robotPeriodic(self) -> None:
-        pass
+        # self.time = TimeData(self.time)
+        self.hal.publish(self.table)
+        # self.drive.update(self.time.dt, self.hal, ChassisSpeeds())
 
     def teleopInit(self) -> None:
         pass
 
     def teleopPeriodic(self) -> None:
-        pass
+        if(self.driveCtrlr.getAButtonPressed()):
+            self.hal.yaw = 0
+        self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
         pass
@@ -31,10 +46,11 @@ class Robot(wpilib.TimedRobot):
         pass
 
     def disabledInit(self) -> None:
-        pass
+        self.disabledPeriodic()
 
     def disabledPeriodic(self) -> None:
-        pass
+        self.hal.stopMotors()
+        self.hardware.update(self.hal)
 
 
 if __name__ == "__main__":
