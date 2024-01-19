@@ -10,10 +10,11 @@ import math
 
 class RobotHALBuffer():
     def __init__(self) -> None:
-        self.driveSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1
+        self.driveSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1 // volts to motor controller
         self.steeringSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1
         self.drivePositions: list[float] = [0, 0, 0, 0] # in meters
         self.steeringPositions: list[float] = [0, 0, 0, 0] # in rads
+        self.driveVelocities: list[float] = [0, 0, 0, 0] # m/s // output from encoders
 
         self.yaw: float = 0
 
@@ -75,6 +76,7 @@ class RobotHAL():
         for i in range(0, 4):
             e = self.driveEncoders[i]
             buf.drivePositions[i] = math.radians((e.getPosition() / self.driveGearing) * 360) * self.wheelRadius
+            buf.driveSpeeds[i] = math.radians((e.getVelocity() / self.driveGearing) * 360) * self.wheelRadius
 
         for m, s in zip(self.steerMotors, buf.steeringSpeeds):
             m.set(s)

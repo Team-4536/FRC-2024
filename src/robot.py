@@ -22,9 +22,9 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
-        self.table.putNumber("kp", .4)
         self.table.putNumber("targetAngle", 0.000)
         self.table.putNumber("targetSpeed", 0.000)
+
         self.driveCtrlr = wpilib.XboxController(0)
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), [])
         self.time = TimeData(None)
@@ -32,10 +32,6 @@ class Robot(wpilib.TimedRobot):
     def robotPeriodic(self) -> None:
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
-
-        kp = self.table.getNumber("kp", 0.0)
-        for i in range(4):
-            self.drive.turningPIDs[i].kp = kp
 
     def teleopInit(self) -> None:
         pass

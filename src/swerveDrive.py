@@ -18,15 +18,25 @@ class SwerveDrive():
         self.maxSteerSpeed = 1.0 # CCW rads
         # meters, relative to robot center
         # self.modulePositions = [ Translation2d(), Translation2d(), Translation2d(), Translation2d() ]
-        self.turningPIDSettings: tuple[float, float, float] = (.01, 0.0, 0.0)
+
+        self.table = NetworkTableInstance.getDefault().getTable("Swerve settings")
+        self.table.putNumber("SteeringKp", .4)
+        self.table.putNumber("DriveKp", .001)
 
         # self.kinematics = SwerveDrive4Kinematics(*self.modulePositions)
         # assert(len(wheelStates) == 4)
         # self.odometry = SwerveDrive4Odometry(self.kinematics, angle, tuple(wheelStates), pose) #type: ignore // because of tuple type mismatch, which is assert gaurded
-        self.turningPIDs = [PIDController(*self.turningPIDSettings) for i in range(4)]
+        self.turningPIDs = [PIDController(0, 0, 0) for i in range(4)]
+        self.drivePIDs = [PIDController(0, 0, 0) for i in range(4)]
 
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
     def update(self, dt: float, hal: robotHAL.RobotHALBuffer, targetState: SwerveModuleState):
+        steerKp = self.table.getNumber("SteeringKp", 0.0)
+        driveKp = self.table.getNumber("DriveKp", 0.0)
+        for i in range(4):
+            self.turningPIDs[i].kp = steerKp
+            self.drivePIDs[i].kp = driveKp
+
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         # targetStates = self.kinematics.toSwerveModuleStates(targetSpeed)
         targetStates = [ targetState for i in range(4) ]
@@ -40,6 +50,7 @@ class SwerveDrive():
             telemetryTable.putNumber(prefs[i] + "targetAngle", state.angle.radians())
             telemetryTable.putNumber(prefs[i] + "currentAngle", wheelPositions[i].angle.radians())
             turnSpeed = self.turningPIDs[i].tick(state.angle.radians(), wheelPositions[i].angle.radians(), dt)
+            # driveSpeed = self.drivePIDs[i].tick(, dt)
             # TODO: currently just does percent of max speed to motors, how to make accurate? is it?
             hal.driveSpeeds[i] = state.speed / self.maxSpeed
             hal.steeringSpeeds[i] = turnSpeed / self.maxSteerSpeed
