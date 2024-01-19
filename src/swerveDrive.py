@@ -16,11 +16,12 @@ class SwerveDrive():
     def __init__(self, angle: Rotation2d, pose: Pose2d, wheelStates: list[SwerveModulePosition]) -> None:
         # TODO: MAKE THESE ACCURATE BEFORE USING ON BOT
         self.maxSpeed = 1 # meters per sec
-        self.maxTurnSpeed = 1 # CCW rads
-        self.wheelSize = 1 # metres
+        self.maxTurnSpeed = 1 # CCW radians
+        self.wheelSize = 1 # meters
         # meters, relative to robot center
         self.modulePositions = [ Translation2d(), Translation2d(), Translation2d(), Translation2d() ]
         self.turningPIDSettings: tuple[float, float, float] = (.001, 0.0, 0.0)
+        
 
         self.kinematics = SwerveDrive4Kinematics(*self.modulePositions)
         assert(len(wheelStates) == 4)
@@ -38,6 +39,7 @@ class SwerveDrive():
         prefs = ["FL", "FR", "BL", "BR"]
         for i in range(4):
             state = SwerveModuleState.optimize(targetStates[i], wheelPositions[i].angle)
+            if hal.steeringPositions[i] < 
             turnSpeed = self.turningPIDs[i].tick(targetStates[i].angle.radians(), state.angle.radians(), dt) # type: ignore // Rotation2d.radians() has messed up type annotations
             # TODO: currently just does percent of max speed to motors, how to make accurate? is it?
             hal.driveSpeeds[i] = targetStates[i].speed / self.maxSpeed
