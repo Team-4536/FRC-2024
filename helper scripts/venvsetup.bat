@@ -1,4 +1,4 @@
-echo off
+echo on
 
 set pipvenvV=pipenv, version 2023.11.15
 
@@ -8,12 +8,12 @@ if "%%F" NEQ "%pipvenvV%" (
   set err=1
 ))
 
-.\.venv\scripts\deactivate.bat
-
 cd c:\repos\FRC-2024
 
+rem deactivate
+
 rem delete .venv
-rmdir /s .venv
+del /s /q .\.venv
 
 rem make new .venv file
 mkdir .venv
@@ -28,7 +28,6 @@ cd c:\repos\FRC-2024
 .\.venv\scripts\activate
 
 rem go to src to sync
-cd .\src
-
+rem cd .\src
 rem GOTO src & RUN THIS AT THE END:
 rem pipenv run robotpy sync
