@@ -77,8 +77,7 @@ class RobotHAL():
         for i in range(0, 4):
             e = self.driveEncoders[i]
             buf.drivePositions[i] = math.radians((e.getPosition() / self.driveGearing) * 360) * self.wheelRadius
-            buf.driveSpeedMeasured[i] = e.getVelocity()
-            # buf.driveSpeedMeasured[i] = math.radians((e.getVelocity() / self.driveGearing) * 360) * self.wheelRadius
+            buf.driveSpeedMeasured[i] = math.radians((e.getVelocity() / self.driveGearing) * 360) * self.wheelRadius / 60
 
         for m, s in zip(self.steerMotors, buf.steeringSpeeds):
             m.set(s)

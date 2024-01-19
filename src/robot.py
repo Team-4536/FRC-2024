@@ -2,6 +2,7 @@ import wpilib
 from ntcore import NetworkTableInstance
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
+from inputs import deadZone
 from phoenix6.hardware import CANcoder
 import robotHAL
 from ntcore import NetworkTableInstance
@@ -13,7 +14,12 @@ from timing import TimeData
 
 class RobotInputs():
     def __init__(self, drive: wpilib.XboxController, arm: wpilib.XboxController) -> None:
-        pass
+        self.driveX: float = deadZone(drive.getLeftX())
+        self.driveY: float = deadZone(-drive.getLeftY())
+        self.turning: float = deadZone(drive.getRightX())
+        self.speedCtrl: float = drive.getRightTriggerAxis()
+
+        self.gyroReset: float = drive.getYButtonPressed()
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -22,10 +28,11 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
-        self.table.putNumber("targetAngle", 0.000)
-        self.table.putNumber("targetSpeed", 0.000)
 
         self.driveCtrlr = wpilib.XboxController(0)
+        self.armCtrlr = wpilib.XboxController(1)
+        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
+
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), [])
         self.time = TimeData(None)
 
@@ -37,13 +44,18 @@ class Robot(wpilib.TimedRobot):
         pass
 
     def teleopPeriodic(self) -> None:
-        if(self.driveCtrlr.getAButtonPressed()):
+        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
+
+        if self.input.gyroReset:
             self.hal.yaw = 0
 
-        targetA = self.table.getNumber("targetAngle", 0.0)
-        targetS = self.table.getNumber("targetSpeed", 0.0)
+        speed = ChassisSpeeds(self.input.driveX, self.input.driveY, -self.input.turning)
 
-        self.drive.update(self.time.dt, self.hal, SwerveModuleState(targetS, Rotation2d(targetA)))
+        self.table.putNumber("targetSpeedX", speed.vx)
+        self.table.putNumber("targetSpeedY", speed.vy)
+        self.table.putNumber("targetSpeed0", speed.omega)
+
+        self.drive.update(self.time.dt, self.hal, speed)
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
