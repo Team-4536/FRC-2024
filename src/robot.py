@@ -1,17 +1,19 @@
+import math
+
 import robotHAL
+import robotpy_apriltag
 import swerveDrive
 import timing
 import wpilib
-
-from ntcore import NetworkTable
-from ntcore import NetworkTableEntry
-from ntcore import NetworkTableInstance
+from ntcore import NetworkTable, NetworkTableEntry, NetworkTableInstance
+from wpimath.controller import (
+    HolonomicDriveController,
+    PIDController,
+    ProfiledPIDControllerRadians,
+)
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from wpimath.trajectory import TrajectoryUtil
-from wpimath.controller import HolonomicDriveController
-from wpimath.controller import PIDController, ProfiledPIDControllerRadians
-from wpimath.trajectory import TrapezoidProfile
+from wpimath.trajectory import TrajectoryUtil, TrapezoidProfile
 
 
 class RobotInputs():
@@ -38,7 +40,9 @@ class Robot(wpilib.TimedRobot):
         # (Rob): I would have built the SwerveModulePosition class directly into the HALBuffer, if it weren't for the fact that python can't 'pickle' them. (???)
         self.drive = swerveDrive.SwerveDrive(Rotation2d(0), Pose2d(0, 0, 0),
                                              [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)])
-
+        
+        
+        
     def robotPeriodic(self) -> None:
         self.time = timing.TimeData(self.time)
         self.hal.publish(self.telemetryTable)
@@ -55,18 +59,28 @@ class Robot(wpilib.TimedRobot):
 
         self.hardware.update(self.hal)
 
-        tx = self.limelightTable.getEntry("tx")
-        ty = self.limelightTable.getEntry("ty")
-        ta = self.limelightTable.getEntry("ta")
-        # read values periodically
-        x = float(tx.getDouble(0.0))  # type: ignore
-        y = float(ty.getDouble(0.0))  # type: ignore
-        area = float(ta.getDouble(0.0))  # type: ignore
+        # tx = self.limelightTable.getEntry("tx")
+        # ty = self.limelightTable.getEntry("ty")
+        # ta = self.limelightTable.getEntry("ta")
+        # # read values periodically
+        # x = float(tx.getDouble(0.0))  # type: ignore
+        # y = float(ty.getDouble(0.0))  # type: ignore
+        # area = float(ta.getDouble(0.0))  # type: ignore
 
-        # post to smart dashboard periodically
-        self.telemetryTable.putNumber("LimelightX", x)
-        self.telemetryTable.putNumber("LimelightY", y)
-        self.telemetryTable.putNumber("LimelightArea", area)
+        # # post to smart dashboard periodically
+        # self.telemetryTable.putNumber("LimelightX", x)
+        # self.telemetryTable.putNumber("LimelightY", y)
+        # self.telemetryTable.putNumber("LimelightArea", area)
+
+
+        # self.limelightMountAngleRadians = 2
+        # self.limelightMountAngleDegrees = math.degrees(self.limelightMountAngleRadians)
+        # def limilightCaclulation(limelightAngleToGoal, limelightMountAngleDegrees, limelightLensHeightInches, goalHeightInches):
+        #     angleToGoalDegrees = limelightMountAngleDegrees + limelightAngleToGoal
+        #     angleToGoalRadians = math.radians(angleToGoalDegrees)
+        #     distanceFromLimelightToGoalInches = (goalHeightInches - limelightLensHeightInches) / math.tan(angleToGoalRadians)
+        # float KpAim = -0.1f
+
 
     def autonomousInit(self) -> None:
         self.autoTimer = timing.TimeData(None)
