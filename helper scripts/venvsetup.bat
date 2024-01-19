@@ -19,7 +19,7 @@ rem make new .venv file
 mkdir .venv
 
 rem have pipvenv make the eviroment
-pipenv install
+pipenv install --python 3.12
 
 
 
@@ -30,5 +30,5 @@ cd c:\repos\FRC-2024
 rem go to src to sync
 cd .\src
 
-rem RUN THIS AT THE END:
+rem GOTO src & RUN THIS AT THE END:
 rem pipenv run robotpy sync
