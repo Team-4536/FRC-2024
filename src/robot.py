@@ -1,4 +1,3 @@
-from sqlite3 import Time
 import wpilib
 from ntcore import NetworkTableInstance
 from wpimath.geometry import Pose2d, Rotation2d
@@ -6,6 +5,7 @@ from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 from phoenix6.hardware import CANcoder
 import robotHAL
 from ntcore import NetworkTableInstance
+from wpimath.kinematics import SwerveModuleState
 
 from swerveDrive import SwerveDrive
 from timing import TimeData
@@ -22,14 +22,20 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
+        self.table.putNumber("kp", .4)
+        self.table.putNumber("targetAngle", 0.000)
+        self.table.putNumber("targetSpeed", 0.000)
         self.driveCtrlr = wpilib.XboxController(0)
-        # self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), )
-        # self.time = TimeData(None)
+        self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), [])
+        self.time = TimeData(None)
 
     def robotPeriodic(self) -> None:
-        # self.time = TimeData(self.time)
+        self.time = TimeData(self.time)
         self.hal.publish(self.table)
-        # self.drive.update(self.time.dt, self.hal, ChassisSpeeds())
+
+        kp = self.table.getNumber("kp", 0.0)
+        for i in range(4):
+            self.drive.turningPIDs[i].kp = kp
 
     def teleopInit(self) -> None:
         pass
@@ -37,6 +43,11 @@ class Robot(wpilib.TimedRobot):
     def teleopPeriodic(self) -> None:
         if(self.driveCtrlr.getAButtonPressed()):
             self.hal.yaw = 0
+
+        targetA = self.table.getNumber("targetAngle", 0.0)
+        targetS = self.table.getNumber("targetSpeed", 0.0)
+
+        self.drive.update(self.time.dt, self.hal, SwerveModuleState(targetS, Rotation2d(targetA)))
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
