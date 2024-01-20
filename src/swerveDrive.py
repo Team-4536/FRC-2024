@@ -1,3 +1,6 @@
+from ast import mod
+
+from phoenix6 import rotation
 import robotHAL
 from ntcore import NetworkTableInstance
 from PIDController import PIDController
@@ -9,6 +12,7 @@ from wpimath.kinematics import (
     SwerveModulePosition,
     SwerveModuleState,
 )
+import math
 
 
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
@@ -54,7 +58,8 @@ class SwerveDrive():
         telemetryTable = NetworkTableInstance.getDefault().getTable("telemetry")
         prefs = ["FL", "FR", "BL", "BR"]
         for i in range(4):
-            state = SwerveModuleState.optimize(targetStates[i], wheelPositions[i].angle)
+            # state = SwerveModuleState.optimize(targetStates[i], wheelPositions[i].angle)
+            state = self.optimizeTarget(targetStates[i], wheelPositions[i].angle)
             telemetryTable.putNumber(prefs[i] + "targetAngle", state.angle.radians())
             telemetryTable.putNumber(prefs[i] + "targetSpeed", state.speed)
             hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
@@ -63,5 +68,37 @@ class SwerveDrive():
         # TODO: fix/test this
         # self.odometry.update(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]))
 
+
+    def optimizeTarget(self, target: SwerveModuleState, moduleAngle: Rotation2d) -> SwerveModuleState:
+
+        error = target.angle.radians() - moduleAngle.radians()
+
+        outputSpeed = target.speed
+        outputAngle = target.angle.radians()
+
+        # unwrap error
+        while error < math.pi:
+            error += 2 * math.pi
+
+        while error > math.pi:
+            error -= 2 * math.pi
+
+        # optimize
+        if abs(error) > math.pi / 2:
+            outputAngle = outputAngle + math.pi
+            outputSpeed = -outputSpeed
+
+        # unwrap output angle
+        while outputAngle < math.pi:
+            outputAngle += 2 * math.pi
+
+        while outputAngle > math.pi:
+            outputAngle -= 2 * math.pi
+
+        # return
+        outputAngleRot2d = Rotation2d(outputAngle)
+        output = SwerveModuleState(outputSpeed, outputAngleRot2d)
+
+        return output
 
     # TODO: reset state function

@@ -51,6 +51,8 @@ class RobotHAL():
         self.driveEncoders = [x.getEncoder() for x in self.driveMotors]
         self.driveMotors[1].setInverted(True)
         self.driveMotors[3].setInverted(True)
+        for d in self.driveMotors:
+            d.setSmartCurrentLimit(40)
 
         self.steerMotors = [rev.CANSparkMax(1, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(3, rev.CANSparkMax.MotorType.kBrushless),
@@ -59,6 +61,8 @@ class RobotHAL():
                            ]
         for m in self.steerMotors:
             m.setInverted(True)
+            m.setOpenLoopRampRate(50)
+            m.setSmartCurrentLimit(40)
 
         self.steerEncoders = [CANcoder(21), CANcoder(22), CANcoder(23), CANcoder(24)]
 
