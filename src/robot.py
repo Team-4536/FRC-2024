@@ -1,19 +1,17 @@
 from gettext import translation
 from xml.sax.xmlreader import InputSource
-import wpilib
-from ntcore import NetworkTableInstance
-from wpimath.geometry import Pose2d, Rotation2d
-from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from inputs import deadZone
-from phoenix6.hardware import CANcoder
-import robotHAL
-from ntcore import NetworkTableInstance
-from wpimath.kinematics import SwerveModuleState
 
+import robotHAL
+import wpilib
+from inputs import deadZone
+from ntcore import NetworkTableInstance
+from phoenix6.hardware import CANcoder
+from PIDController import PIDController
+from real import lerp
 from swerveDrive import SwerveDrive
 from timing import TimeData
-from real import lerp
-from wpimath.geometry import Translation2d
+from wpimath.geometry import Pose2d, Rotation2d, Translation2d
+from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition, SwerveModuleState
 
 
 class RobotInputs():
@@ -85,10 +83,38 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
-        pass
+        self.autoStartTime = self.time.timeSinceInit
+        XControllerP = 1
+        XControllerI = 0
+        XControllerD = 0
+        YControllerP = 1
+        YControllerI = 0
+        YControllerD = 0
+        RControllerP = 1
+        RControllerI = 0
+        RControllerD = 0
+        T_PConstraintsVolocityMax = 6.28
+        T_PConstraintsRotaionAccelerationMax = 1
+        self.XController = PIDController(
+            XControllerP, XControllerI, XControllerD)
+        self.YController = PIDController(
+            YControllerP, YControllerI, YControllerD)
+        self.RotationController = ProfiledPIDControllerRadians(
+            RControllerP, RControllerI, RControllerD, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
+        trajectoryJSON = "deploy/path.wpilib.json"
+        self.trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryJSON)
+        self.holonomicController = HolonomicDriveController(
+            self.XController, self.YController, self.RotationController)
 
     def autonomousPeriodic(self) -> None:
-        pass
+        trajectoryHeadingAngle = 0
+        # self.hal.stopMotors()
+        CurrentPose = self.drive.odometry.getPose()
+        goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
+        adjustedSpeeds = self.holonomicController.calculate(
+            CurrentPose, goal, Rotation2d(trajectoryHeadingAngle))
+        self.drive.update(self.time.dt, self.hal, adjustedSpeeds)
+        self.hardware.update(self.hal)
 
     def disabledInit(self) -> None:
         self.disabledPeriodic()
