@@ -1,5 +1,8 @@
 installation process expects device to be Windows 11 & 64 bit device
 
+run PowerShell as Administrator and run: "Set-ExecutionPolicy RemoteSigned"
+
+
 install VSCode at https://code.visualstudio.com/sha/download?build=stable&os=win32-x64-user
 launch from downloads folder
 - License Agreement

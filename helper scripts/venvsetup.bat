@@ -1,6 +1,5 @@
 echo on
 
-start cmd
 
 set pipvenvV=pipenv, version 2023.11.15
 
