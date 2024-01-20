@@ -1,3 +1,5 @@
+from gettext import translation
+from xml.sax.xmlreader import InputSource
 import wpilib
 from ntcore import NetworkTableInstance
 from wpimath.geometry import Pose2d, Rotation2d
@@ -10,6 +12,8 @@ from wpimath.kinematics import SwerveModuleState
 
 from swerveDrive import SwerveDrive
 from timing import TimeData
+from real import lerp
+from wpimath.geometry import Translation2d
 
 
 class RobotInputs():
@@ -19,7 +23,10 @@ class RobotInputs():
         self.turning: float = deadZone(drive.getRightX())
         self.speedCtrl: float = drive.getRightTriggerAxis()
 
-        self.gyroReset: float = drive.getYButtonPressed()
+        self.gyroReset: bool = drive.getYButtonPressed()
+        self.brakeButton: bool = drive.getBButtonPressed()
+        self.absToggle: bool = drive.getXButtonPressed()
+
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -36,6 +43,7 @@ class Robot(wpilib.TimedRobot):
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), [])
         self.time = TimeData(None)
 
+
     def robotPeriodic(self) -> None:
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
@@ -49,7 +57,15 @@ class Robot(wpilib.TimedRobot):
         if self.input.gyroReset:
             self.hal.yaw = 0
 
-        speed = ChassisSpeeds(self.input.driveX, self.input.driveY, -self.input.turning)
+        defaultSpeed = 1
+        maxSpeed = 4
+        speedControlEdited = lerp(defaultSpeed, maxSpeed, self.input.speedCtrl)
+        turnScalar = 2
+
+        driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
+        driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw))
+
+        speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
 
         self.table.putNumber("targetSpeedX", speed.vx)
         self.table.putNumber("targetSpeedY", speed.vy)

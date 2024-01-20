@@ -64,10 +64,7 @@ class SwerveDrive():
             telemetryTable.putNumber(prefs[i] + "targetAngle", state.angle.radians())
             telemetryTable.putNumber(prefs[i] + "targetSpeed", state.speed)
             hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
-
             steeringError = angleWrap(state.angle.radians() - wheelPositions[i].angle.radians())
-
-            # hal.steeringSpeeds[i] = self.turningPIDs[i].tick(state.angle.radians(), wheelPositions[i].angle.radians(), dt)
             hal.steeringSpeeds[i] = self.turningPIDs[i].tickErr(steeringError, state.angle.radians(), dt)
 
         # TODO: fix/test this
