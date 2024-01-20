@@ -37,7 +37,7 @@ class SwerveDrive():
 
         self.kinematics = SwerveDrive4Kinematics(*self.modulePositions)
         # assert(len(wheelStates) == 4)
-        # self.odometry = SwerveDrive4Odometry(self.kinematics, angle, tuple(wheelStates), pose) #type: ignore // because of tuple type mismatch, which is assert gaurded
+        self.odometry = SwerveDrive4Odometry(self.kinematics, angle, tuple(wheelStates), pose) #type: ignore // because of tuple type mismatch, which is assert gaurded
         self.turningPIDs = [PIDController(0, 0, 0) for i in range(4)]
         self.drivePIDs = [PIDController(0, 0, 0) for i in range(4)]
 
@@ -67,8 +67,9 @@ class SwerveDrive():
             steeringError = angleWrap(state.angle.radians() - wheelPositions[i].angle.radians())
             hal.steeringSpeeds[i] = self.turningPIDs[i].tickErr(steeringError, state.angle.radians(), dt)
 
-        # TODO: fix/test this
-        # self.odometry.update(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]))
+    def updateOdometry(self, hal: robotHAL.RobotHALBuffer):
+        wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
+        self.odometry.update(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]))
 
 
     def optimizeTarget(self, target: SwerveModuleState, moduleAngle: Rotation2d) -> SwerveModuleState:

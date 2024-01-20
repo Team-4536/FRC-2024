@@ -40,13 +40,17 @@ class Robot(wpilib.TimedRobot):
         self.armCtrlr = wpilib.XboxController(1)
         self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
 
-        self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), [])
+        wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
+        self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
         self.time = TimeData(None)
+
+        self.abs = True
 
 
     def robotPeriodic(self) -> None:
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
+        self.drive.updateOdometry(self.hal)
 
     def teleopInit(self) -> None:
         pass
@@ -57,19 +61,25 @@ class Robot(wpilib.TimedRobot):
         if self.input.gyroReset:
             self.hal.yaw = 0
 
+        if self.input.absToggle:
+            self.abs = not self.abs
+
         defaultSpeed = 1
         maxSpeed = 4
         speedControlEdited = lerp(defaultSpeed, maxSpeed, self.input.speedCtrl)
-        turnScalar = 2
+        turnScalar = 4
 
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw))
 
-        speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+        if self.abs:
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+        else:
+            speed = ChassisSpeeds(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited, -self.input.turning * turnScalar)
 
-        self.table.putNumber("targetSpeedX", speed.vx)
-        self.table.putNumber("targetSpeedY", speed.vy)
-        self.table.putNumber("targetSpeed0", speed.omega)
+        pose = self.drive.odometry.getPose()
+        self.table.putNumber("odomX", pose.x )
+        self.table.putNumber("odomY", pose.y)
 
         self.drive.update(self.time.dt, self.hal, speed)
         self.hardware.update(self.hal)
