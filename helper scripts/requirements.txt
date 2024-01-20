@@ -93,10 +93,7 @@ To setup the git repository go to c:\ and make a new folder named "repos"
 open a cmd in the directory "c:\repos" and run the command "git clone https://github.com/Team-4536/FRC-2024.git"
 
 
-install robotpy information is taken from https://docs.wpilib.org/en/stable/docs/zero-to-robot/step-2/python-setup.html
-run "py -3 -m pip install robotpy"
-to update run: "py -3 -m pip install --upgrade robotpy "
-run "py -3 -m robotpy sync" this installs packages defined in pyproject.toml
+
 
 
 
@@ -134,5 +131,7 @@ if a security page opens click more options and run anyways
     - Click Finish
 
 
-To test that this works open a terminal in src of the repository and run "py -m robotpy sim"
-This should run wihtout error when running automomous or teleop
+Install pipenv by running: py -m pip install pipenv
+
+run the helper scripts/venvsetup.bat file in a non activated terminal.
+To test that enviroment is set up properly run "py -m robotpy sim"

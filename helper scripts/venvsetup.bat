@@ -1,5 +1,7 @@
-echo on
+rem You must run this in a deactivated terminal!
 
+
+echo on
 
 set pipvenvV=pipenv, version 2023.11.15
 
@@ -41,4 +43,5 @@ rem go to src to sync
 cd .\src
 rem GOTO src & RUN THIS AT THE END:
 pipenv run robotpy sync
+cd..
 .\.venv\scripts\activate
