@@ -67,7 +67,7 @@ class Robot(wpilib.TimedRobot):
         defaultSpeed = 1
         maxSpeed = 4
         speedControlEdited = lerp(defaultSpeed, maxSpeed, self.input.speedCtrl)
-        turnScalar = 4
+        turnScalar = 3
 
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw))
