@@ -11,8 +11,8 @@ from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 from wpimath.trajectory import TrajectoryUtil
 from wpimath.controller import HolonomicDriveController
 from wpimath.controller import PIDController, ProfiledPIDControllerRadians
-from wpimath.trajectory import TrapezoidProfileRadians
-import robotpy_apriltag
+from wpimath.trajectory import TrapezoidProfile
+
 
 class RobotInputs():
     def __init__(self, drive: wpilib.XboxController, arm: wpilib.XboxController) -> None:
@@ -86,7 +86,7 @@ class Robot(wpilib.TimedRobot):
         self.YController = PIDController(
             YControllerP, YControllerI, YControllerD)
         self.RotationController = ProfiledPIDControllerRadians(
-            RControllerP, RControllerI, RControllerD, TrapezoidProfileRadians.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
+            RControllerP, RControllerI, RControllerD, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
         trajectoryJSON = "deploy/path.wpilib.json"
         self.trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryJSON)
         self.holonomicController = HolonomicDriveController(
