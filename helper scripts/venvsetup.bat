@@ -1,5 +1,7 @@
 echo on
 
+start cmd
+
 set pipvenvV=pipenv, version 2023.11.15
 
 FOR /F "tokens=* USEBACKQ" %%F IN (`pipenv --version`) DO (
@@ -10,24 +12,34 @@ if "%%F" NEQ "%pipvenvV%" (
 
 cd c:\repos\FRC-2024
 
-rem deactivate
+
 
 rem delete .venv
-del /s /q .\.venv
+rem del /s /q .\.venv
+RD /S /Q .venv
 
 rem make new .venv file
+
+:waitvenvdel
+IF NOT EXIST ".venv" GOTO waitvenvdelend
+timeout /t 1
+goto waitvenvdel
+:waitvenvdelend
+
 mkdir .venv
 
+timeout /t 5
 rem have pipvenv make the eviroment
 pipenv install --python 3.12
 
 
-
+timeout /t 5
 
 cd c:\repos\FRC-2024
-.\.venv\scripts\activate
+call .\.venv\scripts\activate
 
 rem go to src to sync
-rem cd .\src
+cd .\src
 rem GOTO src & RUN THIS AT THE END:
-rem pipenv run robotpy sync
+pipenv run robotpy sync
+.\.venv\scripts\activate
