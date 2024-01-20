@@ -79,13 +79,13 @@ class Robot(wpilib.TimedRobot):
     def autonomousPeriodic(self) -> None:
         trajectoryHeadingAngle = 0
         # self.hal.stopMotors()
+        self.hardware.update(self.hal)
         CurrentPose = self.drive.odometry.getPose()
         self.autoTImer = timing.TimeData(self.autoTimer)
         goal = self.trajectory.sample(self.autoTimer.timeSinceInit)
         adjustedSpeeds = self.holonomicController.calculate(
             CurrentPose, goal, Rotation2d(trajectoryHeadingAngle))
         self.drive.update(self.autoTimer.dt, self.hal, adjustedSpeeds)
-        self.hardware.update(self.hal)
 
     def disabledInit(self) -> None:
         self.disabledPeriodic()
