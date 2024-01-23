@@ -1,0 +1,28 @@
+#
+# Use this configuration file to control what RobotPy packages are installed
+# on your RoboRIO
+#
+
+[tool.robotpy]
+
+# Version of robotpy this project depends on
+robotpy_version = "2024.1.1.3"
+
+# Which extra RobotPy components should be installed
+# -> equivalent to `pip install robotpy[extra1, ...]
+robotpy_extras = [
+   "swerveDrive",
+   "wpilib",
+   "wpimath",
+   "navx",
+   "ntcore",
+   "rev",
+   "phoenix6",
+   "PIDController",
+]
+
+# Other pip packages to install
+requires = [
+    "robotpy-commands-v2==2024.0.0b4",
+    "numpy"
+]
