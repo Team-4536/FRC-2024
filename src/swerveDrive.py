@@ -39,13 +39,15 @@ class SwerveDrive():
         prefs = ["FL", "FR", "BL", "BR"]
         for i in range(4):
             state = SwerveModuleState.optimize(targetStates[i], wheelPositions[i].angle)
-            if hal.steeringPositions[i] < 
+            if abs(hal.steeringPositions[i]) - abs(targetStates[i].angle.radians()) < .09:
+                hal.driveSpeeds[i] = targetStates[i].speed / self.maxSpeed
+            else:
+                hal.driveSpeeds[i] = 0
             turnSpeed = self.turningPIDs[i].tick(targetStates[i].angle.radians(), state.angle.radians(), dt) # type: ignore // Rotation2d.radians() has messed up type annotations
-            # TODO: currently just does percent of max speed to motors, how to make accurate? is it?
-            hal.driveSpeeds[i] = targetStates[i].speed / self.maxSpeed
+                # TODO: currently just does percent of max speed to motors, how to make accurate? is it?
             hal.steeringSpeeds[i] = turnSpeed / self.maxTurnSpeed
             telemetryTable.putNumber(prefs[i] + "target", targetStates[i].angle.radians()) # type: ignore // radians >:(
 
-        self.odometry.update(Rotation2d(hal.yaw), *wheelPositions)
+     ##   self.odometry.update(Rotation2d(hal.yaw), *wheelPositions)
 
     # TODO: reset state function
