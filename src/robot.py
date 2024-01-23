@@ -1,22 +1,20 @@
-from gettext import translation
-from xml.sax.xmlreader import InputSource
+
 
 import robotHAL
 import wpilib
+import wpimath.controller
 from inputs import deadZone
 from ntcore import NetworkTableInstance
-from phoenix6.hardware import CANcoder
 from PIDController import PIDController
 from real import lerp
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from wpimath.controller import (
     HolonomicDriveController,
-    PIDController,
     ProfiledPIDControllerRadians,
 )
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
-from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition, SwerveModuleState
+from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 from wpimath.trajectory import TrajectoryUtil, TrapezoidProfileRadians
 
 
@@ -101,9 +99,9 @@ class Robot(wpilib.TimedRobot):
         RControllerD = 0
         T_PConstraintsVolocityMax = 6.28
         T_PConstraintsRotaionAccelerationMax = 1
-        self.XController = PIDController(
+        self.XController = wpimath.controller.PIDController(
             XControllerP, XControllerI, XControllerD)
-        self.YController = PIDController(
+        self.YController = wpimath.controller.PIDController(
             YControllerP, YControllerI, YControllerD)
         self.RotationController = ProfiledPIDControllerRadians(
             RControllerP, RControllerI, RControllerD, TrapezoidProfileRadians.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
