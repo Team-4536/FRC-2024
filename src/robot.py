@@ -10,8 +10,14 @@ from PIDController import PIDController
 from real import lerp
 from swerveDrive import SwerveDrive
 from timing import TimeData
+from wpimath.controller import (
+    HolonomicDriveController,
+    PIDController,
+    ProfiledPIDControllerRadians,
+)
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition, SwerveModuleState
+from wpimath.trajectory import TrajectoryUtil, TrapezoidProfileRadians
 
 
 class RobotInputs():
@@ -100,8 +106,8 @@ class Robot(wpilib.TimedRobot):
         self.YController = PIDController(
             YControllerP, YControllerI, YControllerD)
         self.RotationController = ProfiledPIDControllerRadians(
-            RControllerP, RControllerI, RControllerD, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
-        trajectoryJSON = "deploy/path.wpilib.json"
+            RControllerP, RControllerI, RControllerD, TrapezoidProfileRadians.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
+        trajectoryJSON = "src/deploy/output/test.wpilib.json"
         self.trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryJSON)
         self.holonomicController = HolonomicDriveController(
             self.XController, self.YController, self.RotationController)
