@@ -16,3 +16,4 @@ class scaler:
     
     def setPower(self, power):
         self.power = power
+        
