@@ -4,13 +4,11 @@ import wpilib
 from ntcore import NetworkTableInstance
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from inputs import deadZone
-from utils import Scaler
+from utils import Scalar
 from phoenix6.hardware import CANcoder
 import robotHAL
 from ntcore import NetworkTableInstance
 from wpimath.kinematics import SwerveModuleState
-
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from real import lerp
@@ -19,13 +17,19 @@ from wpimath.geometry import Translation2d
 
 class RobotInputs():
     def __init__(self, drive: wpilib.XboxController, arm: wpilib.XboxController) -> None:
-        self.x_scaler = Scaler(deadZone = .1, power = 1)
-        self.y_scaler = Scaler(deadZone = .1, power = 1)
-        self.rot_scaler = Scaler(deadZone = .1, power = 1)
+        self.xScalar = Scalar(deadZone = .1, exponent = 1)
+        self.yScalar = Scalar(deadZone = .1, exponent = 1)
+        self.rotScalar = Scalar(deadZone = .1, exponent = 1)
 
+<<<<<<< HEAD
         self.driveX: float = self.x_scaler(drive.getLeftX())
         self.driveY: float = self.y_scaler(-drive.getLeftY())
         self.turning: float = self.rot_scaler(drive.getRightX())
+=======
+        self.driveX: float = self.xScalar(drive.getLeftX())
+        self.driveY: float = self.yScalar(-drive.getLeftY())
+        self.turning: float = self.rotScalar(drive.getRightX())
+>>>>>>> e6e09e6 (deadzone func to Scalar class)
         self.speedCtrl: float = drive.getRightTriggerAxis()
 
         self.gyroReset: bool = drive.getYButtonPressed()
