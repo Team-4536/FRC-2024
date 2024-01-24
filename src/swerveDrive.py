@@ -32,7 +32,7 @@ class SwerveDrive():
             ]
 
         self.table = NetworkTableInstance.getDefault().getTable("Swerve settings")
-        self.table.putNumber("SteeringKp", .4)
+        self.table.putNumber("SteeringKp", .3)
         self.table.putNumber("DriveKp", 0.03)
         self.table.putNumber("DriveKff", 0.2)
 
@@ -63,7 +63,9 @@ class SwerveDrive():
         for i in range(4):
             # state = SwerveModuleState.optimize(targetStates[i], wheelPositions[i].angle)
             state = self.optimizeTarget(targetStates[i], wheelPositions[i].angle)
-            if abs(hal.steeringPositions[i]) - abs(targetStates[i].angle.radians()) < .09:
+            if abs(hal.driveSpeedMeasured[i]) > 0.1:
+                hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
+            elif angleWrap(abs(hal.steeringPositions[i] - state.angle.radians())) < 0.09:
                 hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
             else:
                 hal.driveSpeeds[i] = 0
