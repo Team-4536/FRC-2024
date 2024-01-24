@@ -21,15 +21,9 @@ class RobotInputs():
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
 
-<<<<<<< HEAD
-        self.driveX: float = self.x_scaler(drive.getLeftX())
-        self.driveY: float = self.y_scaler(-drive.getLeftY())
-        self.turning: float = self.rot_scaler(drive.getRightX())
-=======
         self.driveX: float = self.xScalar(drive.getLeftX())
         self.driveY: float = self.yScalar(-drive.getLeftY())
         self.turning: float = self.rotScalar(drive.getRightX())
->>>>>>> e6e09e6 (deadzone func to Scalar class)
         self.speedCtrl: float = drive.getRightTriggerAxis()
 
         self.gyroReset: bool = drive.getYButtonPressed()
