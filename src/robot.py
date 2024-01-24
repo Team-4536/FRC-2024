@@ -5,6 +5,7 @@ from ntcore import NetworkTableInstance
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 from inputs import deadZone
+from utils import Scaler
 from phoenix6.hardware import CANcoder
 import robotHAL
 from ntcore import NetworkTableInstance
@@ -18,9 +19,15 @@ from wpimath.geometry import Translation2d
 
 class RobotInputs():
     def __init__(self, drive: wpilib.XboxController, arm: wpilib.XboxController) -> None:
-        self.driveX: float = deadZone(drive.getLeftX())
-        self.driveY: float = deadZone(-drive.getLeftY())
-        self.turning: float = deadZone(drive.getRightX())
+        self.x_scaler = Scaler(deadZone = .1, power = 1)
+        self.y_scaler = Scaler(deadZone = .1, power = 1)
+        self.rot_scaler = Scaler(deadZone = .1, power = 1)
+
+        self.x_scaler(drive.getLeftX())
+
+        self.driveX: float = self.x_scaler(drive.getLeftX())
+        self.driveY: float = self.y_scaler(drive.getLeftY())
+        self.turning: float = self.rot_scaler(drive.getRightX())
         self.speedCtrl: float = drive.getRightTriggerAxis()
 
         self.gyroReset: bool = drive.getYButtonPressed()
