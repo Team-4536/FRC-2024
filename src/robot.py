@@ -23,10 +23,8 @@ class RobotInputs():
         self.y_scaler = Scaler(deadZone = .1, power = 1)
         self.rot_scaler = Scaler(deadZone = .1, power = 1)
 
-        self.x_scaler(drive.getLeftX())
-
         self.driveX: float = self.x_scaler(drive.getLeftX())
-        self.driveY: float = self.y_scaler(drive.getLeftY())
+        self.driveY: float = self.y_scaler(-drive.getLeftY())
         self.turning: float = self.rot_scaler(drive.getRightX())
         self.speedCtrl: float = drive.getRightTriggerAxis()
 
