@@ -115,6 +115,9 @@ class Robot(wpilib.TimedRobot):
         # self.hal.stopMotors()
         CurrentPose = self.drive.odometry.getPose()
         goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
+        self.table.putNumber("pathTargetX", goal.pose.X())
+        self.table.putNumber("pathTargetY", goal.pose.Y())
+        self.table.putNumber("velocitytargt", goal.velocity)
         adjustedSpeeds = self.holonomicController.calculate(
             CurrentPose, goal, Rotation2d(trajectoryHeadingAngle))
         self.drive.update(self.time.dt, self.hal, adjustedSpeeds)
