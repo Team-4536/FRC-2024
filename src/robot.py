@@ -135,7 +135,7 @@ class Robot(wpilib.TimedRobot):
         #     CurrentPose, goal, Rotation2d(trajectoryHeadingAngle))
         xSpeed = self.XController.calculate(currentPose.X(), targetX)
         ySpeed = self.YController.calculate(currentPose.Y(), targetY)
-        rSpeed = self.RotationController.calculate(currentPose.rotation.Radians(), targetR)
+        rSpeed = self.RotationController.calculate(currentPose.rotation().radians(), targetR)
         driveSpeed = ChassisSpeeds(xSpeed, ySpeed, rSpeed)
 
         self.drive.update(self.time.dt, self.hal, driveSpeed)
