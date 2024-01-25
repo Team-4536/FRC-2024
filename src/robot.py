@@ -10,7 +10,7 @@ from phoenix6.hardware import CANcoder
 import robotHAL
 from ntcore import NetworkTableInstance
 from wpimath.kinematics import SwerveModuleState
-
+import math
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from real import lerp
@@ -23,8 +23,9 @@ class RobotInputs():
         self.y_scaler = Scaler(deadZone = .1, power = 1)
         self.rot_scaler = Scaler(deadZone = .1, power = 1)
 
-        self.driveX: float = self.x_scaler(drive.getLeftX())
-        self.driveY: float = self.y_scaler(-drive.getLeftY())
+        ##flipped x and y inputs so they are relative to bot
+        self.driveX: float = self.x_scaler(-drive.getLeftY())
+        self.driveY: float = self.y_scaler(-drive.getLeftX())
         self.turning: float = self.rot_scaler(drive.getRightX())
         self.speedCtrl: float = drive.getRightTriggerAxis()
 
