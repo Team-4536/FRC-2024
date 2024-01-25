@@ -2,10 +2,15 @@
 import robotHAL
 import wpilib
 import wpimath.controller
-from inputs import deadZone
+from ntcore import NetworkTableInstance
+from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
+from utils import Scalar
+from phoenix6.hardware import CANcoder
 from ntcore import NetworkTableInstance
 from PIDController import PIDController
-from real import lerp
+#from real import lerp
+from wpimath.kinematics import SwerveModuleState
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from wpimath._controls._controls.trajectory import Trajectory
@@ -20,9 +25,13 @@ from wpimath.trajectory import TrajectoryUtil, TrapezoidProfile, TrapezoidProfil
 
 class RobotInputs():
     def __init__(self, drive: wpilib.XboxController, arm: wpilib.XboxController) -> None:
-        self.driveX: float = deadZone(drive.getLeftX())
-        self.driveY: float = deadZone(-drive.getLeftY())
-        self.turning: float = deadZone(drive.getRightX())
+        self.xScalar = Scalar(deadZone = .1, exponent = 1)
+        self.yScalar = Scalar(deadZone = .1, exponent = 1)
+        self.rotScalar = Scalar(deadZone = .1, exponent = 1)
+
+        self.driveX: float = self.xScalar(drive.getLeftX())
+        self.driveY: float = self.yScalar(-drive.getLeftY())
+        self.turning: float = self.rotScalar(drive.getRightX())
         self.speedCtrl: float = drive.getRightTriggerAxis()
 
         self.gyroReset: bool = drive.getYButtonPressed()
@@ -40,7 +49,7 @@ class Robot(wpilib.TimedRobot):
 
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
-        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
+        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr) 
 
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
