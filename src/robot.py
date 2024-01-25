@@ -122,7 +122,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("pathTargetVelX", 0)
         self.table.putNumber("pathTargetVelY", 0)
         self.table.putNumber("pathTargetVelR", 0)
-        
+
 
     def autonomousPeriodic(self) -> None:
         # trajectoryHeadingAngle = 0
