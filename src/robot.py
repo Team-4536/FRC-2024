@@ -41,6 +41,7 @@ class RobotInputs():
         self.gyroReset: bool = drive.getYButtonPressed()
         self.brakeButton: bool = drive.getBButtonPressed()
         self.absToggle: bool = drive.getXButtonPressed()
+        self.odometryReset: bool = drive.getStartButtonPressed()
 
 
 class Robot(wpilib.TimedRobot):
@@ -66,6 +67,9 @@ class Robot(wpilib.TimedRobot):
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
         self.drive.updateOdometry(self.hal)
+        if self.input.odometryReset:
+            wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
+            self.drive.odometry.resetPosition(Rotation2d(self.hal.yaw), tuple(wheelPositions) ,Pose2d(0, 0, Rotation2d(self.hal.yaw))) # type: ignore
 
     def teleopInit(self) -> None:
         pass
@@ -101,19 +105,22 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
+        self.hal.yaw = 0
+        wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
+        self.drive.odometry.resetPosition(Rotation2d(self.hal.yaw), tuple(wheelPositions) ,Pose2d(0, 0, Rotation2d(self.hal.yaw))) # type: ignore
         self.autoStartTime = self.time.timeSinceInit
         XControllerP = 1
         XControllerI = 0
         XControllerD = 0
-        self.table.putNumber("pathX-P", 1)
+        self.table.putNumber("path/Xp", 1)
         YControllerP = 1
         YControllerI = 0
         YControllerD = 0
-        self.table.putNumber("pathY-p", 1)
-        RControllerP = 1
+        self.table.putNumber("path/Yp", 1)
+        RControllerP = 5
         RControllerI = 0
         RControllerD = 0
-        self.table.putNumber('pathR-p', 1)
+        self.table.putNumber('path/Rp', 5)
         T_PConstraintsVolocityMax = 6.28
         T_PConstraintsRotaionAccelerationMax = 1
         self.XController = wpimath.controller.PIDController(
@@ -122,43 +129,47 @@ class Robot(wpilib.TimedRobot):
             YControllerP, YControllerI, YControllerD)
         self.RotationController = ProfiledPIDControllerRadians(
             RControllerP, RControllerI, RControllerD, TrapezoidProfileRadians.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
-        trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
+        if self.isSimulation():
+            trajectoryJSON = "src/deploy/output/test.wpilib.json"
+        else:
+            trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
         #trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
         self.trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryJSON)
         self.holonomicController = HolonomicDriveController(
-            self.XController, self.YController, self.RotationController)
-        self.table.putNumber("pathTargetVelX", 0)
-        self.table.putNumber("pathTargetVelY", 0)
-        self.table.putNumber("pathTargetVelR", 0)
-
+             self.XController, self.YController, self.RotationController)
+        self.table.putNumber("path/TargetX", 0)
+        self.table.putNumber("path/TargetY", 0)
+        self.table.putNumber("path/TargetR", 0)
 
     def autonomousPeriodic(self) -> None:
-        trajectoryHeadingAngle = 0
+        #trajectoryHeadingAngle = 0
         # # self.hal.stopMotors()
         currentPose = self.drive.odometry.getPose()
-        goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
-        # goal = Trajectory.State()
-        # targetX = self.table.getNumber("pathTargetVelX", None)
-        # targetY = self.table.getNumber("pathTargetVelY", None)
-        # targetR = self.table.getNumber("pathTargetVelR", None)
-        # assert(targetX is not None)
-        # assert(targetY is not None)
-        # assert(targetR is not None)
-        # # #goal = TrapezoidProfile.State(0, 0)
-        self.table.putNumber("pathTargetX", goal.pose.X())
-        self.table.putNumber("pathTargetY", goal.pose.Y())
-        self.table.putNumber("velocitytargt", goal.velocity)
-        adjustedSpeeds = self.holonomicController.calculate(
-          currentPose, goal, Rotation2d(trajectoryHeadingAngle))
-        # self.XController.setP(self.table.getNumber("pathX-p", 1.0))
-        # self.YController.setP(self.table.getNumber('pathY-p', 1.0))
-        # self.RotationController.setP(self.table.getNumber('pathR-p', 1.0))
-        # xSpeed = self.XController.calculate(currentPose.X(), targetX)
-        # ySpeed = self.YController.calculate(currentPose.Y(), targetY)
-        # rSpeed = self.RotationController.calculate(currentPose.rotation().radians(), targetR)
-        #driveSpeed = ChassisSpeeds(xSpeed, ySpeed, rSpeed)
+        # goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
+        # # goal = Trajectory.State()
+        targetX = self.table.getNumber("path/TargetX", 0)
+        targetY = self.table.getNumber("path/TargetY", 0)
+        targetR = self.table.getNumber("path/TargetR", 0)
+        # # assert(targetX is not None)
+        # # assert(targetY is not None)
+        # # assert(targetR is not None)
+        # # # #goal = TrapezoidProfile.State(0, 0)
+        # self.table.putNumber("pathTargetX", goal.pose.X())
+        # self.table.putNumber("pathTargetY", goal.pose.Y())
+        # self.table.putNumber('pathTargetRotation', goal.pose.rotation().radians())
+        # self.table.putNumber("velocitytargt", goal.velocity)
+        # adjustedSpeeds = self.holonomicController.calculate(
+        #   currentPose, goal, goal.pose.rotation())
+        self.XController.setP(self.table.getNumber("path/Xp", 1.0))
+        self.YController.setP(self.table.getNumber('path/Yp', 1.0))
+        self.RotationController.setP(self.table.getNumber('path/Rp', 1.0))
+        xSpeed = self.XController.calculate(currentPose.X(), targetX)
+        ySpeed = self.YController.calculate(currentPose.Y(), targetY)
+        rSpeed = self.RotationController.calculate(currentPose.rotation().radians(), targetR)
+        t = Translation2d(xSpeed, ySpeed).rotateBy(Rotation2d(-self.hal.yaw))
+        driveSpeed = ChassisSpeeds(t.x, t.y, rSpeed)
 
-        self.drive.update(self.time.dt, self.hal, adjustedSpeeds)
+        self.drive.update(self.time.dt, self.hal, driveSpeed)
         self.hardware.update(self.hal)
 
         pose = self.drive.odometry.getPose()
