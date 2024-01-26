@@ -1,7 +1,9 @@
 {
     "_meta": {
         "hash": {
+
             "sha256": "bf133a76330de696b2b8c7d3a93630f673d69bb300962a7b90b5c44a9946316a"
+
         },
         "pipfile-spec": 6,
         "requires": {
@@ -177,6 +179,16 @@
             "markers": "python_version >= '3.6'",
             "version": "==3.4.0"
         },
+        "phoenix6": {
+            "hashes": [
+                "sha256:48f79760706515157512d4596a2964c327235da53dd7b4cadbc50c4bd61b3b65",
+                "sha256:4aa88861786861aa647193052da0df0d8f26a91cabfa5e84d85fa71af0de649b",
+                "sha256:65b687a22b462e48db0e02224f43b641a9a8d4df7c7c06cdf60da097fce8be60",
+                "sha256:c3c75782066665be9d37d3641c061be4bf1460e838f482c8f5723e754080ba76",
+                "sha256:c70dce1831afd224e10705483d1e383817bd58ff604cf139d64ba7bb8f9f5df8"
+            ],
+            "version": "==24.1.0"
+        },
         "pint": {
             "hashes": [
                 "sha256:df79b6b5f1beb7ed0cd55d91a0766fc55f972f757a9364e844958c05e8eb66f9",
@@ -270,11 +282,20 @@
             "version": "==2.1.2"
         },
         "robotpy": {
+            "extras": [
+                "PIDController",
+                "navx",
+                "ntcore",
+                "phoenix6",
+                "rev",
+                "swerveDrive",
+                "wpilib",
+                "wpimath"
+            ],
             "hashes": [
                 "sha256:c21f49f5af79d320abcb61ee08524f27376df2b297d2e60ef55d9e00edd135bc",
                 "sha256:d7e1fceae2b1f9b214b81fdceea8d05f56f9add0f2518381cef7559bc4d5aa3f"
             ],
-            "index": "pypi",
             "markers": "python_version < '3.13' and python_version >= '3.8'",
             "version": "==2024.2.1.1"
         },
@@ -335,6 +356,49 @@
             ],
             "markers": "platform_machine != 'roborio' and platform_machine != 'armv7l' and platform_machine != 'aarch64'",
             "version": "==2024.1.3"
+        },
+        "robotpy-navx": {
+            "hashes": [
+                "sha256:00282c61864bfcbd104cbe2ee10b0bcfb517adb27586f43cc89a631c9d471189",
+                "sha256:004b6b3a88cafda02b7258203687d844c91f921d2c204dd8838390f17a5febed",
+                "sha256:0c3e382fe21196d3eeaa906d9e82b18711af7690d159cb7af999b8a733d39ebb",
+                "sha256:1e24ba17aa30bd926569cd3def6ae1c96b64ba1a02a7c87a42c51b16d82a613a",
+                "sha256:383e7cdc303934932fabfe33a7fae536d8dbc133d7135a08fc26f821592cdbfd",
+                "sha256:44bbf7bbfaa26ecf59a8a361842f5e89bb7ab44116e4b6a82675d98813c7e045",
+                "sha256:5c7e5edf7c51d9e9280215cd182a3c71d65fafdf1a1f9e2ef6c98cbd2bb0ff9a",
+                "sha256:5e5b7389dac357825c76fe69e09475d00477c2a1de2b6b6b7ef00f4461e6cf06",
+                "sha256:6e2fc4c871a20d305fb9f6ba5cb5cb424f9a31b78327b77c3f7e28c2437f84d8",
+                "sha256:816d52d172ff1bfc87f10a91fbbeb36f873f6e02a1c16fb3befdcad73cf266f2",
+                "sha256:82598483738393ad7e94fb3ad73628c2ee842329ef526e1b52a05b7945ca10f4",
+                "sha256:a56f6c71678b23cd3f9ce376d7040243b921c01dda8d0de8a828b4a2db45d6e2",
+                "sha256:a6757655b2aaa1d8028068f22b4c0fbddcb38d3189f9efcaa6f97204d70d2632",
+                "sha256:ba22ed1be09525ebb35e9a5ee1a4eca7953848a8b0fec167398e167db9490025",
+                "sha256:d896a66171b18f47d7d47c4516a00c47da77cc7e68f91c182dfa38adb61fdc64",
+                "sha256:ebc481d6d8b3921d7fb58a9d7820fd7ccc94d1aac2fe189ac35dfcc38c6bfa91"
+            ],
+            "version": "==2024.1.0"
+        },
+        "robotpy-rev": {
+            "hashes": [
+                "sha256:15cc9e8e7bccbea8f508c53f8fe40dafb539b1b07b54f45f13445b370fcb73a9",
+                "sha256:1a6126ae57485eaa3f57657e81e021e8f762388a167ddf9bca520a527bf880cd",
+                "sha256:331bb9e17b18d844a940a9b1944fd335f739d9885c51de3ed2895c34c2200c1d",
+                "sha256:3df12e1c5d9df3a4492abfc8d192006182d4356b687708edf214e1b683911017",
+                "sha256:48634ff5bb8cf0fc9233fa8f69fb2387d08d59758f9536d762bb8e7374351834",
+                "sha256:4f981f40cb848cbffa1d678fdaa8d05ebd1c727bc0572142626714c79ba6bcd9",
+                "sha256:59ae89a3450444fbca48beeb9abc1cadd39452f1fb9a059f06d41c7bb8b24af6",
+                "sha256:644592718825d8029a0b506986cdcbaa8abfeff59f750305c0ca91849a6a38eb",
+                "sha256:8673fbc3ceb5f69674560f1877128429d3365bf1e61594b70d593322ca455960",
+                "sha256:a62b32f743ef9e27c54443819544e31cdaaccbf24db07c4766d055958864b409",
+                "sha256:bcb2679eaeb73a90e83694192e64fa8c3a87856ec42edfc16ffa0f718fb2400f",
+                "sha256:c4698be1c7df04ebb7d37cf80c94d6e4c626ab0a55d64c66556085b0b4bf994a",
+                "sha256:d021d19d2116279aa912edd93b6864fc36c624aa138f0a54a628df210ff97a0f",
+                "sha256:d5bff680765dadb2685a29640804259bfa3794a7b918d9242b6c27895e6e8417",
+                "sha256:dfcd8c4497e09cb83d9370ddb98c5ae9683b3a9d90b8e5de126a490061244ceb",
+                "sha256:ffd8748e1425f674c1fb0fe51620f7da9f40c11a7643f9c03139747e7237aea0"
+            ],
+            "version": "==2024.2.0"
+
         },
         "robotpy-wpilib-utilities": {
             "hashes": [
@@ -403,9 +467,19 @@
                 "sha256:f69a8b2e2c7a626ab3fed8e5ca3dc017e2871226ef03ec045e4cd7da658d873d",
                 "sha256:f8c44c5fb1300299d65a89bbb7162465a8201a64175ff06f35768b6ed1c4e4f0",
                 "sha256:fdee662f432ccd717366da9ea3b5e152e84ee74e6a4c2a95d4c251ff82736fcf"
+
             ],
             "markers": "python_version >= '3.8'",
             "version": "==2024.2.1.2"
+        },
+        "setuptools": {
+            "hashes": [
+                "sha256:385eb4edd9c9d5c17540511303e39a147ce2fc04bc55289c322b9e5904fe2c05",
+                "sha256:be1af57fc409f93647f2e8e4573a142ed38724b8cdd389706a867bb4efcf1e78"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==69.0.3"
+
         },
         "tomli": {
             "hashes": [
