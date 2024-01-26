@@ -18,11 +18,13 @@ from wpimath.geometry import Translation2d
 
 class RobotInputs():
     def __init__(self, drive: wpilib.XboxController, arm: wpilib.XboxController) -> None:
+        # scalars
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
+        self.testScalar = Scalar(deadZone = .1, exponent = 1)
 
-
+        # drive
         ##flipped x and y inputs so they are relative to bot
         self.driveX: float = self.xScalar(-drive.getLeftY())
         self.driveY: float = self.yScalar(-drive.getLeftX())
@@ -33,6 +35,12 @@ class RobotInputs():
         self.gyroReset: bool = drive.getYButtonPressed()
         self.brakeButton: bool = drive.getBButtonPressed()
         self.absToggle: bool = drive.getXButtonPressed()
+
+        # mechanism
+        self.shootSpeaker: bool = arm.getYButton()
+        self.shootAmp: bool = arm.getBButton()
+
+        self.shooterJoystick: float = self.testScalar(-arm.getRightY())
 
 
 class Robot(wpilib.TimedRobot):
@@ -87,6 +95,17 @@ class Robot(wpilib.TimedRobot):
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
+
+        # shooter controls
+
+        # for testing
+        self.hal.shooterSpeed = self.input.shooterJoystick
+
+        if self.input.shootSpeaker:
+            self.hal.shooterSpeed = 0.8 # <-- not tested
+
+        if self.input.shootAmp:
+            self.hal.shooterSpeed = 0.4 # <-- not tested
 
         self.drive.update(self.time.dt, self.hal, speed)
         self.hardware.update(self.hal)

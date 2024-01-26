@@ -16,19 +16,41 @@ class RobotHALBuffer():
         self.steeringPositions: list[float] = [0, 0, 0, 0] # in rads
         self.driveSpeedMeasured: list[float] = [0, 0, 0, 0] # m/s // output from encoders
 
+        self.shooterSpeed: float = 0 # -1 to 1 // volts to motor controller
+        self.shooterAimSpeed: float = 0 # ^
+        self.shooterIntakeSpeed: float = 0 # ^ 
+
+        self.shooterTopPos: float = 0 # raw encoder readings
+        self.shooterBottomPos: float = 0 # ^
+        self.shooterAimPos: float = 0 # ^
+        self.shooterIntakePos: float = 0 # ^
+
         self.yaw: float = 0
 
     def resetEncoders(self) -> None:
+        # swerve encoders
         for i in range(4):
             self.drivePositions[i] = 0
             self.steeringPositions[i] = 0
+        
+        # shooter encoders
+        self.shooterPos = 0
+        self.shooterAimPos = 0
+        self.shooterIntakePos = 0
 
     def stopMotors(self) -> None:
+        # swerve motors
         for i in range(4):
             self.driveSpeeds[i] = 0
             self.steeringSpeeds[i] = 0
 
+        # shooter motors
+        self.shooterSpeed = 0
+        self.shooterAimSpeed = 0
+        self.shooterIntakeSpeed = 0
+
     def publish(self, table: ntcore.NetworkTable) -> None:
+        # swerve modules
         prefs = ["FL", "FR", "BL", "BR"]
         for i in range(4):
             table.putNumber(prefs[i] + "DriveSpeed", self.driveSpeeds[i])
@@ -37,6 +59,17 @@ class RobotHALBuffer():
             table.putNumber(prefs[i] + "SteerPos", self.steeringPositions[i])
             table.putNumber(prefs[i] + "DriveSpeedMeasured", self.driveSpeedMeasured[i])
 
+        # shooter motors
+        table.putNumber("ShooterSpeed", self.shooterSpeed)
+        table.putNumber("ShooterAimSpeed", self.shooterAimSpeed)
+        table.putNumber("ShooterIntakeSpeed", self.shooterIntakeSpeed)
+
+        table.putNumber("ShooterPos", self.shooterTopPos)
+        table.putNumber("ShooterPos", self.shooterBottomPos)
+        table.putNumber("ShooterAimPos", self.shooterAimPos)
+        table.putNumber("ShooterIntakePos", self.shooterIntakePos)
+
+        # gyro
         table.putNumber("yaw", self.yaw)
 
 class RobotHAL():
@@ -66,6 +99,18 @@ class RobotHAL():
 
         self.steerEncoders = [CANcoder(21), CANcoder(22), CANcoder(23), CANcoder(24)]
 
+        # shooter motors
+        self.shooterTopMotor = rev.CANSparkMax(33, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterBottomMotor = rev.CANSparkMax(34, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterAimMotor = rev.CANSparkMax(35, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterIntakeMotor = rev.CANSparkMax(36, rev.CANSparkMax.MotorType.kBrushless)
+        # shooter encoders
+        self.shooterTopEncoder = self.shooterTopMotor.getEncoder()
+        self.shooterBottomEncoder = self.shooterBottomMotor.getEncoder()
+        self.shooterAimEncoder = self.shooterAimMotor.getEncoder()
+        self.shooterIntakeEncoder = self.shooterIntakeMotor.getEncoder()
+
+        # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
 
         self.driveGearing: float = 6.12 # motor to wheel rotations
@@ -89,6 +134,17 @@ class RobotHAL():
         for i in range(0, 4):
             e = self.steerEncoders[i]
             buf.steeringPositions[i] = math.radians(e.get_position().value_as_double * 360)
+
+        # shooter motors speeds
+        self.shooterTopMotor.set(buf.shooterSpeed)
+        self.shooterBottomMotor.set(-buf.shooterSpeed)
+        self.shooterAimMotor.set(buf.shooterAimSpeed)
+        self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
+        # get shooter encoder values
+        self.shooterTopPos = self.shooterTopEncoder.getPosition()
+        self.shooterBottomPos = self.shooterBottomEncoder.getPosition()
+        self.shooterAimPos = self.shooterAimEncoder.getPosition()
+        self.shooterIntakePos = self.shooterIntakeEncoder.getPosition()
 
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
