@@ -9,7 +9,7 @@ from utils import Scalar
 from phoenix6.hardware import CANcoder
 from ntcore import NetworkTableInstance
 from PIDController import PIDController
-#from real import lerp
+from real import lerp
 from wpimath.kinematics import SwerveModuleState
 import math
 from swerveDrive import SwerveDrive
@@ -119,8 +119,9 @@ class Robot(wpilib.TimedRobot):
             YControllerP, YControllerI, YControllerD)
         self.RotationController = ProfiledPIDControllerRadians(
             RControllerP, RControllerI, RControllerD, TrapezoidProfileRadians.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
-        trajectoryJSON = "src/deploy/output/test.wpilib.json"
-        self.trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryJSON)
+        trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
+        #trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
+        #self.trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryJSON)
         self.holonomicController = HolonomicDriveController(
             self.XController, self.YController, self.RotationController)
         self.table.putNumber("pathTargetVelX", 0)
@@ -129,10 +130,10 @@ class Robot(wpilib.TimedRobot):
 
 
     def autonomousPeriodic(self) -> None:
-        # trajectoryHeadingAngle = 0
+        #trajectoryHeadingAngle = 0
         # # self.hal.stopMotors()
         currentPose = self.drive.odometry.getPose()
-        # #goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
+        #goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
         # goal = Trajectory.State()
         targetX = self.table.getNumber("pathTargetVelX", None)
         targetY = self.table.getNumber("pathTargetVelY", None)
@@ -141,11 +142,11 @@ class Robot(wpilib.TimedRobot):
         assert(targetY is not None)
         assert(targetR is not None)
         # #goal = TrapezoidProfile.State(0, 0)
-        # self.table.putNumber("pathTargetX", goal.pose.X())
-        # self.table.putNumber("pathTargetY", goal.pose.Y())
-        # self.table.putNumber("velocitytargt", goal.velocity)
-        # adjustedSpeeds = self.holonomicController.calculate(
-        #     CurrentPose, goal, Rotation2d(trajectoryHeadingAngle))
+        #self.table.putNumber("pathTargetX", goal.pose.X())
+        #self.table.putNumber("pathTargetY", goal.pose.Y())
+        #self.table.putNumber("velocitytargt", goal.velocity)
+        #adjustedSpeeds = self.holonomicController.calculate(
+           #  CurrentPose, goal, Rotation2d(trajectoryHeadingAngle))
         xSpeed = self.XController.calculate(currentPose.X(), targetX)
         ySpeed = self.YController.calculate(currentPose.Y(), targetY)
         rSpeed = self.RotationController.calculate(currentPose.rotation().radians(), targetR)
