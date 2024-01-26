@@ -14,6 +14,7 @@ from swerveDrive import SwerveDrive
 from timing import TimeData
 from real import lerp
 from wpimath.geometry import Translation2d
+from robotHAL import RobotHAL, RobotHALBuffer
 
 
 class RobotInputs():
@@ -21,18 +22,25 @@ class RobotInputs():
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
+        self.intakeScalar = Scalar(deadZone = .1, exponent = 1)
 
-
+        # drive controller
         ##flipped x and y inputs so they are relative to bot
-        self.driveX: float = self.x_scaler(-drive.getLeftY())
-        self.driveY: float = self.y_scaler(-drive.getLeftX())
-        self.turning: float = self.rot_scaler(drive.getRightX())
+        self.driveX: float = self.xScalar(-drive.getLeftY())
+        self.driveY: float = self.yScalar(-drive.getLeftX())
+        self.turning: float = self.rotScalar(drive.getRightX())
 
         self.speedCtrl: float = drive.getRightTriggerAxis()
 
         self.gyroReset: bool = drive.getYButtonPressed()
         self.brakeButton: bool = drive.getBButtonPressed()
         self.absToggle: bool = drive.getXButtonPressed()
+
+        # arm controller
+        self.intake: bool = arm.getAButton()
+
+        # this is all temporary for testing
+        self.intakeJoystick: float = self.intakeScalar(-arm.getLeftY())
 
 
 class Robot(wpilib.TimedRobot):
@@ -88,6 +96,13 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
 
+        for i in range(2):
+            self.hal.intakeSpeeds[i] = self.input.intakeJoystick * 0.8 # <- scalar for testing
+
+        if self.input.intake:
+            self.hal.intakeSpeeds[0] = 1
+            self.hal.intakeSpeeds[1] = 1
+            
         self.drive.update(self.time.dt, self.hal, speed)
         self.hardware.update(self.hal)
 
