@@ -11,6 +11,7 @@ from ntcore import NetworkTableInstance
 from PIDController import PIDController
 #from real import lerp
 from wpimath.kinematics import SwerveModuleState
+import math
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from wpimath._controls._controls.trajectory import Trajectory
@@ -29,9 +30,12 @@ class RobotInputs():
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
 
-        self.driveX: float = self.xScalar(drive.getLeftX())
-        self.driveY: float = self.yScalar(-drive.getLeftY())
+
+        ##flipped x and y inputs so they are relative to bot
+        self.driveX: float = self.xScalar(-drive.getLeftY())
+        self.driveY: float = self.yScalar(-drive.getLeftX())
         self.turning: float = self.rotScalar(drive.getRightX())
+
         self.speedCtrl: float = drive.getRightTriggerAxis()
 
         self.gyroReset: bool = drive.getYButtonPressed()
