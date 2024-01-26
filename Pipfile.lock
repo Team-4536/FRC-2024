@@ -1,11 +1,13 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "e5ae1f19f7901fb67c2d8541aca2a5b7af1b9a79cf9776c3d80795aee8aa146e"
+
+            "sha256": "bf133a76330de696b2b8c7d3a93630f673d69bb300962a7b90b5c44a9946316a"
+
         },
         "pipfile-spec": 6,
         "requires": {
-            "python_version": "3.11"
+            "python_version": "3.12"
         },
         "sources": [
             {
@@ -106,6 +108,14 @@
             ],
             "markers": "platform_python_implementation != 'PyPy'",
             "version": "==1.16.0"
+        },
+        "colorama": {
+            "hashes": [
+                "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44",
+                "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"
+            ],
+            "markers": "sys_platform == 'win32'",
+            "version": "==0.4.6"
         },
         "cryptography": {
             "hashes": [
@@ -388,6 +398,7 @@
                 "sha256:ffd8748e1425f674c1fb0fe51620f7da9f40c11a7643f9c03139747e7237aea0"
             ],
             "version": "==2024.2.0"
+
         },
         "robotpy-wpilib-utilities": {
             "hashes": [
@@ -456,6 +467,7 @@
                 "sha256:f69a8b2e2c7a626ab3fed8e5ca3dc017e2871226ef03ec045e4cd7da658d873d",
                 "sha256:f8c44c5fb1300299d65a89bbb7162465a8201a64175ff06f35768b6ed1c4e4f0",
                 "sha256:fdee662f432ccd717366da9ea3b5e152e84ee74e6a4c2a95d4c251ff82736fcf"
+
             ],
             "markers": "python_version >= '3.8'",
             "version": "==2024.2.1.2"
@@ -467,6 +479,7 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==69.0.3"
+
         },
         "tomli": {
             "hashes": [
