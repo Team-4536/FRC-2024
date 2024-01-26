@@ -105,6 +105,7 @@ class Robot(wpilib.TimedRobot):
         XControllerP = 1
         XControllerI = 0
         XControllerD = 0
+        self.table.putNumber("pathX-P", 1)
         YControllerP = 1
         YControllerI = 0
         YControllerD = 0
@@ -147,6 +148,7 @@ class Robot(wpilib.TimedRobot):
         #self.table.putNumber("velocitytargt", goal.velocity)
         #adjustedSpeeds = self.holonomicController.calculate(
            #  CurrentPose, goal, Rotation2d(trajectoryHeadingAngle))
+        self.XController.setP(self.table.getNumber("pathX-p", 1.0))
         xSpeed = self.XController.calculate(currentPose.X(), targetX)
         ySpeed = self.YController.calculate(currentPose.Y(), targetY)
         rSpeed = self.RotationController.calculate(currentPose.rotation().radians(), targetR)
@@ -154,7 +156,9 @@ class Robot(wpilib.TimedRobot):
 
         self.drive.update(self.time.dt, self.hal, driveSpeed)
         self.hardware.update(self.hal)
-
+        pose = self.drive.odometry.getPose()
+        self.table.putNumber("odomX", pose.x )
+        self.table.putNumber("odomY", pose.y)
     def disabledInit(self) -> None:
         self.disabledPeriodic()
 
