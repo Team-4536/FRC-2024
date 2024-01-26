@@ -24,9 +24,9 @@ class RobotInputs():
 
 
         ##flipped x and y inputs so they are relative to bot
-        self.driveX: float = self.x_scaler(-drive.getLeftY())
-        self.driveY: float = self.y_scaler(-drive.getLeftX())
-        self.turning: float = self.rot_scaler(drive.getRightX())
+        self.driveX: float = self.xScalar(-drive.getLeftY())
+        self.driveY: float = self.yScalar(-drive.getLeftX())
+        self.turning: float = self.rotScalar(drive.getRightX())
 
         self.speedCtrl: float = drive.getRightTriggerAxis()
 
