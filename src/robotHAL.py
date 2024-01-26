@@ -30,7 +30,9 @@ class RobotHALBuffer():
         for i in range(4):
             self.driveSpeeds[i] = 0
             self.steeringSpeeds[i] = 0
-            self.intakeSpeeds[i] = 0
+
+        self.intakeSpeeds[0] = 0
+        self.intakeSpeeds[1] = 0
 
     def publish(self, table: ntcore.NetworkTable) -> None:
         prefs = ["FL", "FR", "BL", "BR"]
@@ -110,7 +112,7 @@ class RobotHAL():
         for m, s in zip(self.intakeMotors, buf.intakeSpeeds):
             m.set(s)
 
-        for i in range(0, 4):
+        for i in range(0, 2):
             e = self.intakeEncoders[i]
             buf.intakePositions[i] = e.getPosition()
 
