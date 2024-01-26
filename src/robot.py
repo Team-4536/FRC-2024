@@ -109,9 +109,11 @@ class Robot(wpilib.TimedRobot):
         YControllerP = 1
         YControllerI = 0
         YControllerD = 0
+        self.table.putNumber("pathY-p", 1)
         RControllerP = 1
         RControllerI = 0
         RControllerD = 0
+        self.table.putNumber('pathR-p', 1)
         T_PConstraintsVolocityMax = 6.28
         T_PConstraintsRotaionAccelerationMax = 1
         self.XController = wpimath.controller.PIDController(
@@ -122,7 +124,7 @@ class Robot(wpilib.TimedRobot):
             RControllerP, RControllerI, RControllerD, TrapezoidProfileRadians.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
         trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
         #trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
-        #self.trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryJSON)
+        self.trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryJSON)
         self.holonomicController = HolonomicDriveController(
             self.XController, self.YController, self.RotationController)
         self.table.putNumber("pathTargetVelX", 0)
@@ -131,31 +133,34 @@ class Robot(wpilib.TimedRobot):
 
 
     def autonomousPeriodic(self) -> None:
-        #trajectoryHeadingAngle = 0
+        trajectoryHeadingAngle = 0
         # # self.hal.stopMotors()
         currentPose = self.drive.odometry.getPose()
-        #goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
+        goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
         # goal = Trajectory.State()
-        targetX = self.table.getNumber("pathTargetVelX", None)
-        targetY = self.table.getNumber("pathTargetVelY", None)
-        targetR = self.table.getNumber("pathTargetVelR", None)
-        assert(targetX is not None)
-        assert(targetY is not None)
-        assert(targetR is not None)
-        # #goal = TrapezoidProfile.State(0, 0)
-        #self.table.putNumber("pathTargetX", goal.pose.X())
-        #self.table.putNumber("pathTargetY", goal.pose.Y())
-        #self.table.putNumber("velocitytargt", goal.velocity)
-        #adjustedSpeeds = self.holonomicController.calculate(
-           #  CurrentPose, goal, Rotation2d(trajectoryHeadingAngle))
-        self.XController.setP(self.table.getNumber("pathX-p", 1.0))
-        xSpeed = self.XController.calculate(currentPose.X(), targetX)
-        ySpeed = self.YController.calculate(currentPose.Y(), targetY)
-        rSpeed = self.RotationController.calculate(currentPose.rotation().radians(), targetR)
-        driveSpeed = ChassisSpeeds(xSpeed, ySpeed, rSpeed)
+        # targetX = self.table.getNumber("pathTargetVelX", None)
+        # targetY = self.table.getNumber("pathTargetVelY", None)
+        # targetR = self.table.getNumber("pathTargetVelR", None)
+        # assert(targetX is not None)
+        # assert(targetY is not None)
+        # assert(targetR is not None)
+        # # #goal = TrapezoidProfile.State(0, 0)
+        self.table.putNumber("pathTargetX", goal.pose.X())
+        self.table.putNumber("pathTargetY", goal.pose.Y())
+        self.table.putNumber("velocitytargt", goal.velocity)
+        adjustedSpeeds = self.holonomicController.calculate(
+          currentPose, goal, Rotation2d(trajectoryHeadingAngle))
+        # self.XController.setP(self.table.getNumber("pathX-p", 1.0))
+        # self.YController.setP(self.table.getNumber('pathY-p', 1.0))
+        # self.RotationController.setP(self.table.getNumber('pathR-p', 1.0))
+        # xSpeed = self.XController.calculate(currentPose.X(), targetX)
+        # ySpeed = self.YController.calculate(currentPose.Y(), targetY)
+        # rSpeed = self.RotationController.calculate(currentPose.rotation().radians(), targetR)
+        #driveSpeed = ChassisSpeeds(xSpeed, ySpeed, rSpeed)
 
-        self.drive.update(self.time.dt, self.hal, driveSpeed)
+        self.drive.update(self.time.dt, self.hal, adjustedSpeeds)
         self.hardware.update(self.hal)
+
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
