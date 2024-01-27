@@ -56,6 +56,8 @@ class Robot(wpilib.TimedRobot):
         self.armCtrlr = wpilib.XboxController(1)
         self.input = RobotInputs(self.driveCtrlr, self.armCtrlr) 
 
+        #def myOdometryReset(self) -> None:
+
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
         self.time = TimeData(None)
@@ -112,11 +114,11 @@ class Robot(wpilib.TimedRobot):
         XControllerP = 1
         XControllerI = 0
         XControllerD = 0
-        self.table.putNumber("path/Xp", 1)
+        self.table.putNumber("path/Xp", XControllerP)
         YControllerP = 1
         YControllerI = 0
         YControllerD = 0
-        self.table.putNumber("path/Yp", 1)
+        self.table.putNumber("path/Yp", YControllerP)
         RControllerP = 7
         RControllerI = 0
         RControllerD = 0
