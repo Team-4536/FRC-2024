@@ -31,6 +31,7 @@ class RobotHALBuffer():
 
 
         self.yaw: float = 0
+        self.DIOTest: bool = False
 
     def resetEncoders(self) -> None:
         # swerve encoders
@@ -84,6 +85,7 @@ class RobotHALBuffer():
 
         # gyro
         table.putNumber("yaw", self.yaw)
+        table.putBoolean("DIOTest", self.DIOTest)
 
 class RobotHAL():
     def __init__(self) -> None:
@@ -138,6 +140,8 @@ class RobotHAL():
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
 
+        self.DIOTest: wpilib.DigitalInput = wpilib.DigitalInput(0)
+
     def update(self, buf: RobotHALBuffer) -> None:
         prev = self.prev
         self.prev = copy.deepcopy(buf)
@@ -178,3 +182,5 @@ class RobotHAL():
             self.gyro.reset()
 
         buf.yaw = math.radians(-self.gyro.getYaw())
+
+        buf.DIOTest = self.DIOTest.get()
