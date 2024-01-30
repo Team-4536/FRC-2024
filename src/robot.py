@@ -70,9 +70,7 @@ class Robot(wpilib.TimedRobot):
         self.hal.publish(self.table)
         self.drive.updateOdometry(self.hal)
         if self.input.odometryReset:
-            wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
-            self.drive.odometry.resetPosition(Rotation2d(self.hal.yaw), tuple(wheelPositions) ,Pose2d(0, 0, Rotation2d(self.hal.yaw))) # type: ignore
-
+            self.drive.resetOdometry(Pose2d(0,0,Rotation2d(0)), self.hal)
     def teleopInit(self) -> None:
         pass
 
@@ -108,8 +106,7 @@ class Robot(wpilib.TimedRobot):
 
     def autonomousInit(self) -> None:
         self.hal.yaw = 0
-        wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
-        self.drive.odometry.resetPosition(Rotation2d(self.hal.yaw), tuple(wheelPositions) ,Pose2d(0, 0, Rotation2d(self.hal.yaw))) # type: ignore
+        self.drive.resetOdometry(Pose2d(1.166,5.522,Rotation2d(0)), self.hal)
         self.autoStartTime = self.time.timeSinceInit
         XControllerP = 1
         XControllerI = 0
