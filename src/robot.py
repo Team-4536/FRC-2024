@@ -1,26 +1,20 @@
-
-import math
-
-import autos
-import autoStaging
+import auto
 import robotHAL
+import stages
 import wpilib
 import wpimath.controller
 from ntcore import NetworkTableInstance
-from phoenix6.hardware import CANcoder
-from PIDController import PIDController
 from real import lerp
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from utils import Scalar
-from wpimath._controls._controls.trajectory import Trajectory
 from wpimath.controller import (
     HolonomicDriveController,
     ProfiledPIDControllerRadians,
 )
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
-from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition, SwerveModuleState
-from wpimath.trajectory import TrajectoryUtil, TrapezoidProfile, TrapezoidProfileRadians
+from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
+from wpimath.trajectory import TrajectoryUtil, TrapezoidProfileRadians
 
 
 class RobotInputs():
@@ -53,7 +47,7 @@ class Robot(wpilib.TimedRobot):
 
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
-        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr) 
+        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
 
         #def myOdometryReset(self) -> None:
 
@@ -142,10 +136,10 @@ class Robot(wpilib.TimedRobot):
         # self.table.putNumber("path/TargetY", 0)
         # self.table.putNumber("path/TargetR", 0)
 
-        self.auto = autoStaging.Auto([
-            autos.makeTelemetryStage("init"),
-            autos.makePathStage(self.trajectory),
-            autos.makeTelemetryStage("done")
+        self.auto = auto.Auto([
+            stages.makeTelemetryStage("init"),
+            stages.makePathStage(self.trajectory),
+            stages.makeTelemetryStage("done")
             ], self.time.timeSinceInit)
 
     def autonomousPeriodic(self) -> None:

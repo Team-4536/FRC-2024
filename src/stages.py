@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from autoStaging import Stage
+from auto import Stage
 from ntcore import NetworkTableInstance
 from wpimath._controls._controls.trajectory import Trajectory
 

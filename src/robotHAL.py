@@ -5,7 +5,6 @@ import navx
 import ntcore
 import rev
 import wpilib
-from phoenix6 import StatusCode
 from phoenix6.hardware import CANcoder
 
 
