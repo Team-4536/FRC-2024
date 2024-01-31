@@ -43,10 +43,9 @@ class SwerveDrive():
         self.turningPIDs = [PIDController(0, 0, 0) for i in range(4)]
         self.drivePIDs = [PIDController(0, 0, 0) for i in range(4)]
 
-    def resetOdometry(self, Pose2d, hal):
+    def resetOdometry(self, pose: Pose2d, hal):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
-        self.drive.odometry.resetPosition(Rotation2d(self.hal.yaw), tuple(wheelPositions) ,Pose2d(0, 0, Rotation2d(self.hal.yaw))) # type: ignore
-
+        self.odometry.resetPosition(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]), pose)
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
     def update(self, dt: float, hal: robotHAL.RobotHALBuffer, speed: ChassisSpeeds):
         steerKp = self.table.getNumber("SteeringKp", 0.0)

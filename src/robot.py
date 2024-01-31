@@ -3,7 +3,7 @@ import robotHAL
 import wpilib
 import wpimath.controller
 from ntcore import NetworkTableInstance
-from wpimath.geometry import Pose2d, Rotation2d
+#from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 from utils import Scalar
 from phoenix6.hardware import CANcoder
@@ -14,14 +14,15 @@ from wpimath.kinematics import SwerveModuleState
 import math
 from swerveDrive import SwerveDrive
 from timing import TimeData
-from wpimath._controls._controls.trajectory import Trajectory
+#from wpimath._controls._controls.trajectory import Trajectory
 from wpimath.controller import (
     HolonomicDriveController,
-    ProfiledPIDControllerRadians,
+    ProfiledPIDControllerRadians
 )
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 from wpimath.trajectory import TrajectoryUtil, TrapezoidProfile, TrapezoidProfileRadians
+
 
 
 class RobotInputs():
@@ -168,7 +169,7 @@ class Robot(wpilib.TimedRobot):
         # t = Translation2d(xSpeed, ySpeed).rotateBy(Rotation2d(-self.hal.yaw))
         #driveSpeed = ChassisSpeeds(t.x, t.y, rSpeed)
 
-        self.drive.update(self.time.dt, self.hal, adjustedSpeeds)
+        #self.drive.update(self.time.dt, self.hal, adjustedSpeeds)
         self.hardware.update(self.hal)
 
         pose = self.drive.odometry.getPose()
