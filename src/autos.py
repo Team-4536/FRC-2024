@@ -1,13 +1,16 @@
-import autoStaging
-import robot
+from typing import TYPE_CHECKING
+
+from autoStaging import Stage
 from ntcore import NetworkTableInstance
 from wpimath._controls._controls.trajectory import Trajectory
 
+if TYPE_CHECKING:
+    from robot import Robot
 
-def makePathStage(t: Trajectory) -> autoStaging.Stage:
-    def stage(r: robot.Robot) -> bool:
+def makePathStage(t: Trajectory) -> Stage:
+    def stage(r: 'Robot') -> bool:
         currentPose = r.drive.odometry.getPose()
-        goal = r.trajectory.sample(r.time.timeSinceInit - r.autoStartTime)
+        goal = t.sample(r.time.timeSinceInit - r.auto.stagestart)
 
         adjustedSpeeds = r.holonomicController.calculate(
             currentPose, goal, goal.pose.rotation())
@@ -16,8 +19,8 @@ def makePathStage(t: Trajectory) -> autoStaging.Stage:
         return (r.time.timeSinceInit - r.auto.stagestart) > r.trajectory.totalTime()
     return stage
 
-def makeTelemetryStage(s: str) -> autoStaging.Stage:
-    def log(r: robot.Robot) -> bool:
+def makeTelemetryStage(s: str) -> Stage:
+    def log(r: 'Robot') -> bool:
         NetworkTableInstance.getDefault().getTable("autos").putString("telemStageLog", s)
         return True
     return log

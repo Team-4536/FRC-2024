@@ -1,11 +1,11 @@
 
 import math
 
+import autos
 import autoStaging
 import robotHAL
 import wpilib
 import wpimath.controller
-from autos import makePathStage, makeTelemetryStage
 from ntcore import NetworkTableInstance
 from phoenix6.hardware import CANcoder
 from PIDController import PIDController
@@ -143,9 +143,9 @@ class Robot(wpilib.TimedRobot):
         # self.table.putNumber("path/TargetR", 0)
 
         self.auto = autoStaging.Auto([
-            makeTelemetryStage("init"),
-            makePathStage(self.trajectory),
-            makeTelemetryStage("done")
+            autos.makeTelemetryStage("init"),
+            autos.makePathStage(self.trajectory),
+            autos.makeTelemetryStage("done")
             ], self.time.timeSinceInit)
 
     def autonomousPeriodic(self) -> None:
@@ -178,7 +178,7 @@ class Robot(wpilib.TimedRobot):
         # self.RotationController.setP(self.table.getNumber('path/Rp', 1.0))
 
         self.hal.stopMotors()
-        self.auto.update(self, self.time.timeSinceInit)
+        self.auto.update(self)
         self.hardware.update(self.hal)
 
     def disabledInit(self) -> None:
