@@ -42,7 +42,7 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
-
+        self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight")
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
         self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
@@ -58,13 +58,19 @@ class Robot(wpilib.TimedRobot):
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
         self.drive.updateOdometry(self.hal)
-
+        
     def teleopInit(self) -> None:
         pass
 
+    def limelightfunctionthing(self):
+        self.tx = self.limelightTable.getNumber("tx", 0.0)
+        self.ty = self.limelightTable.getNumber("ty", 0.0)
+       
+
+
     def teleopPeriodic(self) -> None:
         self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
-
+        
         if self.input.gyroReset:
             self.hal.yaw = 0
 
