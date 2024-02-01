@@ -1,10 +1,9 @@
-from ast import mod
+import math
 
-from phoenix6 import rotation
-from real import angleWrap
 import robotHAL
 from ntcore import NetworkTableInstance
 from PIDController import PIDController
+from real import angleWrap
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import (
     ChassisSpeeds,
@@ -13,7 +12,6 @@ from wpimath.kinematics import (
     SwerveModulePosition,
     SwerveModuleState,
 )
-import math
 
 
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
