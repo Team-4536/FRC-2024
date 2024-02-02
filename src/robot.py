@@ -14,6 +14,7 @@ from swerveDrive import SwerveDrive
 from timing import TimeData
 from real import lerp
 from wpimath.geometry import Translation2d
+from robotHAL import RobotHAL, RobotHALBuffer
 
 
 class RobotInputs():
@@ -22,6 +23,7 @@ class RobotInputs():
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
+        self.intakeScalar = Scalar(deadZone = .1, exponent = 1)
         self.testScalar = Scalar(deadZone = .1, exponent = 1)
 
         # drive
@@ -36,7 +38,8 @@ class RobotInputs():
         self.brakeButton: bool = drive.getBButtonPressed()
         self.absToggle: bool = drive.getXButtonPressed()
 
-        # mechanism
+        # arm controller
+        self.intake: bool = arm.getAButton()
         self.shootSpeaker: bool = arm.getYButton()
         self.shootAmp: bool = arm.getBButton()
 
@@ -87,16 +90,26 @@ class Robot(wpilib.TimedRobot):
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw))
 
+        
         if self.abs:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
         else:
             speed = ChassisSpeeds(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited, -self.input.turning * turnScalar)
-
+        
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
 
-        # shooter controls
+        #testing stuff
+        self.hal.intakeSpeeds[0] = self.table.getNumber("GreenIntakeTargetSpeed", 0.0)
+        self.hal.intakeSpeeds[1] = self.table.getNumber("BlueIntakeTargetSpeed", 0.0)
+        
+        if self.input.intake:
+            self.hal.intakeSpeeds[0] = 0.3
+            self.hal.intakeSpeeds[1] = -0.3
+        else:
+            self.hal.intakeSpeeds[0] = 0
+            self.hal.intakeSpeeds[1] = 0
 
         # for testing
         self.hal.shooterSpeed = self.input.shooterJoystick
@@ -107,7 +120,7 @@ class Robot(wpilib.TimedRobot):
         if self.input.shootAmp:
             self.hal.shooterSpeed = 0.4 # <-- not tested
 
-        self.drive.update(self.time.dt, self.hal, speed)
+        #self.drive.update(self.time.dt, self.hal, speed)
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
