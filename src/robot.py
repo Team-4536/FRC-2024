@@ -40,7 +40,8 @@ class RobotInputs():
         self.intake: bool = arm.getAButton()
 
         # this is all temporary for testing
-        self.intakeJoystick: float = self.intakeScalar(-arm.getLeftY())
+        self.intakeJoystickL: float = self.intakeScalar(-arm.getLeftY())
+        self.intakeJoystickR: float = self.intakeScalar(-arm.getRightY())
 
 
 class Robot(wpilib.TimedRobot):
@@ -87,23 +88,38 @@ class Robot(wpilib.TimedRobot):
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw))
 
+        
         if self.abs:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
         else:
             speed = ChassisSpeeds(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited, -self.input.turning * turnScalar)
-
+        
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
 
-        for i in range(2):
-            self.hal.intakeSpeeds[i] = self.input.intakeJoystick * 0.8 # <- scalar for testing
+        #testing stuff
+        self.hal.intakeSpeeds[0] = self.table.getNumber("GreenIntakeTargetSpeed", 0.0)
+        self.hal.intakeSpeeds[1] = self.table.getNumber("BlueIntakeTargetSpeed", 0.0)
 
+        """
+        if self.input.intakeJoystickL != 0:
+            self.hal.intakeSpeeds[0] = self.input.intakeJoystickL * 0.8 # <- scalar for testing
+
+        if self.input.intakeJoystickR != 0:
+            self.hal.intakeSpeeds[1] = self.input.intakeJoystickR * 0.8
+        """
+        
         if self.input.intake:
-            self.hal.intakeSpeeds[0] = 1
-            self.hal.intakeSpeeds[1] = 1
-            
-        self.drive.update(self.time.dt, self.hal, speed)
+            self.hal.intakeSpeeds[0] = 0.3
+            self.hal.intakeSpeeds[1] = -0.3
+        else:
+            self.hal.intakeSpeeds[0] = 0
+            self.hal.intakeSpeeds[1] = 0
+
+        
+
+        #self.drive.update(self.time.dt, self.hal, speed)
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:

@@ -43,6 +43,7 @@ class RobotHALBuffer():
             table.putNumber(prefs[i] + "SteerPos", self.steeringPositions[i])
             table.putNumber(prefs[i] + "DriveSpeedMeasured", self.driveSpeedMeasured[i])
 
+        #for testing
         table.putNumber("GreenIntakeTargetSpeed", self.intakeSpeeds[0])
         table.putNumber("BlueIntakeTargetSpeed", self.intakeSpeeds[1])
 
@@ -78,11 +79,11 @@ class RobotHAL():
 
         self.steerEncoders = [CANcoder(21), CANcoder(22), CANcoder(23), CANcoder(24)]
 
-        self.intakeMotors = [rev.CANSparkMax(31, rev.CANSparkMax.MotorType.kBrushless),
-                             rev.CANSparkMax(32, rev.CANSparkMax.MotorType.kBrushless)]
+        self.intakeMotors = [rev.CANSparkMax(9, rev.CANSparkMax.MotorType.kBrushless),
+                             rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
         self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
         for k in self.intakeMotors:
-            k.setSmartCurrentLimit(40)
+            k.setSmartCurrentLimit(30)
 
 
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
