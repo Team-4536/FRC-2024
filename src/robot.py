@@ -142,6 +142,8 @@ class Robot(wpilib.TimedRobot):
         self.trajectory_middleBlueB = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRing-blue-back.wpilib.json")
         self.trajectory_rightBlueA = TrajectoryUtil.fromPathweaverJson(trajPath + "rRing-blue.wpilib.json")
         self.trajectory_rightBlueB = TrajectoryUtil.fromPathweaverJson(trajPath + "rRing-blue-back.wpilib.json")
+        self.trajectory_leftBlueA = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRBlue.wpilib.json")
+        self.trajectory_leftBlueB = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRBlue-back.wpilib.json")
         self.holonomicController = HolonomicDriveController(
              self.XController, self.YController, self.RotationController)
         # self.table.putNumber("path/TargetX", 0)
@@ -151,9 +153,14 @@ class Robot(wpilib.TimedRobot):
         self.auto = auto.Auto([
             stages.makeTelemetryStage("init"),
             stages.makePathStage(self.trajectory_middleBlueA),
+            stages.makeIntake(10, 80),
             stages.makePathStage(self.trajectory_middleBlueB),
             stages.makePathStage(self.trajectory_rightBlueA),
+            stages.makeIntake(10, 80),
             stages.makePathStage(self.trajectory_rightBlueB),
+            stages.makePathStage(self.trajectory_leftBlueA),
+            stages.makeIntake(10, 80),
+            stages.makePathStage(self.trajectory_leftBlueB),
             stages.makeTelemetryStage("done")
             ], self.time.timeSinceInit)
 
