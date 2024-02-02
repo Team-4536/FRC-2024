@@ -19,12 +19,14 @@ from robotHAL import RobotHAL, RobotHALBuffer
 
 class RobotInputs():
     def __init__(self, drive: wpilib.XboxController, arm: wpilib.XboxController) -> None:
+        # scalars
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
         self.intakeScalar = Scalar(deadZone = .1, exponent = 1)
+        self.testScalar = Scalar(deadZone = .1, exponent = 1)
 
-        # drive controller
+        # drive
         ##flipped x and y inputs so they are relative to bot
         self.driveX: float = self.xScalar(-drive.getLeftY())
         self.driveY: float = self.yScalar(-drive.getLeftX())
@@ -38,10 +40,10 @@ class RobotInputs():
 
         # arm controller
         self.intake: bool = arm.getAButton()
+        self.shootSpeaker: bool = arm.getYButton()
+        self.shootAmp: bool = arm.getBButton()
 
-        # this is all temporary for testing
-        self.intakeJoystickL: float = self.intakeScalar(-arm.getLeftY())
-        self.intakeJoystickR: float = self.intakeScalar(-arm.getRightY())
+        self.shooterJoystick: float = self.testScalar(-arm.getRightY())
 
 
 class Robot(wpilib.TimedRobot):
@@ -101,14 +103,6 @@ class Robot(wpilib.TimedRobot):
         #testing stuff
         self.hal.intakeSpeeds[0] = self.table.getNumber("GreenIntakeTargetSpeed", 0.0)
         self.hal.intakeSpeeds[1] = self.table.getNumber("BlueIntakeTargetSpeed", 0.0)
-
-        """
-        if self.input.intakeJoystickL != 0:
-            self.hal.intakeSpeeds[0] = self.input.intakeJoystickL * 0.8 # <- scalar for testing
-
-        if self.input.intakeJoystickR != 0:
-            self.hal.intakeSpeeds[1] = self.input.intakeJoystickR * 0.8
-        """
         
         if self.input.intake:
             self.hal.intakeSpeeds[0] = 0.3
@@ -117,7 +111,14 @@ class Robot(wpilib.TimedRobot):
             self.hal.intakeSpeeds[0] = 0
             self.hal.intakeSpeeds[1] = 0
 
-        
+        # for testing
+        self.hal.shooterSpeed = self.input.shooterJoystick
+
+        if self.input.shootSpeaker:
+            self.hal.shooterSpeed = 0.8 # <-- not tested
+
+        if self.input.shootAmp:
+            self.hal.shooterSpeed = 0.4 # <-- not tested
 
         #self.drive.update(self.time.dt, self.hal, speed)
         self.hardware.update(self.hal)
