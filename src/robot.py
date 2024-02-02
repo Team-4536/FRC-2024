@@ -42,6 +42,7 @@ class RobotInputs():
         self.intake: bool = arm.getAButton()
         self.shootSpeaker: bool = arm.getYButton()
         self.shootAmp: bool = arm.getBButton()
+        self.shooterIntake: bool = arm.getLeftBumper()
 
         self.shooterJoystick: float = self.testScalar(-arm.getRightY())
 
@@ -105,8 +106,8 @@ class Robot(wpilib.TimedRobot):
         self.hal.intakeSpeeds[1] = self.table.getNumber("BlueIntakeTargetSpeed", 0.0)
         
         if self.input.intake:
-            self.hal.intakeSpeeds[0] = 0.3
-            self.hal.intakeSpeeds[1] = -0.3
+            self.hal.intakeSpeeds[0] = 0.4
+            self.hal.intakeSpeeds[1] = -0.4
         else:
             self.hal.intakeSpeeds[0] = 0
             self.hal.intakeSpeeds[1] = 0
@@ -114,11 +115,16 @@ class Robot(wpilib.TimedRobot):
         # for testing
         self.hal.shooterSpeed = self.input.shooterJoystick
 
+        self.table.putNumber("ShooterSpeed", self.input.shooterJoystick)
+
         if self.input.shootSpeaker:
-            self.hal.shooterSpeed = 0.8 # <-- not tested
+            self.hal.shooterSpeed = 0.25 # <-- not tested
 
         if self.input.shootAmp:
-            self.hal.shooterSpeed = 0.4 # <-- not tested
+            self.hal.shooterSpeed = 0.1 # <-- not tested
+
+        if self.input.shooterIntake:
+            self.hal.shooterIntakeSpeed = 0.1
 
         #self.drive.update(self.time.dt, self.hal, speed)
         self.hardware.update(self.hal)
