@@ -16,7 +16,7 @@ def makePathStage(t: Trajectory) -> Stage:
             currentPose, goal, goal.pose.rotation())
 
         r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
-        return (r.time.timeSinceInit - r.auto.stagestart) > r.trajectory.totalTime()
+        return (r.time.timeSinceInit - r.auto.stagestart) > t.totalTime()
     return stage
 
 def makeTelemetryStage(s: str) -> Stage:

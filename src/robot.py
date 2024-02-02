@@ -53,7 +53,7 @@ class Robot(wpilib.TimedRobot):
 
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
-        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)n
+        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
 
         #def myOdometryReset(self) -> None:
 
@@ -147,7 +147,7 @@ class Robot(wpilib.TimedRobot):
         # self.table.putNumber("path/TargetX", 0)
         # self.table.putNumber("path/TargetY", 0)
         # self.table.putNumber("path/TargetR", 0)
-S
+
         self.auto = auto.Auto([
             stages.makeTelemetryStage("init"),
             stages.makePathStage(self.trajectory_middleBlueA),
