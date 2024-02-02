@@ -100,10 +100,10 @@ class RobotHAL():
         self.steerEncoders = [CANcoder(21), CANcoder(22), CANcoder(23), CANcoder(24)]
 
         # shooter motors
-        self.shooterTopMotor = rev.CANSparkMax(33, rev.CANSparkMax.MotorType.kBrushless)
-        self.shooterBottomMotor = rev.CANSparkMax(34, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterTopMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterBottomMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
         self.shooterAimMotor = rev.CANSparkMax(35, rev.CANSparkMax.MotorType.kBrushless)
-        self.shooterIntakeMotor = rev.CANSparkMax(36, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterIntakeMotor = rev.CANSparkMax(13, rev.CANSparkMax.MotorType.kBrushless)
         # shooter encoders
         self.shooterTopEncoder = self.shooterTopMotor.getEncoder()
         self.shooterBottomEncoder = self.shooterBottomMotor.getEncoder()
@@ -137,7 +137,7 @@ class RobotHAL():
 
         # shooter motors speeds
         self.shooterTopMotor.set(buf.shooterSpeed)
-        self.shooterBottomMotor.set(-buf.shooterSpeed)
+        #self.shooterBottomMotor.set(-buf.shooterSpeed) # motor is on follower mode
         self.shooterAimMotor.set(buf.shooterAimSpeed)
         self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
         # get shooter encoder values
