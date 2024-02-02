@@ -66,6 +66,8 @@ class Robot(wpilib.TimedRobot):
 
         self.abs = True
 
+        self.mech = Mechanism(self.hal)
+
 
     def robotPeriodic(self) -> None:
         self.time = TimeData(self.time)
@@ -102,10 +104,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
 
-        #testing stuff
-        self.hal.intakeSpeeds[0] = self.table.getNumber("GreenIntakeTargetSpeed", 0.0)
-        self.hal.intakeSpeeds[1] = self.table.getNumber("BlueIntakeTargetSpeed", 0.0)
-        
+
         if self.input.intake:
             for i in range(2):
                 self.hal.intakeSpeeds[i] = 0.4
@@ -113,21 +112,20 @@ class Robot(wpilib.TimedRobot):
             self.hal.intakeSpeeds[0] = 0
             self.hal.intakeSpeeds[1] = 0
 
-        # for testing
-        self.hal.shooterSpeed = self.input.shooterJoystick
-
-        self.table.putNumber("ShooterSpeed", self.input.shooterJoystick)
-
+        #shooter
         if self.input.shootSpeaker:
-            self.hal.shooterSpeed = 0.25 # <-- not tested
+            self.hal.shooterSpeed = 0.25 
 
         if self.input.shootAmp:
-            self.hal.shooterSpeed = 0.1 # <-- not tested
+            self.hal.shooterSpeed = 0.1
 
         if self.input.shooterIntake:
             self.hal.shooterIntakeSpeed = 0.1
 
-        #self.drive.update(self.time.dt, self.hal, speed)
+        if self.armCtrlr.getStartButton(): # <-- for testing, not yet tested
+            self.mech.runIntake()
+
+        #self.drive.update(self.time.dt, self.hal, speed) # commented for mech testing
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:

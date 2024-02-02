@@ -66,11 +66,7 @@ class RobotHALBuffer():
             table.putNumber(prefs[i] + "SteerSpeed", self.steeringSpeeds[i])
             table.putNumber(prefs[i] + "DrivePos", self.drivePositions[i])
             table.putNumber(prefs[i] + "SteerPos", self.steeringPositions[i])
-            table.putNumber(prefs[i] + "DriveSpeedMeasured", self.driveSpeedMeasured[i])
-
-        #for testing
-        table.putNumber("GreenIntakeTargetSpeed", self.intakeSpeeds[0])
-        table.putNumber("BlueIntakeTargetSpeed", self.intakeSpeeds[1])
+            table.putNumber(prefs[i] + "DriveSpeedMeasured", self.driveSpeedMeasured[i])      
 
         table.putNumber("GreenIntakeEncoder", self.intakePositions[0])
         table.putNumber("GreenIntakeEncoder", self.intakePositions[1])

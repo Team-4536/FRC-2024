@@ -28,7 +28,7 @@ class Mechanism():
         self.hal.shooterSpeed = 0.1
         self.hal.shooterIntakeSpeed = 0.2 # speed not tested
 
-    def intake(self):
+    def runIntake(self):
         self.hal.intakeSpeeds[0] = 0.4 # slow for prototype intake so it doesnt rip itself apart and die
         self.hal.intakeSpeeds[1] = 0.4
         # stop once sensor is triggered
@@ -37,7 +37,7 @@ class Mechanism():
         # write something here eventually
         pass
 
-    def loadIntake(self):
+    def loadBlueIntake(self):
         # write something here eventually
         pass
 
