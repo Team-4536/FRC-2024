@@ -25,7 +25,8 @@ def makeIntake(time: float, speed: float):
         if (r.time.timeSinceInit - r.auto.stagestart) > time:
             return True
         else:
-             r.hal.driveSpeeds[0] = speed
+            r.hal.driveSpeeds[0] = speed
+        return False
     return stage
         
 def makeTelemetryStage(s: str) -> Stage:
