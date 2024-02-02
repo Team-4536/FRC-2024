@@ -53,7 +53,7 @@ class Robot(wpilib.TimedRobot):
 
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
-        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
+        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)n
 
         #def myOdometryReset(self) -> None:
 
@@ -127,12 +127,17 @@ class Robot(wpilib.TimedRobot):
             YControllerP, YControllerI, YControllerD)
         self.RotationController = ProfiledPIDControllerRadians(
             RControllerP, RControllerI, RControllerD, TrapezoidProfileRadians.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
+        self.simTrajectory = "src/deploy/output/"
+        self.noSimTrajectory = "/home/lvuser/py/deploy/output/"
         if self.isSimulation():
-            trajectoryJSON = "src/deploy/output/test.wpilib.json"
+            trajectoryJSON_middleBlueA = self.simTrajectory + "middleRing-blue.wpilib.json"
+            trajectoryJSON_middleBlueB = self.simTrajectory + "middleRing-blue-back.wpilib.json"
         else:
-            trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
+            trajectoryJSON_middleBlueA = self.noSimTrajectory + "middleRing-blue.wpilib.json"
+            trajectoryJSON_middleBlueB = self.noSimTrajectory + "middleRing-blue-back.wpilib.json"
         #trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
-        self.trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryJSON)
+        self.trajectory_middleBlueA = TrajectoryUtil.fromPathweaverJson(trajectoryJSON_middleBlueA)
+        self.trajectory_middleBlueB = TrajectoryUtil.fromPathweaverJson(trajectoryJSON_middleBlueB)
         self.holonomicController = HolonomicDriveController(
              self.XController, self.YController, self.RotationController)
         # self.table.putNumber("path/TargetX", 0)
@@ -141,7 +146,8 @@ class Robot(wpilib.TimedRobot):
 
         self.auto = auto.Auto([
             stages.makeTelemetryStage("init"),
-            stages.makePathStage(self.trajectory),
+            stages.makePathStage(self.trajectory_middleBlueA),
+            stages.makePathStage(self.trajectory_middleBlueB),
             stages.makeTelemetryStage("done")
             ], self.time.timeSinceInit)
 
