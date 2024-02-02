@@ -14,6 +14,7 @@ from swerveDrive import SwerveDrive
 from timing import TimeData
 from real import lerp
 from wpimath.geometry import Translation2d
+from wpimath.geometry import Rotation2d
 
 
 class RobotInputs():
@@ -65,9 +66,15 @@ class Robot(wpilib.TimedRobot):
     def limelightfunctionthing(self):
         self.tx = self.limelightTable.getNumber("tx", 0.0)
         self.ty = self.limelightTable.getNumber("ty", 0.0)
-       
-
-
+        if(self.tx>5):
+            self.ringTurnAngle = self.tx - 3
+        if(self.tx<-5):
+            self.ringTurnAngle = self.tx + 3
+        self.ringTurnRadians =  Rotation2d(math.radians(self.ringTurnAngle))
+        self.drive.update(self.time.dt, self.hal, ChassisSpeeds(0, 0, self.ringTurnRadians*0.1))
+        #add intake code here 
+        #-jack
+      
     def teleopPeriodic(self) -> None:
         self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
         
@@ -76,7 +83,7 @@ class Robot(wpilib.TimedRobot):
 
         if self.input.absToggle:
             self.abs = not self.abs
-
+    
         defaultSpeed = 1
         maxSpeed = 4
         speedControlEdited = lerp(defaultSpeed, maxSpeed, self.input.speedCtrl)
@@ -113,3 +120,5 @@ class Robot(wpilib.TimedRobot):
 
 if __name__ == "__main__":
     wpilib.run(Robot)
+
+
