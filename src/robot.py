@@ -15,6 +15,7 @@ from timing import TimeData
 from real import lerp
 from wpimath.geometry import Translation2d
 from robotHAL import RobotHAL, RobotHALBuffer
+from mechanism import Mechanism
 
 
 class RobotInputs():
@@ -106,8 +107,8 @@ class Robot(wpilib.TimedRobot):
         self.hal.intakeSpeeds[1] = self.table.getNumber("BlueIntakeTargetSpeed", 0.0)
         
         if self.input.intake:
-            self.hal.intakeSpeeds[0] = 0.4
-            self.hal.intakeSpeeds[1] = -0.4
+            for i in range(2):
+                self.hal.intakeSpeeds[i] = 0.4
         else:
             self.hal.intakeSpeeds[0] = 0
             self.hal.intakeSpeeds[1] = 0
