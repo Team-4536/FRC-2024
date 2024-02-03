@@ -9,4 +9,4 @@ robotpy = { version="<2025", extras=["swerveDrive","wpilib","wpimath","navx","nt
 [dev-packages]
 
 [requires]
-python_version = "3.11"
+python_version = "3.12"
