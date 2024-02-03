@@ -1,21 +1,16 @@
-from gettext import translation
-from xml.sax.xmlreader import InputSource
-import wpilib
-from ntcore import NetworkTableInstance
-from wpimath.geometry import Pose2d, Rotation2d
-from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from utils import Scalar
-from phoenix6.hardware import CANcoder
+
 import robotHAL
+import wpilib
+from mechanism import Mechanism
 from ntcore import NetworkTableInstance
-from wpimath.kinematics import SwerveModuleState
-import math
+from phoenix6.hardware import CANcoder
+from real import lerp
+from robotHAL import RobotHAL, RobotHALBuffer
 from swerveDrive import SwerveDrive
 from timing import TimeData
-from real import lerp
-from wpimath.geometry import Translation2d
-from robotHAL import RobotHAL, RobotHALBuffer
-from mechanism import Mechanism
+from utils import Scalar
+from wpimath.geometry import Pose2d, Rotation2d, Translation2d
+from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition, SwerveModuleState
 
 
 class RobotInputs():
@@ -94,16 +89,15 @@ class Robot(wpilib.TimedRobot):
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw))
 
-        
         if self.abs:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
         else:
             speed = ChassisSpeeds(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited, -self.input.turning * turnScalar)
-        
+        self.drive.update(self.time.dt, self.hal, speed) # commented for mech testing
+
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
-
 
         if self.input.intake:
             for i in range(2):
@@ -114,7 +108,7 @@ class Robot(wpilib.TimedRobot):
 
         #shooter
         if self.input.shootSpeaker:
-            self.hal.shooterSpeed = 0.25 
+            self.hal.shooterSpeed = 0.25
 
         if self.input.shootAmp:
             self.hal.shooterSpeed = 0.1
@@ -122,10 +116,6 @@ class Robot(wpilib.TimedRobot):
         if self.input.shooterIntake:
             self.hal.shooterIntakeSpeed = 0.1
 
-        if self.armCtrlr.getStartButton(): # <-- for testing, not yet tested
-            self.mech.runIntake()
-
-        #self.drive.update(self.time.dt, self.hal, speed) # commented for mech testing
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
