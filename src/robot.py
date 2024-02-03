@@ -3,14 +3,12 @@ import robotHAL
 import wpilib
 from mechanism import Mechanism
 from ntcore import NetworkTableInstance
-from phoenix6.hardware import CANcoder
 from real import lerp
-from robotHAL import RobotHAL, RobotHALBuffer
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
-from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition, SwerveModuleState
+from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 
 
 class RobotInputs():
