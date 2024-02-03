@@ -7,6 +7,7 @@ import wpilib
 from phoenix6.hardware import CANcoder
 from phoenix6 import StatusCode
 import math
+from phoenix5.led import CANdle
 
 class RobotHALBuffer():
     def __init__(self) -> None:
@@ -17,6 +18,8 @@ class RobotHALBuffer():
         self.driveSpeedMeasured: list[float] = [0, 0, 0, 0] # m/s // output from encoders
 
         self.yaw: float = 0
+
+        
 
     def resetEncoders(self) -> None:
         for i in range(4):
@@ -70,6 +73,8 @@ class RobotHAL():
 
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
+
+        self.lights: CANdle = CANdle(0)
 
     def update(self, buf: RobotHALBuffer) -> None:
         prev = self.prev

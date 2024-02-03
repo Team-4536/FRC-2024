@@ -14,7 +14,7 @@ from swerveDrive import SwerveDrive
 from timing import TimeData
 from real import lerp
 from wpimath.geometry import Translation2d
-
+from lightControl import setLights
 
 class RobotInputs():
     def __init__(self, drive: wpilib.XboxController, arm: wpilib.XboxController) -> None:
@@ -54,10 +54,13 @@ class Robot(wpilib.TimedRobot):
         self.abs = True
 
 
+
     def robotPeriodic(self) -> None:
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
         self.drive.updateOdometry(self.hal)
+        setLights(self.hardware.lights, self.hal.yaw)
+        
 
     def teleopInit(self) -> None:
         pass
