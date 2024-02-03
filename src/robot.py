@@ -59,7 +59,8 @@ class Robot(wpilib.TimedRobot):
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
         self.drive.updateOdometry(self.hal)
-        setLights(self.hardware.lights, self.hal.yaw)
+        #setLights(self.hardware.lights, self.hal.yaw)
+        #self.hardware.lights.setLEDs(255, 255, 255, 0, 0, 8)
         
 
     def teleopInit(self) -> None:
