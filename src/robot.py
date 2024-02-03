@@ -138,29 +138,41 @@ class Robot(wpilib.TimedRobot):
             # trajectoryJSON_middleBlueA = self.noSimTrajectory + "middleRing-blue.wpilib.json"
             # trajectoryJSON_middleBlueB = self.noSimTrajectory + "middleRing-blue-back.wpilib.json"
         #trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
-        self.trajectory_middleBlueA = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRing-blue.wpilib.json")
-        self.trajectory_middleBlueB = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRing-blue-back.wpilib.json")
-        self.trajectory_rightBlueA = TrajectoryUtil.fromPathweaverJson(trajPath + "rRing-blue.wpilib.json")
-        self.trajectory_rightBlueB = TrajectoryUtil.fromPathweaverJson(trajPath + "rRing-blue-back.wpilib.json")
-        self.trajectory_leftBlueA = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRBlue.wpilib.json")
-        self.trajectory_leftBlueB = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRBlue-back.wpilib.json")
+        
+        self.blueTeam = True
+
+        if self.blueTeam:
+            self.trajectory_middleA = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRing-blue.wpilib.json")
+            self.trajectory_middleB = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRing-blue-back.wpilib.json")
+            self.trajectory_rightA = TrajectoryUtil.fromPathweaverJson(trajPath + "rRing-blue.wpilib.json")
+            self.trajectory_rightB = TrajectoryUtil.fromPathweaverJson(trajPath + "rRing-blue-back.wpilib.json")
+            self.trajectory_leftA = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRBlue.wpilib.json")
+            self.trajectory_leftB = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRBlue-back.wpilib.json")
+        else:
+            self.trajectory_middleA = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRed.wpilib.json")
+            self.trajectory_middleB = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRedBack.wpilib.json")
+            self.trajectory_leftA = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRed.wpilib.json")
+            self.trajectory_leftB = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRedBack.wpilib.json")
+            self.trajectory_rightA = TrajectoryUtil.fromPathweaverJson(trajPath + "rightRed.wpilib.json")
+            self.trajectory_rightA = TrajectoryUtil.fromPathweaverJson(trajPath + "rightRedBack.wpilib.json")
+
         self.holonomicController = HolonomicDriveController(
-             self.XController, self.YController, self.RotationController)
+        self.XController, self.YController, self.RotationController)
         # self.table.putNumber("path/TargetX", 0)
         # self.table.putNumber("path/TargetY", 0)
         # self.table.putNumber("path/TargetR", 0)
 
         self.auto = auto.Auto([
             stages.makeTelemetryStage("init"),
-            stages.makePathStage(self.trajectory_middleBlueA),
+            stages.makePathStage(self.trajectory_middleA),
             stages.makeIntake(10, 80),
-            stages.makePathStage(self.trajectory_middleBlueB),
-            stages.makePathStage(self.trajectory_rightBlueA),
+            stages.makePathStage(self.trajectory_middleB),
+            stages.makePathStage(self.trajectory_rightA),
             stages.makeIntake(10, 80),
-            stages.makePathStage(self.trajectory_rightBlueB),
-            stages.makePathStage(self.trajectory_leftBlueA),
+            stages.makePathStage(self.trajectory_rightB),
+            stages.makePathStage(self.trajectory_leftA),
             stages.makeIntake(10, 80),
-            stages.makePathStage(self.trajectory_leftBlueB),
+            stages.makePathStage(self.trajectory_leftB),
             stages.makeTelemetryStage("done")
             ], self.time.timeSinceInit)
 
