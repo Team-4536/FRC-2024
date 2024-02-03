@@ -1,12 +1,12 @@
 import copy
+import math
 
 import navx
 import ntcore
 import rev
 import wpilib
 from phoenix6.hardware import CANcoder
-from phoenix6 import StatusCode
-import math
+
 
 class RobotHALBuffer():
     def __init__(self) -> None:
@@ -19,10 +19,10 @@ class RobotHALBuffer():
 
         self.intakeSpeeds: list[float] = [0, 0] # -1 to 1 // volts to motor controller
         self.intakePositions: list[float] = [0, 0] # whatever encoders return
-          
+
         self.shooterSpeed: float = 0 # -1 to 1 // volts to motor controller
         self.shooterAimSpeed: float = 0 # ^
-        self.shooterIntakeSpeed: float = 0 # ^ 
+        self.shooterIntakeSpeed: float = 0 # ^
 
         self.shooterTopPos: float = 0 # raw encoder readings
         self.shooterBottomPos: float = 0 # ^
@@ -37,7 +37,7 @@ class RobotHALBuffer():
         for i in range(4):
             self.drivePositions[i] = 0
             self.steeringPositions[i] = 0
-        
+
         # shooter encoders
         self.shooterPos = 0
         self.shooterAimPos = 0
@@ -56,7 +56,6 @@ class RobotHALBuffer():
         self.shooterSpeed = 0
         self.shooterAimSpeed = 0
         self.shooterIntakeSpeed = 0
-        
 
     def publish(self, table: ntcore.NetworkTable) -> None:
         # swerve modules
@@ -66,7 +65,7 @@ class RobotHALBuffer():
             table.putNumber(prefs[i] + "SteerSpeed", self.steeringSpeeds[i])
             table.putNumber(prefs[i] + "DrivePos", self.drivePositions[i])
             table.putNumber(prefs[i] + "SteerPos", self.steeringPositions[i])
-            table.putNumber(prefs[i] + "DriveSpeedMeasured", self.driveSpeedMeasured[i])      
+            table.putNumber(prefs[i] + "DriveSpeedMeasured", self.driveSpeedMeasured[i])
 
         table.putNumber("GreenIntakeEncoder", self.intakePositions[0])
         table.putNumber("GreenIntakeEncoder", self.intakePositions[1])
@@ -115,21 +114,21 @@ class RobotHAL():
         self.intakeMotors = [rev.CANSparkMax(9, rev.CANSparkMax.MotorType.kBrushless),
                              rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
         self.intakeMotors[1].setInverted(True)
-        
+
         self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
         for k in self.intakeMotors:
             k.setSmartCurrentLimit(30)
 
-        # shooter motors
-        self.shooterTopMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless)
-        self.shooterBottomMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
-        self.shooterAimMotor = rev.CANSparkMax(35, rev.CANSparkMax.MotorType.kBrushless)
-        self.shooterIntakeMotor = rev.CANSparkMax(13, rev.CANSparkMax.MotorType.kBrushless)
-        # shooter encoders
-        self.shooterTopEncoder = self.shooterTopMotor.getEncoder()
-        self.shooterBottomEncoder = self.shooterBottomMotor.getEncoder()
-        self.shooterAimEncoder = self.shooterAimMotor.getEncoder()
-        self.shooterIntakeEncoder = self.shooterIntakeMotor.getEncoder()
+        # # shooter motors
+        # self.shooterTopMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless)
+        # self.shooterBottomMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
+        # self.shooterAimMotor = rev.CANSparkMax(35, rev.CANSparkMax.MotorType.kBrushless)
+        # self.shooterIntakeMotor = rev.CANSparkMax(13, rev.CANSparkMax.MotorType.kBrushless)
+        # # shooter encoders
+        # self.shooterTopEncoder = self.shooterTopMotor.getEncoder()
+        # self.shooterBottomEncoder = self.shooterBottomMotor.getEncoder()
+        # self.shooterAimEncoder = self.shooterAimMotor.getEncoder()
+        # self.shooterIntakeEncoder = self.shooterIntakeMotor.getEncoder()
 
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
@@ -163,15 +162,15 @@ class RobotHAL():
             e = self.intakeEncoders[i]
             buf.intakePositions[i] = e.getPosition()
 
-        # shooter motors speeds
-        self.shooterTopMotor.set(buf.shooterSpeed) # bottom shooter motor is on follower mode
-        self.shooterAimMotor.set(buf.shooterAimSpeed)
-        self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
-        # get shooter encoder values
-        self.shooterTopPos = self.shooterTopEncoder.getPosition()
-        self.shooterBottomPos = self.shooterBottomEncoder.getPosition()
-        self.shooterAimPos = self.shooterAimEncoder.getPosition()
-        self.shooterIntakePos = self.shooterIntakeEncoder.getPosition()
+        # # shooter motors speeds
+        # self.shooterTopMotor.set(buf.shooterSpeed) # bottom shooter motor is on follower mode
+        # self.shooterAimMotor.set(buf.shooterAimSpeed)
+        # self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
+        # # get shooter encoder values
+        # self.shooterTopPos = self.shooterTopEncoder.getPosition()
+        # self.shooterBottomPos = self.shooterBottomEncoder.getPosition()
+        # self.shooterAimPos = self.shooterAimEncoder.getPosition()
+        # self.shooterIntakePos = self.shooterIntakeEncoder.getPosition()
 
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
