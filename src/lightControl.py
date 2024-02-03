@@ -1,6 +1,6 @@
 from phoenix5.led import CANdle #only use for LEDs
 import math
-totalLights = 7
+totalLights = 8
 numHeaderLights = 1
 
 def setLights(leds: CANdle, yaw: float):
