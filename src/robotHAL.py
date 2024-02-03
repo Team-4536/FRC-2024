@@ -1,12 +1,12 @@
 import copy
+import math
 
 import navx
 import ntcore
 import rev
 import wpilib
 from phoenix6.hardware import CANcoder
-from phoenix6 import StatusCode
-import math
+
 
 class RobotHALBuffer():
     def __init__(self) -> None:
