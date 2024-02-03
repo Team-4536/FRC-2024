@@ -3,10 +3,11 @@
 
 class PIDController:
 
-    def __init__(self, kp: float = 0, ki: float = 0, kd:float = 0) -> None:
+    def __init__(self, kp: float = 0, ki: float = 0, kd: float = 0, kff: float = 0) -> None:
         self.kp: float = kp
         self.ki: float = ki
         self.kd: float = kd
+        self.kff: float = kff
 
         self.integral: float = 0
         self.prevErr: float = 0
@@ -18,18 +19,18 @@ class PIDController:
         derivative = (error - self.prevErr) * dt
         self.integral += error * dt
 
-        out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative)
+        out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target)
         self.prevErr = error
 
         return out
 
     # output will be the same sign as the input error
-    def tickErr(self, error: float, dt: float) -> float:
+    def tickErr(self, error: float, target: float, dt: float) -> float:
 
         derivative = (error - self.prevErr) * dt
         self.integral += error * dt
 
-        out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative)
+        out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target)
         self.prevErr = error
 
         return out

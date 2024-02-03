@@ -13,6 +13,8 @@ ctre_sim/
 *.exe
 *.log
 
+ctre_sim/*.dat
+
 # emacs
 *~
 \#*

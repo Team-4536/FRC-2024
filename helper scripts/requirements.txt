@@ -114,9 +114,7 @@ Goto the downloads folder and launch
 - Finish tab
     - After finishing installing click reboot now
 
-
-
-install wpitools at https://packages.wpilib.workers.dev/installer/v2024.1.1/Win64/WPILib_Windows-2024.1.1.iso
+install wpitools at https://packages.wpilib.workers.dev/installer/v2024.2.1/Win64/WPILib_Windows-2024.2.1.iso
 click on the item in the downloads folder and mount it
 if promted with a security warning then click open
 in the file run wpilibinstaller.exe

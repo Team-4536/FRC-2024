@@ -4,9 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-robotpy = "<2025"
+robotpy = { version="<2025", extras=["swerveDrive","wpilib","wpimath","navx","ntcore","rev","phoenix6","PIDController"]}
 
 [dev-packages]
 
 [requires]
-python_version = "3.11"
+python_version = "3.12"

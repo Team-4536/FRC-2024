@@ -1,25 +1,7 @@
-rem You must run this in a deactivated terminal!
-
-
-echo on
-
-set pipvenvV=pipenv, version 2023.11.15
-
-FOR /F "tokens=* USEBACKQ" %%F IN (`pipenv --version`) DO (
-if "%%F" NEQ "%pipvenvV%" (
-  echo Incorrect version of pipenv or is not installed! Expected %pipvenvV% but has %%F
-  set err=1
-))
-
-cd c:\repos\FRC-2024
-
-
+cd C:\repos\FRC-2024
 
 rem delete .venv
-rem del /s /q .\.venv
-RD /S /Q .venv
-
-rem make new .venv file
+RD /s /q .\.venv
 
 :waitvenvdel
 IF NOT EXIST ".venv" GOTO waitvenvdelend
@@ -39,9 +21,11 @@ timeout /t 5
 cd c:\repos\FRC-2024
 call .\.venv\scripts\activate
 
+py -m pip install robotpy
+
 rem go to src to sync
 cd .\src
 rem GOTO src & RUN THIS AT THE END:
-pipenv run robotpy sync
+robotpy sync
 cd..
 .\.venv\scripts\activate
