@@ -57,6 +57,7 @@ class Robot(wpilib.TimedRobot):
         self.time = TimeData(None)
 
         self.abs = True
+        self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
 
         self.mech = Mechanism(self.hal)
 
@@ -74,24 +75,19 @@ class Robot(wpilib.TimedRobot):
         self.hal.stopMotors()
 
         if self.input.gyroReset:
-            self.hal.yaw = 0
+            self.driveGyroYawOffset = -self.hal.yaw
 
         if self.input.absToggle:
             self.abs = not self.abs
 
-        defaultSpeed = 1
-        maxSpeed = 4
-        speedControlEdited = lerp(defaultSpeed, maxSpeed, self.input.speedCtrl)
+        speedControlEdited = lerp(1, 4, self.input.speedCtrl)
         turnScalar = 3
 
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
-        driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw))
-
         if self.abs:
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
-        else:
-            speed = ChassisSpeeds(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited, -self.input.turning * turnScalar)
-        self.drive.update(self.time.dt, self.hal, speed) # commented for mech testing
+            driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
+        speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+        self.drive.update(self.time.dt, self.hal, speed)
 
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
