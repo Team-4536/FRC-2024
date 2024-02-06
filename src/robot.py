@@ -1,3 +1,7 @@
+from re import X
+from tkinter import colorchooser
+
+from hal import getAnalogGyroAngle
 import auto
 import robotHAL
 import stages
@@ -20,7 +24,7 @@ from wpimath.controller import (
 )
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from wpimath.trajectory import TrajectoryUtil, TrapezoidProfileRadians
+from wpimath.trajectory import TrajectoryUtil, TrapezoidProfileRadians, Trajectory
 
 
 class RobotInputs():
@@ -42,6 +46,16 @@ class RobotInputs():
         self.absToggle: bool = drive.getXButtonPressed()
         self.odometryReset: bool = drive.getStartButtonPressed()
 
+AUTO_NONE = "none" 
+AUTO_RED = "red"
+AUTO_BLUE = "blue"
+AUTO_SHOOTCURRENT = "shoot-current"
+AUTO_SHOOTEXIT = 'shoot-and-exit'
+AUTO_MIDDLE = 'get-middle-ring'
+AUTO_RIGHT = 'get-right-ring'
+AUTO_LEFT = 'get-left-ring'
+AUTO_ALL = 'get-all-rings'
+
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -62,6 +76,19 @@ class Robot(wpilib.TimedRobot):
         self.time = TimeData(None)
 
         self.abs = True
+
+        self.ColorChooser = wpilib.SendableChooser()
+        self.ColorChooser.setDefaultOption(AUTO_BLUE, AUTO_BLUE)
+        self.ColorChooser.addOption(AUTO_RED, AUTO_RED)
+        self.RingChooser = wpilib.SendableChooser()
+        self.RingChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
+        self.RingChooser.addOption(AUTO_MIDDLE, AUTO_MIDDLE)
+        self.RingChooser.addOption(AUTO_LEFT, AUTO_LEFT)
+        self.RingChooser.addOption(AUTO_RIGHT, AUTO_RIGHT)
+        self.RingChooser.addOption(AUTO_ALL, AUTO_ALL)
+        wpilib.SmartDashboard.putData('color chooser', self.ColorChooser)
+        wpilib.SmartDashboard.putData('ring chooser', self.RingChooser)
+
 
 
     def robotPeriodic(self) -> None:
@@ -131,50 +158,69 @@ class Robot(wpilib.TimedRobot):
         self.noSimTrajectory = "/home/lvuser/py/deploy/output/"
         if self.isSimulation():
             trajPath = "src/deploy/output/"
-            # trajectoryJSON_middleBlueA = self.simTrajectory + "middleRing-blue.wpilib.json"
-            # trajectoryJSON_middleBlueB = self.simTrajectory + "middleRing-blue-back.wpilib.json"
+            
         else:
             trajPath = "/home/lvuser/py/deploy/output/"
-            # trajectoryJSON_middleBlueA = self.noSimTrajectory + "middleRing-blue.wpilib.json"
-            # trajectoryJSON_middleBlueB = self.noSimTrajectory + "middleRing-blue-back.wpilib.json"
         #trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
         
-        self.blueTeam = True
-
-        if self.blueTeam:
-            self.trajectory_middleA = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRing-blue.wpilib.json")
-            self.trajectory_middleB = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRing-blue-back.wpilib.json")
-            self.trajectory_rightA = TrajectoryUtil.fromPathweaverJson(trajPath + "rRing-blue.wpilib.json")
-            self.trajectory_rightB = TrajectoryUtil.fromPathweaverJson(trajPath + "rRing-blue-back.wpilib.json")
-            self.trajectory_leftA = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRBlue.wpilib.json")
-            self.trajectory_leftB = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRBlue-back.wpilib.json")
+        
+        
+        self.ColorChooser.getSelected()
+        filePostfix = ""
+        if self.ColorChooser.getSelected() == AUTO_RED:
+            filePostfix = "Red.wpilib.json"
+            
         else:
-            self.trajectory_middleA = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRed.wpilib.json")
-            self.trajectory_middleB = TrajectoryUtil.fromPathweaverJson(trajPath + "middleRedBack.wpilib.json")
-            self.trajectory_leftA = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRed.wpilib.json")
-            self.trajectory_leftB = TrajectoryUtil.fromPathweaverJson(trajPath + "leftRedBack.wpilib.json")
-            self.trajectory_rightA = TrajectoryUtil.fromPathweaverJson(trajPath + "rightRed.wpilib.json")
-            self.trajectory_rightA = TrajectoryUtil.fromPathweaverJson(trajPath + "rightRedBack.wpilib.json")
+             filePostfix = "Blue.wpilib.json"
 
+        self.trajectory_middleA = TrajectoryUtil.fromPathweaverJson(trajPath + "middle" + filePostfix)
+        self.trajectory_middleB = TrajectoryUtil.fromPathweaverJson(trajPath + "middleBack" + filePostfix)
+        self.trajectory_leftA = TrajectoryUtil.fromPathweaverJson(trajPath + "left" + filePostfix)
+        self.trajectory_leftB = TrajectoryUtil.fromPathweaverJson(trajPath + "leftBack" + filePostfix)
+        self.trajectory_rightA = TrajectoryUtil.fromPathweaverJson(trajPath + "right" + filePostfix)
+        self.trajectory_rightB = TrajectoryUtil.fromPathweaverJson(trajPath + "rightBack" + filePostfix)
+            
+        autoGo: list[auto.Stage] = []
+
+        self.RingChooser.getSelected()    
+        firstPose = Pose2d()
+        
+        if self.RingChooser.getSelected() == AUTO_MIDDLE:
+                firstPose = Trajectory.initialPose(self.trajectory_middleA)
+                autoGo =  [stages.makeTelemetryStage('middle ring'),stages.makePathStage(self.trajectory_middleA),
+                stages.makeIntake(10, 80),
+                stages.makePathStage(self.trajectory_middleB)]
+        if self.RingChooser.getSelected() == AUTO_RIGHT:
+                firstPose = Trajectory.initialPose(self.trajectory_rightA)
+                autoGo =  [stages.makeTelemetryStage('right ring'),stages.makePathStage(self.trajectory_rightA),
+                stages.makeIntake(10, 80),
+                stages.makePathStage(self.trajectory_rightB)]
+        if self.RingChooser.getSelected() == AUTO_LEFT:
+                firstPose = Trajectory.initialPose(self.trajectory_leftA)
+                autoGo =  [stages.makeTelemetryStage('left ring'), stages.makePathStage(self.trajectory_leftA),
+                stages.makeIntake(10, 80),
+                stages.makePathStage(self.trajectory_leftB)]
+        if self.RingChooser.getSelected() == AUTO_ALL:
+                firstPose = Trajectory.initialPose(self.trajectory_middleA)
+                autoGo = [stages.makeTelemetryStage('all path'),stages.makePathStage(self.trajectory_middleA),
+                stages.makeIntake(10, 80),
+                stages.makePathStage(self.trajectory_middleB),
+                stages.makePathStage(self.trajectory_rightA),
+                stages.makeIntake(10, 80),
+                stages.makePathStage(self.trajectory_rightB),
+                stages.makePathStage(self.trajectory_leftA),
+                stages.makeIntake(10, 80),
+                stages.makePathStage(self.trajectory_leftB)]
+        
+            
         self.holonomicController = HolonomicDriveController(
         self.XController, self.YController, self.RotationController)
         # self.table.putNumber("path/TargetX", 0)
         # self.table.putNumber("path/TargetY", 0)
         # self.table.putNumber("path/TargetR", 0)
-
-        self.auto = auto.Auto([
-            stages.makeTelemetryStage("init"),
-            stages.makePathStage(self.trajectory_middleA),
-            stages.makeIntake(10, 80),
-            stages.makePathStage(self.trajectory_middleB),
-            stages.makePathStage(self.trajectory_rightA),
-            stages.makeIntake(10, 80),
-            stages.makePathStage(self.trajectory_rightB),
-            stages.makePathStage(self.trajectory_leftA),
-            stages.makeIntake(10, 80),
-            stages.makePathStage(self.trajectory_leftB),
-            stages.makeTelemetryStage("done")
-            ], self.time.timeSinceInit)
+        self.hal.input(firstPose.rotation())
+        self.drive.resetOdometry(firstPose, self.hal)
+        self.auto = auto.Auto(autoGo, self.time.timeSinceInit)
 
     def autonomousPeriodic(self) -> None:
         # currentPose = self.drive.odometry.getPose()
@@ -219,3 +265,7 @@ class Robot(wpilib.TimedRobot):
 
 if __name__ == "__main__":
     wpilib.run(Robot)
+
+
+
+
