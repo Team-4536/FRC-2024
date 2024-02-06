@@ -1,30 +1,23 @@
 from re import X
 from tkinter import colorchooser
 
-from hal import getAnalogGyroAngle
 import auto
 import robotHAL
 import stages
 import wpilib
 import wpimath.controller
+from hal import getAnalogGyroAngle
 from ntcore import NetworkTableInstance
-from wpimath.geometry import Pose2d, Rotation2d
-from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from utils import Scalar
 from phoenix6.hardware import CANcoder
-from ntcore import NetworkTableInstance
 from PIDController import PIDController
 from real import lerp
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from utils import Scalar
-from wpimath.controller import (
-    HolonomicDriveController,
-    ProfiledPIDControllerRadians
-)
+from wpimath.controller import HolonomicDriveController, ProfiledPIDControllerRadians
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from wpimath.trajectory import TrajectoryUtil, TrapezoidProfileRadians, Trajectory
+from wpimath.trajectory import Trajectory, TrajectoryUtil, TrapezoidProfileRadians
 
 
 class RobotInputs():
@@ -46,7 +39,7 @@ class RobotInputs():
         self.absToggle: bool = drive.getXButtonPressed()
         self.odometryReset: bool = drive.getStartButtonPressed()
 
-AUTO_NONE = "none" 
+AUTO_NONE = "none"
 AUTO_RED = "red"
 AUTO_BLUE = "blue"
 AUTO_SHOOTCURRENT = "shoot-current"
@@ -133,45 +126,26 @@ class Robot(wpilib.TimedRobot):
     def autonomousInit(self) -> None:
         self.hal.yaw = 0
         self.drive.resetOdometry(Pose2d(1.166,5.522,Rotation2d(0)), self.hal)
-        self.autoStartTime = self.time.timeSinceInit
-        XControllerP = 1
-        XControllerI = 0
-        XControllerD = 0
-        self.table.putNumber("path/Xp", XControllerP)
-        YControllerP = 1
-        YControllerI = 0
-        YControllerD = 0
-        self.table.putNumber("path/Yp", YControllerP)
-        RControllerP = 7
-        RControllerI = 0
-        RControllerD = 0
-        self.table.putNumber('path/Rp', RControllerP)
-        T_PConstraintsVolocityMax = 6.28
-        T_PConstraintsRotaionAccelerationMax = 1
-        self.XController = wpimath.controller.PIDController(
-            XControllerP, XControllerI, XControllerD)
-        self.YController = wpimath.controller.PIDController(
-            YControllerP, YControllerI, YControllerD)
-        self.RotationController = ProfiledPIDControllerRadians(
-            RControllerP, RControllerI, RControllerD, TrapezoidProfileRadians.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
-       
-        self.noSimTrajectory = "/home/lvuser/py/deploy/output/"
+        self.table.putNumber("path/Xp", 1)
+        self.table.putNumber("path/Yp", 1)
+        self.table.putNumber('path/Rp', 7)
+        self.XController = wpimath.controller.PIDController(self.table.getNumber("path/Xp", 0.0), 0, 0)
+        self.YController = wpimath.controller.PIDController(self.table.getNumber("path/Yp", 0.0), 0, 0)
+        self.RotationController = ProfiledPIDControllerRadians(self.table.getNumber("path/Rp", 0.0), 0, 0,
+             TrapezoidProfileRadians.Constraints(6.28, 1))
+        self.holonomicController = HolonomicDriveController(self.XController, self.YController, self.RotationController)
+
+        trajPath = ""
+        filePostfix = ""
         if self.isSimulation():
             trajPath = "src/deploy/output/"
-            
         else:
             trajPath = "/home/lvuser/py/deploy/output/"
-        #trajectoryJSON = "/home/lvuser/py/deploy/output/test.wpilib.json"
-        
-        
-        
-        self.ColorChooser.getSelected()
-        filePostfix = ""
+
         if self.ColorChooser.getSelected() == AUTO_RED:
             filePostfix = "Red.wpilib.json"
-            
         else:
-             filePostfix = "Blue.wpilib.json"
+            filePostfix = "Blue.wpilib.json"
 
         self.trajectory_middleA = TrajectoryUtil.fromPathweaverJson(trajPath + "middle" + filePostfix)
         self.trajectory_middleB = TrajectoryUtil.fromPathweaverJson(trajPath + "middleBack" + filePostfix)
@@ -179,78 +153,26 @@ class Robot(wpilib.TimedRobot):
         self.trajectory_leftB = TrajectoryUtil.fromPathweaverJson(trajPath + "leftBack" + filePostfix)
         self.trajectory_rightA = TrajectoryUtil.fromPathweaverJson(trajPath + "right" + filePostfix)
         self.trajectory_rightB = TrajectoryUtil.fromPathweaverJson(trajPath + "rightBack" + filePostfix)
-            
-        autoGo: list[auto.Stage] = []
 
-        self.RingChooser.getSelected()    
+        stageList: list[auto.Stage] = []
         firstPose = Pose2d()
-        
         if self.RingChooser.getSelected() == AUTO_MIDDLE:
                 firstPose = Trajectory.initialPose(self.trajectory_middleA)
-                autoGo =  [stages.makeTelemetryStage('middle ring'),stages.makePathStage(self.trajectory_middleA),
-                stages.makeIntake(10, 80),
-                stages.makePathStage(self.trajectory_middleB)]
-        if self.RingChooser.getSelected() == AUTO_RIGHT:
-                firstPose = Trajectory.initialPose(self.trajectory_rightA)
-                autoGo =  [stages.makeTelemetryStage('right ring'),stages.makePathStage(self.trajectory_rightA),
-                stages.makeIntake(10, 80),
-                stages.makePathStage(self.trajectory_rightB)]
-        if self.RingChooser.getSelected() == AUTO_LEFT:
-                firstPose = Trajectory.initialPose(self.trajectory_leftA)
-                autoGo =  [stages.makeTelemetryStage('left ring'), stages.makePathStage(self.trajectory_leftA),
-                stages.makeIntake(10, 80),
-                stages.makePathStage(self.trajectory_leftB)]
-        if self.RingChooser.getSelected() == AUTO_ALL:
-                firstPose = Trajectory.initialPose(self.trajectory_middleA)
-                autoGo = [stages.makeTelemetryStage('all path'),stages.makePathStage(self.trajectory_middleA),
-                stages.makeIntake(10, 80),
-                stages.makePathStage(self.trajectory_middleB),
-                stages.makePathStage(self.trajectory_rightA),
-                stages.makeIntake(10, 80),
-                stages.makePathStage(self.trajectory_rightB),
-                stages.makePathStage(self.trajectory_leftA),
-                stages.makeIntake(10, 80),
-                stages.makePathStage(self.trajectory_leftB)]
-        
-            
-        self.holonomicController = HolonomicDriveController(
-        self.XController, self.YController, self.RotationController)
-        # self.table.putNumber("path/TargetX", 0)
-        # self.table.putNumber("path/TargetY", 0)
-        # self.table.putNumber("path/TargetR", 0)
+                stageList = [
+                    stages.makeTelemetryStage('middle ring'),
+                    stages.makePathStage(self.trajectory_middleA),
+                    stages.makeIntakeStage(10, 0.2),
+                    stages.makePathStage(self.trajectory_middleB)
+                    ]
+        else:
+            assert(False)
+
         self.hal.input(firstPose.rotation())
         self.drive.resetOdometry(firstPose, self.hal)
-        self.auto = auto.Auto(autoGo, self.time.timeSinceInit)
+
+        self.auto = auto.Auto(stageList, self.time.timeSinceInit)
 
     def autonomousPeriodic(self) -> None:
-        # currentPose = self.drive.odometry.getPose()
-        # goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
-
-        # # goal = Trajectory.State()
-        # targetX = self.table.getNumber("path/TargetX", 0)
-        # targetY = self.table.getNumber("path/TargetY", 0)
-        # targetR = self.table.getNumber("path/TargetR", 0)
-        # # assert(targetX is not None)
-        # # assert(targetY is not None)
-        # # assert(targetR is not None)
-        # # # #goal = TrapezoidProfile.State(0, 0)
-        # self.table.putNumber("pathTargetX", goal.pose.X())
-        # self.table.putNumber("pathTargetY", goal.pose.Y())
-        # self.table.putNumber('pathTargetRotation', goal.pose.rotation().radians())
-        # self.table.putNumber("velocitytargt", goal.velocity)
-
-        # xSpeed = self.XController.calculate(currentPose.X(), targetX)
-        # ySpeed = self.YController.calculate(currentPose.Y(), targetY)
-        # rSpeed = self.RotationController.calculate(currentPose.rotation().radians(), targetR)
-        # t = Translation2d(xSpeed, ySpeed).rotateBy(Rotation2d(-self.hal.yaw))
-        #driveSpeed = ChassisSpeeds(t.x, t.y, rSpeed)
-
-        # adjustedSpeeds = self.holonomicController.calculate(
-        #     currentPose, goal, goal.pose.rotation())
-        # self.XController.setP(self.table.getNumber("path/Xp", 1.0))
-        # self.YController.setP(self.table.getNumber('path/Yp', 1.0))
-        # self.RotationController.setP(self.table.getNumber('path/Rp', 1.0))
-
         self.hal.stopMotors()
         self.auto.update(self)
         self.hardware.update(self.hal)
