@@ -1,4 +1,3 @@
-
 import robotHAL
 import wpilib
 from mechanism import Mechanism
@@ -72,6 +71,7 @@ class Robot(wpilib.TimedRobot):
 
     def teleopPeriodic(self) -> None:
         self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
+        self.hal.stopMotors()
 
         if self.input.gyroReset:
             self.hal.yaw = 0
