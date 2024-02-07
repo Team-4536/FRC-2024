@@ -1,12 +1,4 @@
-from robotHAL import RobotHAL, RobotHALBuffer
-import math
-import wpilib
-import phoenix6
-from wpimath.geometry import Pose2d, Rotation2d
-from PIDController import PIDController
-from real import angleWrap
-from phoenix6.hardware import CANcoder
-import rev
+from robotHAL import RobotHALBuffer
 
 
 class Mechanism():
@@ -56,7 +48,7 @@ class Mechanism():
     def clearMech(self):
         # spit out ring
         self.hal.shooterSpeed = -0.1
-        self.hal.shooterIntakeSpeed = -0.4 
+        self.hal.shooterIntakeSpeed = -0.4
         self.hal.intakeSpeeds[0] = -0.4
         self.hal.intakeSpeeds[1] = -0.4
 
