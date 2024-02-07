@@ -144,6 +144,13 @@ class Robot(wpilib.TimedRobot):
 
         self.hardware.update(self.hal)
 
+    def loadPathFlipped(self, name: str, flipped: bool) -> PathPlannerPath:
+        p = PathPlannerPath.fromPathFile(name)
+        if flipped:
+            p = p.flipPath()
+        return p
+
+
     def autonomousInit(self) -> None:
 
         # self.RotationController = ProfiledPIDControllerRadians(self.table.getNumber("path/Rp", 0.0), 0, 0,
@@ -168,14 +175,13 @@ class Robot(wpilib.TimedRobot):
         if self.autoChooser.getSelected() == AUTO_NONE:
             stageList = []
         elif self.autoChooser.getSelected() == AUTO_TEST:
-            path = PathPlannerPath.fromPathFile("testPath")
-            if(flipToRed):
-                path = path.flipPath()
+            path = self.loadPathFlipped("testPath", flipToRed)
             initalPose = path.getPreviewStartingHolonomicPose()
             stageList = [
                 stages.makeTelemetryStage("shoot stage"),
                 stages.makePathStage(path.getTrajectory(ChassisSpeeds(), initalPose.rotation())),
-                stages.makeIntakeStage(1, 0.4)
+                stages.makeIntakeStage(1, 0.4),
+                stages.makePathStage(self.loadPathFlipped("testPathReversed", flipToRed).getTrajectory(ChassisSpeeds(0, 0, 0), initalPose.rotation()))
             ]
         else:
             assert(False)
@@ -197,13 +203,6 @@ class Robot(wpilib.TimedRobot):
     def disabledPeriodic(self) -> None:
         self.hal.stopMotors()
         self.hardware.update(self.hal)
-
-
-class AutoDesc():
-    def __init__(self) -> None:
-        self.initalPose = None
-        self.initalPose = None
-
 
 if __name__ == "__main__":
     wpilib.run(Robot)

@@ -177,4 +177,4 @@ class RobotHAL():
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
 
-        buf.yaw = math.radians(-self.gyro.getYaw())
+        buf.yaw = math.radians(-self.gyro.getAngle())

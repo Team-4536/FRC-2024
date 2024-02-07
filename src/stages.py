@@ -28,12 +28,8 @@ def makePathStage(t: PathPlannerTrajectory) -> Stage:
 #speed is percentage
 def makeIntakeStage(time: float, speed: float):
     def stage(r: 'Robot') -> bool:
-        r.hal.driveSpeeds[0] = speed
-        if (r.time.timeSinceInit - r.auto.stagestart) > time:
-            return True
-        else:
-            r.hal.driveSpeeds[0] = speed
-        return False
+        r.hal.intakeSpeeds = [ speed, speed ]
+        return (r.time.timeSinceInit - r.auto.stagestart) > time
     return stage
 
 def makeTelemetryStage(s: str) -> Stage:
