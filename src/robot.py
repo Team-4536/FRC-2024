@@ -95,6 +95,7 @@ class Robot(wpilib.TimedRobot):
 
         if self.input.odometryReset:
             self.drive.resetOdometry(Pose2d(0,0,Rotation2d(0)), self.hal)
+
     def teleopInit(self) -> None:
         pass
 
@@ -124,8 +125,6 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
-        self.hal.yaw = 0
-        self.drive.resetOdometry(Pose2d(1.166,5.522,Rotation2d(0)), self.hal)
         self.table.putNumber("path/Xp", 1)
         self.table.putNumber("path/Yp", 1)
         self.table.putNumber('path/Rp', 7)
@@ -166,11 +165,11 @@ class Robot(wpilib.TimedRobot):
                     ]
         else:
             assert(False)
-
-        self.hal.input(firstPose.rotation())
-        self.drive.resetOdometry(firstPose, self.hal)
-
         self.auto = auto.Auto(stageList, self.time.timeSinceInit)
+
+        self.hardware.gyro.setAngleAdjustment(180)
+        self.hardware.update(self.hal)
+        self.drive.resetOdometry(firstPose, self.hal)
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
