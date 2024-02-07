@@ -19,15 +19,15 @@ class RobotInputs():
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
 
-        self.driveX: float = 0
-        self.driveY: float = 0
-        self.turning: float = 0
-        self.speedCtrl: float = 0
+        self.driveX: float = 0.0
+        self.driveY: float = 0.0
+        self.turning: float = 0.0
+        self.speedCtrl: float = 0.0
         self.gyroReset: bool = False
         self.brakeButton: bool = False
         self.absToggle: bool = False
 
-        self.intake: bool = False
+        self.intake: float = 0.0
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -42,7 +42,7 @@ class RobotInputs():
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
         # arm controller
-        self.intake = self.armCtrlr.getAButton()
+        self.intake = float(self.armCtrlr.getAButton()) - float(self.armCtrlr.getXButton())
         # self.shootSpeaker: bool = arm.getYButton()
         # self.shootAmp: bool = arm.getBButton()
         # self.shooterIntake: bool = arm.getLeftBumper()
@@ -86,7 +86,7 @@ class Robot(wpilib.TimedRobot):
         if self.input.absToggle:
             self.abs = not self.abs
 
-        speedControlEdited = lerp(1, 4, self.input.speedCtrl)
+        speedControlEdited = lerp(1.5, 5.0, self.input.speedCtrl)
         turnScalar = 3
 
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
@@ -100,11 +100,9 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("odomY", pose.y)
 
         if self.input.intake:
-            for i in range(2):
-                self.hal.intakeSpeeds[i] = 0.4
+            self.hal.intakeSpeeds = [0.4 * self.input.intake, 0.4 * self.input.intake]
         else:
-            self.hal.intakeSpeeds[0] = 0
-            self.hal.intakeSpeeds[1] = 0
+            self.hal.intakeSpeeds = [0.0, 0.0]
 
         #shooter
         # if self.input.shootSpeaker:
