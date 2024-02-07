@@ -81,7 +81,7 @@ class Robot(wpilib.TimedRobot):
         self.hal.stopMotors()
 
         if self.input.gyroReset:
-            self.driveGyroYawOffset = -self.hal.yaw
+            self.driveGyroYawOffset = self.hal.yaw
 
         if self.input.absToggle:
             self.abs = not self.abs
