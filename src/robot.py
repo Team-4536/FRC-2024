@@ -1,16 +1,10 @@
-from re import X
-from tkinter import colorchooser
-
 import auto
 import robotHAL
 import stages
 import wpilib
 import wpimath.controller
-from hal import getAnalogGyroAngle
 from mechanism import Mechanism
 from ntcore import NetworkTableInstance
-from phoenix6.hardware import CANcoder
-from PIDController import PIDController
 from real import lerp
 from swerveDrive import SwerveDrive
 from timing import TimeData
@@ -59,15 +53,12 @@ class RobotInputs():
         # self.shootAmp: bool = arm.getBButton()
         # self.shooterIntake: bool = arm.getLeftBumper()
 
+AUTO_SIDE_RED = "red"
+AUTO_SIDE_BLUE = "blue"
+
 AUTO_NONE = "none"
-AUTO_RED = "red"
-AUTO_BLUE = "blue"
-AUTO_SHOOTCURRENT = "shoot-current"
-AUTO_SHOOTEXIT = 'shoot-and-exit'
-AUTO_MIDDLE = 'get-middle-ring'
-AUTO_RIGHT = 'get-right-ring'
-AUTO_LEFT = 'get-left-ring'
-AUTO_ALL = 'get-all-rings'
+AUTO_SHOOT = "shoot"
+AUTO_SHOOT_AND_EXIT = "shoot and exit"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -79,8 +70,6 @@ class Robot(wpilib.TimedRobot):
 
         self.input = RobotInputs()
 
-        #def myOdometryReset(self) -> None:
-
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
         self.time = TimeData(None)
@@ -90,17 +79,15 @@ class Robot(wpilib.TimedRobot):
 
         self.mech = Mechanism(self.hal)
 
-        self.ColorChooser = wpilib.SendableChooser()
-        self.ColorChooser.setDefaultOption(AUTO_BLUE, AUTO_BLUE)
-        self.ColorChooser.addOption(AUTO_RED, AUTO_RED)
-        self.RingChooser = wpilib.SendableChooser()
-        self.RingChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
-        self.RingChooser.addOption(AUTO_MIDDLE, AUTO_MIDDLE)
-        self.RingChooser.addOption(AUTO_LEFT, AUTO_LEFT)
-        self.RingChooser.addOption(AUTO_RIGHT, AUTO_RIGHT)
-        self.RingChooser.addOption(AUTO_ALL, AUTO_ALL)
-        wpilib.SmartDashboard.putData('color chooser', self.ColorChooser)
-        wpilib.SmartDashboard.putData('ring chooser', self.RingChooser)
+        self.autoSideChooser = wpilib.SendableChooser()
+        self.autoSideChooser.setDefaultOption(AUTO_SIDE_BLUE, AUTO_SIDE_BLUE)
+        self.autoSideChooser.addOption(AUTO_SIDE_RED, AUTO_SIDE_RED)
+        wpilib.SmartDashboard.putData('auto side chooser', self.autoSideChooser)
+        self.autoChooser = wpilib.SendableChooser()
+        self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
+        self.autoChooser.addOption(AUTO_SHOOT, AUTO_SHOOT)
+        self.autoChooser.addOption(AUTO_SHOOT_AND_EXIT, AUTO_SHOOT_AND_EXIT)
+        wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
 
 
@@ -177,7 +164,7 @@ class Robot(wpilib.TimedRobot):
         else:
             trajPath = "/home/lvuser/py/deploy/output/"
 
-        if self.ColorChooser.getSelected() == AUTO_RED:
+        if self.autoSideChooser.getSelected() == AUTO_SIDE_RED:
             filePostfix = "Red.wpilib.json"
         else:
             filePostfix = "Blue.wpilib.json"
@@ -191,14 +178,10 @@ class Robot(wpilib.TimedRobot):
 
         stageList: list[auto.Stage] = []
         firstPose = Pose2d()
-        if self.RingChooser.getSelected() == AUTO_MIDDLE:
-                firstPose = Trajectory.initialPose(self.trajectory_middleA)
-                stageList = [
-                    stages.makeTelemetryStage('middle ring'),
-                    stages.makePathStage(self.trajectory_middleA),
-                    stages.makeIntakeStage(10, 0.2),
-                    stages.makePathStage(self.trajectory_middleB)
-                    ]
+        if self.autoChooser.getSelected() == AUTO_NONE:
+            stageList = []
+        elif self.autoChooser.getSelected() == AUTO_SHOOT:
+            stageList = []
         else:
             assert(False)
         self.auto = auto.Auto(stageList, self.time.timeSinceInit)
