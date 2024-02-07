@@ -73,6 +73,9 @@ class Robot(wpilib.TimedRobot):
         self.hal.publish(self.table)
         self.drive.updateOdometry(self.hal)
 
+        self.table.putBoolean("ctrl/absOn", self.abs)
+        self.table.putBoolean("ctrl/absOffset", self.abs)
+
     def teleopInit(self) -> None:
         pass
 
@@ -89,6 +92,8 @@ class Robot(wpilib.TimedRobot):
         speedControlEdited = lerp(1.5, 5.0, self.input.speedCtrl)
         turnScalar = 3
 
+        self.table.putNumber("ctrl/driveX", self.input.driveX)
+        self.table.putNumber("ctrl/driveY", self.input.driveY)
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         if self.abs:
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
@@ -96,7 +101,7 @@ class Robot(wpilib.TimedRobot):
         self.drive.update(self.time.dt, self.hal, speed)
 
         pose = self.drive.odometry.getPose()
-        self.table.putNumber("odomX", pose.x )
+        self.table.putNumber("odomX", pose.x)
         self.table.putNumber("odomY", pose.y)
 
         if self.input.intake:
