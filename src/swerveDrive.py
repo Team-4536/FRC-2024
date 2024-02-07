@@ -22,7 +22,7 @@ class SwerveDrive():
         self.maxSteerSpeed = 1.0 # CCW rads
         # meters, relative to robot center
         oneFtInMeters = 0.305
-        self.modulePositions = [
+        self.modulePositions: list[Translation2d] = [
             Translation2d(oneFtInMeters, oneFtInMeters),
             Translation2d(oneFtInMeters, -oneFtInMeters),
             Translation2d(-oneFtInMeters, oneFtInMeters),

@@ -2,21 +2,27 @@ from typing import TYPE_CHECKING
 
 from auto import Stage
 from ntcore import NetworkTableInstance
-from wpimath._controls._controls.trajectory import Trajectory
+from pathplannerlib.path import PathPlannerTrajectory
 
 if TYPE_CHECKING:
     from robot import Robot
 
-def makePathStage(t: Trajectory) -> Stage:
+def makePathStage(t: PathPlannerTrajectory) -> Stage:
     def stage(r: 'Robot') -> bool:
-        currentPose = r.drive.odometry.getPose()
         goal = t.sample(r.time.timeSinceInit - r.auto.stagestart)
 
-        adjustedSpeeds = r.holonomicController.calculate(
-            currentPose, goal, goal.pose.rotation())
+        table = NetworkTableInstance.getDefault().getTable("autos")
+        table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
+        table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
+        table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
+
+        adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getPose(), goal)
+        table.putNumber("pathVelX", adjustedSpeeds.vx)
+        table.putNumber("pathVelY", adjustedSpeeds.vy)
+        table.putNumber("pathVelR", adjustedSpeeds.omega)
 
         r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
-        return (r.time.timeSinceInit - r.auto.stagestart) > t.totalTime()
+        return (r.time.timeSinceInit - r.auto.stagestart) > t.getTotalTimeSeconds()
     return stage
 
 #speed is percentage

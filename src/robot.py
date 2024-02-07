@@ -2,17 +2,16 @@ import auto
 import robotHAL
 import stages
 import wpilib
-import wpimath.controller
 from mechanism import Mechanism
 from ntcore import NetworkTableInstance
+from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
+from pathplannerlib.path import PathPlannerPath
 from real import lerp
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from utils import Scalar
-from wpimath.controller import HolonomicDriveController, ProfiledPIDControllerRadians
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from wpimath.trajectory import Trajectory, TrajectoryUtil, TrapezoidProfileRadians
 
 
 class RobotInputs():
@@ -57,8 +56,7 @@ AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
 
 AUTO_NONE = "none"
-AUTO_SHOOT = "shoot"
-AUTO_SHOOT_AND_EXIT = "shoot and exit"
+AUTO_TEST = "test"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -85,8 +83,7 @@ class Robot(wpilib.TimedRobot):
         wpilib.SmartDashboard.putData('auto side chooser', self.autoSideChooser)
         self.autoChooser = wpilib.SendableChooser()
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
-        self.autoChooser.addOption(AUTO_SHOOT, AUTO_SHOOT)
-        self.autoChooser.addOption(AUTO_SHOOT_AND_EXIT, AUTO_SHOOT_AND_EXIT)
+        self.autoChooser.addOption(AUTO_TEST, AUTO_TEST)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
 
@@ -148,47 +145,46 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
-        self.table.putNumber("path/Xp", 1)
-        self.table.putNumber("path/Yp", 1)
-        self.table.putNumber('path/Rp', 7)
-        self.XController = wpimath.controller.PIDController(self.table.getNumber("path/Xp", 0.0), 0, 0)
-        self.YController = wpimath.controller.PIDController(self.table.getNumber("path/Yp", 0.0), 0, 0)
-        self.RotationController = ProfiledPIDControllerRadians(self.table.getNumber("path/Rp", 0.0), 0, 0,
-             TrapezoidProfileRadians.Constraints(6.28, 1))
-        self.holonomicController = HolonomicDriveController(self.XController, self.YController, self.RotationController)
 
-        trajPath = ""
-        filePostfix = ""
-        if self.isSimulation():
-            trajPath = "src/deploy/output/"
-        else:
-            trajPath = "/home/lvuser/py/deploy/output/"
+        # self.RotationController = ProfiledPIDControllerRadians(self.table.getNumber("path/Rp", 0.0), 0, 0,
+        #      TrapezoidProfileRadians.Constraints(6.28, 1))
+        self.holonomicController = PPHolonomicDriveController(
+            PIDConstants(1, 0, 0),
+            PIDConstants(7, 0, 0),
+            5.0,
+            self.drive.modulePositions[0].distance(Translation2d()))
 
-        if self.autoSideChooser.getSelected() == AUTO_SIDE_RED:
-            filePostfix = "Red.wpilib.json"
-        else:
-            filePostfix = "Blue.wpilib.json"
+        # deployPath = ""
+        # if self.isSimulation():
+        #     deployPath = "src/deploy/pathplanner/paths"
+        # else:
+        #     deployPath = "/home/lvuser/py/deploy/pathplanner/paths"
 
-        self.trajectory_middleA = TrajectoryUtil.fromPathweaverJson(trajPath + "middle" + filePostfix)
-        self.trajectory_middleB = TrajectoryUtil.fromPathweaverJson(trajPath + "middleBack" + filePostfix)
-        self.trajectory_leftA = TrajectoryUtil.fromPathweaverJson(trajPath + "left" + filePostfix)
-        self.trajectory_leftB = TrajectoryUtil.fromPathweaverJson(trajPath + "leftBack" + filePostfix)
-        self.trajectory_rightA = TrajectoryUtil.fromPathweaverJson(trajPath + "right" + filePostfix)
-        self.trajectory_rightB = TrajectoryUtil.fromPathweaverJson(trajPath + "rightBack" + filePostfix)
+        flipToRed = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
 
         stageList: list[auto.Stage] = []
-        firstPose = Pose2d()
+        initalPose: Pose2d = Pose2d()
+
         if self.autoChooser.getSelected() == AUTO_NONE:
             stageList = []
-        elif self.autoChooser.getSelected() == AUTO_SHOOT:
-            stageList = []
+        elif self.autoChooser.getSelected() == AUTO_TEST:
+            path = PathPlannerPath.fromPathFile("testPath")
+            if(flipToRed):
+                path = path.flipPath()
+            initalPose = path.getPreviewStartingHolonomicPose()
+            stageList = [
+                stages.makeTelemetryStage("shoot stage"),
+                stages.makePathStage(path.getTrajectory(ChassisSpeeds(), initalPose.rotation())),
+                stages.makeIntakeStage(1, 0.4)
+            ]
         else:
             assert(False)
+
         self.auto = auto.Auto(stageList, self.time.timeSinceInit)
 
         self.hardware.gyro.setAngleAdjustment(180)
         self.hardware.update(self.hal)
-        self.drive.resetOdometry(firstPose, self.hal)
+        self.drive.resetOdometry(initalPose, self.hal)
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
@@ -201,6 +197,12 @@ class Robot(wpilib.TimedRobot):
     def disabledPeriodic(self) -> None:
         self.hal.stopMotors()
         self.hardware.update(self.hal)
+
+
+class AutoDesc():
+    def __init__(self) -> None:
+        self.initalPose = None
+        self.initalPose = None
 
 
 if __name__ == "__main__":
