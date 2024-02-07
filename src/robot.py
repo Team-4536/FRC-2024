@@ -11,33 +11,41 @@ from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 
 
 class RobotInputs():
-    def __init__(self, drive: wpilib.XboxController, arm: wpilib.XboxController) -> None:
-        # scalars
+    def __init__(self) -> None:
+        self.driveCtrlr = wpilib.XboxController(0)
+        self.armCtrlr = wpilib.XboxController(1)
+
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
-        self.intakeScalar = Scalar(deadZone = .1, exponent = 1)
-        self.testScalar = Scalar(deadZone = .1, exponent = 1)
 
-        # drive
+        self.driveX: float = 0
+        self.driveY: float = 0
+        self.turning: float = 0
+        self.speedCtrl: float = 0
+        self.gyroReset: bool = False
+        self.brakeButton: bool = False
+        self.absToggle: bool = False
+
+        self.intake: bool = False
+
+    def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
-        self.driveX: float = self.xScalar(-drive.getLeftY())
-        self.driveY: float = self.yScalar(-drive.getLeftX())
-        self.turning: float = self.rotScalar(drive.getRightX())
+        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
+        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
+        self.turning = self.rotScalar(self.driveCtrlr.getRightX())
 
-        self.speedCtrl: float = drive.getRightTriggerAxis()
+        self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
-        self.gyroReset: bool = drive.getYButtonPressed()
-        self.brakeButton: bool = drive.getBButtonPressed()
-        self.absToggle: bool = drive.getXButtonPressed()
+        self.gyroReset = self.driveCtrlr.getYButtonPressed()
+        self.brakeButton = self.driveCtrlr.getBButtonPressed()
+        self.absToggle = self.driveCtrlr.getXButtonPressed()
 
         # arm controller
-        self.intake: bool = arm.getAButton()
-        self.shootSpeaker: bool = arm.getYButton()
-        self.shootAmp: bool = arm.getBButton()
-        self.shooterIntake: bool = arm.getLeftBumper()
-
-        self.shooterJoystick: float = self.testScalar(-arm.getRightY())
+        self.intake = self.armCtrlr.getAButton()
+        # self.shootSpeaker: bool = arm.getYButton()
+        # self.shootAmp: bool = arm.getBButton()
+        # self.shooterIntake: bool = arm.getLeftBumper()
 
 
 class Robot(wpilib.TimedRobot):
@@ -48,9 +56,7 @@ class Robot(wpilib.TimedRobot):
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
 
-        self.driveCtrlr = wpilib.XboxController(0)
-        self.armCtrlr = wpilib.XboxController(1)
-        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
+        self.input = RobotInputs()
 
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
@@ -71,7 +77,7 @@ class Robot(wpilib.TimedRobot):
         pass
 
     def teleopPeriodic(self) -> None:
-        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
+        self.input.update()
         self.hal.stopMotors()
 
         if self.input.gyroReset:
@@ -101,14 +107,14 @@ class Robot(wpilib.TimedRobot):
             self.hal.intakeSpeeds[1] = 0
 
         #shooter
-        if self.input.shootSpeaker:
-            self.hal.shooterSpeed = 0.25
+        # if self.input.shootSpeaker:
+        #     self.hal.shooterSpeed = 0.25
 
-        if self.input.shootAmp:
-            self.hal.shooterSpeed = 0.1
+        # if self.input.shootAmp:
+        #     self.hal.shooterSpeed = 0.1
 
-        if self.input.shooterIntake:
-            self.hal.shooterIntakeSpeed = 0.1
+        # if self.input.shooterIntake:
+        #     self.hal.shooterIntakeSpeed = 0.1
 
         self.hardware.update(self.hal)
 
