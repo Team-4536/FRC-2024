@@ -1,5 +1,6 @@
 import robotHAL
 import wpilib
+import math
 from mechanism import Mechanism
 from ntcore import NetworkTableInstance
 from real import lerp
@@ -35,7 +36,7 @@ class RobotInputs():
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
-
+        self.limelightTestButton = self.driveCtrlr.getAButton()
         self.gyroReset = self.driveCtrlr.getYButtonPressed()
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
@@ -55,8 +56,10 @@ class Robot(wpilib.TimedRobot):
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
         self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight")
-
+        self.tx = self.limelightTable.putNumber("tx", 50)
+        self.ty = self.limelightTable.putNumber("ty", 50)
         self.input = RobotInputs()
+        self.minimumLimelightYValue = -300
 
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
@@ -82,14 +85,36 @@ class Robot(wpilib.TimedRobot):
     def limelightfunctionthing(self):
         self.tx = self.limelightTable.getNumber("tx", 0.0)
         self.ty = self.limelightTable.getNumber("ty", 0.0)
-        if(self.tx>5):
-            self.ringTurnAngle = self.tx - 3
-        if(self.tx<-5):
-            self.ringTurnAngle = self.tx + 3
-        self.ringTurnRadians =  Rotation2d(math.radians(self.ringTurnAngle))
+        # if(self.tx>5):
+        #     self.tx = self.tx - 3
+        # if(self.tx<-5):
+        #     self.tx = self.tx + 3
+        self.ringTurnAngle = self.tx
+        #self.ringTurnRadians =  Rotation2d(math.radians(self.ringTurnAngle))
+        self.ringTurnRadians = math.radians(self.ringTurnAngle)
         self.drive.update(self.time.dt, self.hal, ChassisSpeeds(0, 0, self.ringTurnRadians*0.1))
-        #add intake code here 
-        #-jack
+        
+        
+        self.limelightYError = self.ty - self.minimumLimelightYValue
+        if self.limelightYError <100:
+            self.hal.intakeSpeeds = [0.2, 0.2]
+            self.limelightTable.putNumber("intakeRunning", 1)
+        else:
+            self.limelightTable.putNumber("intakeRunning", 0)
+        #this is manually modifying tx which should be done by the limelight on the robot
+        if(self.tx>0):
+            self.tx = self.limelightTable.putNumber("tx", self.tx - 1)
+        elif(self.tx<0):
+            self.tx = self.limelightTable.putNumber("tx", self.tx + 1)
+
+
+
+        if self.tx == 0:
+            self.drive.update(self.time.dt, self.hal, ChassisSpeeds(self.limelightYError, 0, 0))
+        #this is manually modifying the ty which should be done by the limelight on the robot
+            if self.ty > self.minimumLimelightYValue:
+                self.ty = self.limelightTable.putNumber("ty", self.ty - 1)
+
       
     def teleopPeriodic(self) -> None:
 
@@ -104,7 +129,8 @@ class Robot(wpilib.TimedRobot):
 
         speedControlEdited = lerp(1.5, 5.0, self.input.speedCtrl)
         turnScalar = 3
-
+        if self.input.limelightTestButton:
+            self.limelightfunctionthing()
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
