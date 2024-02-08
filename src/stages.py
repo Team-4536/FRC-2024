@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING
-
+import stages
 from auto import Stage
 from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
@@ -26,12 +26,19 @@ def makePathStage(t: PathPlannerTrajectory) -> Stage:
     return stage
 
 #speed is percentage
-def makeIntakeStage(time: float, speed: float):
+#def makeIntakeStage(time: float, speed: float):
     def stage(r: 'Robot') -> bool:
         r.hal.intakeSpeeds = [ speed, speed ]
         return (r.time.timeSinceInit - r.auto.stagestart) > time
     return stage
-
+def makePathAndIntakeStage(speed: float, intakeTriggerPercent: float, t: PathPlannerTrajectory):
+    stagePath = stages.makePathStage(PathPlannerTrajectory)
+    def stage(r: 'Robot') -> bool:
+        isOver = stagePath(r)
+        if ((r.time.timeSinceInit - r.auto.stagestart) > (t.getTotalTimeSeconds() * intakeTriggerPercent)):
+            r.hal.intakeSpeeds = [ speed, speed ]
+        return isOver
+    return stage
 def makeTelemetryStage(s: str) -> Stage:
     def log(r: 'Robot') -> bool:
         NetworkTableInstance.getDefault().getTable("autos").putString("telemStageLog", s)
