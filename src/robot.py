@@ -1,39 +1,50 @@
-from gettext import translation
-from xml.sax.xmlreader import InputSource
-import wpilib
-from ntcore import NetworkTableInstance
-from wpimath.geometry import Pose2d, Rotation2d
-from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from utils import Scalar
-from phoenix6.hardware import CANcoder
 import robotHAL
+import wpilib
+from mechanism import Mechanism
 from ntcore import NetworkTableInstance
-from wpimath.kinematics import SwerveModuleState
-import math
+from real import lerp
 from swerveDrive import SwerveDrive
 from timing import TimeData
-from real import lerp
-from wpimath.geometry import Translation2d
-from wpimath.geometry import Rotation2d
-
+from utils import Scalar
+from wpimath.geometry import Pose2d, Rotation2d, Translation2d
+from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 
 class RobotInputs():
-    def __init__(self, drive: wpilib.XboxController, arm: wpilib.XboxController) -> None:
+    def __init__(self) -> None:
+        self.driveCtrlr = wpilib.XboxController(0)
+        self.armCtrlr = wpilib.XboxController(1)
+
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
 
+        self.driveX: float = 0.0
+        self.driveY: float = 0.0
+        self.turning: float = 0.0
+        self.speedCtrl: float = 0.0
+        self.gyroReset: bool = False
+        self.brakeButton: bool = False
+        self.absToggle: bool = False
 
+        self.intake: float = 0.0
+
+    def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
-        self.driveX: float = self.xScalar(-drive.getLeftY())
-        self.driveY: float = self.yScalar(-drive.getLeftX())
-        self.turning: float = self.rotScalar(drive.getRightX())
+        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
+        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
+        self.turning = self.rotScalar(self.driveCtrlr.getRightX())
 
-        self.speedCtrl: float = drive.getRightTriggerAxis()
+        self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
-        self.gyroReset: bool = drive.getYButtonPressed()
-        self.brakeButton: bool = drive.getBButtonPressed()
-        self.absToggle: bool = drive.getXButtonPressed()
+        self.gyroReset = self.driveCtrlr.getYButtonPressed()
+        self.brakeButton = self.driveCtrlr.getBButtonPressed()
+        self.absToggle = self.driveCtrlr.getXButtonPressed()
+
+        # arm controller
+        self.intake = float(self.armCtrlr.getAButton()) - float(self.armCtrlr.getXButton())
+        # self.shootSpeaker: bool = arm.getYButton()
+        # self.shootAmp: bool = arm.getBButton()
+        # self.shooterIntake: bool = arm.getLeftBumper()
 
 
 class Robot(wpilib.TimedRobot):
@@ -44,22 +55,27 @@ class Robot(wpilib.TimedRobot):
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
         self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight")
-        self.driveCtrlr = wpilib.XboxController(0)
-        self.armCtrlr = wpilib.XboxController(1)
-        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
+
+        self.input = RobotInputs()
 
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
         self.time = TimeData(None)
 
         self.abs = True
+        self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
+
+        self.mech = Mechanism(self.hal)
 
 
     def robotPeriodic(self) -> None:
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
         self.drive.updateOdometry(self.hal)
-        
+
+        self.table.putBoolean("ctrl/absOn", self.abs)
+        self.table.putBoolean("ctrl/absOffset", self.abs)
+
     def teleopInit(self) -> None:
         pass
 
@@ -76,32 +92,46 @@ class Robot(wpilib.TimedRobot):
         #-jack
       
     def teleopPeriodic(self) -> None:
-        self.input = RobotInputs(self.driveCtrlr, self.armCtrlr)
-        
+
+        self.input.update()
+        self.hal.stopMotors()
+
         if self.input.gyroReset:
-            self.hal.yaw = 0
+            self.driveGyroYawOffset = self.hal.yaw
 
         if self.input.absToggle:
             self.abs = not self.abs
-    
-        defaultSpeed = 1
-        maxSpeed = 4
-        speedControlEdited = lerp(defaultSpeed, maxSpeed, self.input.speedCtrl)
+
+        speedControlEdited = lerp(1.5, 5.0, self.input.speedCtrl)
         turnScalar = 3
 
+        self.table.putNumber("ctrl/driveX", self.input.driveX)
+        self.table.putNumber("ctrl/driveY", self.input.driveY)
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
-        driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw))
-
         if self.abs:
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
-        else:
-            speed = ChassisSpeeds(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited, -self.input.turning * turnScalar)
+            driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
+        speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+        self.drive.update(self.time.dt, self.hal, speed)
 
         pose = self.drive.odometry.getPose()
-        self.table.putNumber("odomX", pose.x )
+        self.table.putNumber("odomX", pose.x)
         self.table.putNumber("odomY", pose.y)
 
-        self.drive.update(self.time.dt, self.hal, speed)
+        if self.input.intake:
+            self.hal.intakeSpeeds = [0.4 * self.input.intake, 0.4 * self.input.intake]
+        else:
+            self.hal.intakeSpeeds = [0.0, 0.0]
+
+        #shooter
+        # if self.input.shootSpeaker:
+        #     self.hal.shooterSpeed = 0.25
+
+        # if self.input.shootAmp:
+        #     self.hal.shooterSpeed = 0.1
+
+        # if self.input.shooterIntake:
+        #     self.hal.shooterIntakeSpeed = 0.1
+
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
