@@ -170,27 +170,27 @@ class Robot(wpilib.TimedRobot):
         flipToRed = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
 
         stageList: list[auto.Stage] = []
-        initalPose: Pose2d = Pose2d()
+        initialPose: Pose2d = Pose2d()
 
         if self.autoChooser.getSelected() == AUTO_NONE:
             stageList = []
         elif self.autoChooser.getSelected() == AUTO_TEST:
             path = self.loadPathFlipped("testPath", flipToRed)
-            initalPose = path.getPreviewStartingHolonomicPose()
+            initialPose = path.getPreviewStartingHolonomicPose()
             stageList = [
-                stages.makeTelemetryStage("shoot stage"),
-                stages.makePathStage(path.getTrajectory(ChassisSpeeds(), initalPose.rotation())),
+                stages.makeTelemetryStage("test auto"),
+                stages.makePathStage(path.getTrajectory(ChassisSpeeds(), initialPose.rotation())),
                 stages.makeIntakeStage(1, 0.4),
-                stages.makePathStage(self.loadPathFlipped("testPathReversed", flipToRed).getTrajectory(ChassisSpeeds(0, 0, 0), initalPose.rotation()))
+                stages.makePathStage(self.loadPathFlipped("testPathReversed", flipToRed).getTrajectory(ChassisSpeeds(0, 0, 0), initialPose.rotation()))
             ]
         else:
             assert(False)
 
         self.auto = auto.Auto(stageList, self.time.timeSinceInit)
 
-        self.hardware.gyro.setAngleAdjustment(180)
+        self.hardware.gyro.setAngleAdjustment(-initialPose.rotation().degrees())
         self.hardware.update(self.hal)
-        self.drive.resetOdometry(initalPose, self.hal)
+        self.drive.resetOdometry(initialPose, self.hal)
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
