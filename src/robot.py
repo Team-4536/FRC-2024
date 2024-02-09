@@ -8,7 +8,7 @@ from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-
+from shooterStateMachine import StateMachine
 
 class RobotInputs():
     def __init__(self) -> None:
@@ -29,6 +29,11 @@ class RobotInputs():
 
         self.intake: float = 0.0
 
+        self.ampShot: bool = False
+        self.podiumShot: bool = False
+        self.subwooferShot: bool = False
+        self.shoot: bool = False
+
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
         self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
@@ -46,6 +51,12 @@ class RobotInputs():
         # self.shootSpeaker: bool = arm.getYButton()
         # self.shootAmp: bool = arm.getBButton()
         # self.shooterIntake: bool = arm.getLeftBumper()
+
+        #POV is also known as the Dpad
+        self.ampShot = self.armCtrlr.getPOV() < 100 and self.armCtrlr.getPOV() > 80  #right
+        self.podiumShot = self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170 #down
+        self.subwooferShot = self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260 #left
+        self.shoot = False
 
 
 class Robot(wpilib.TimedRobot):
@@ -77,7 +88,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putBoolean("ctrl/absOffset", self.abs)
 
     def teleopInit(self) -> None:
-        pass
+        self.shooterStateMachine = StateMachine
 
     def teleopPeriodic(self) -> None:
         self.input.update()
@@ -120,6 +131,8 @@ class Robot(wpilib.TimedRobot):
         #     self.hal.shooterIntakeSpeed = 0.1
 
         self.hardware.update(self.hal)
+
+        self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, False)
 
     def autonomousInit(self) -> None:
         pass
