@@ -83,9 +83,22 @@ class RobotInputs():
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
+         
+
+        self.time = timing.TimeData(None)
+
+        self.driveCtrlr = wpilib.XboxController(0)
+        self.armCtrlr = wpilib.XboxController(1)
+        self.input: RobotInputs = RobotInputs(self.driveCtrlr, self.armCtrlr)
+
+        self.telemetryTable = NetworkTableInstance.getDefault().getTable("telemetry")
+        self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight")
+        self.robotPoseTable = NetworkTableInstance.getDefault().getTable("robot pose")
+
         self.hal = robotHAL.RobotHALBuffer()
         self.hardware = robotHAL.RobotHAL()
         self.hardware.update(self.hal)
+
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
 
@@ -120,7 +133,26 @@ class Robot(wpilib.TimedRobot):
 
         profiler.end("robotPeriodic")
 
+        #(jack): since visoin measurements were added there needs to be a way to specify where the robot is starting
+        self.drive = swerveDrive.SwerveDrive(Rotation2d(0), Pose2d(5.60, 1.39, 2),
+            [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)])
 
+    
+        self.time = timing.TimeData(self.time)
+        self.drive
+        self.visionPose = self.limelightTable.getNumberArray("botpose", [0,0,0,0,0,0,0])
+        if not (self.visionPose[0] == 0 and self.visionPose[1] == 0 and self.visionPose[5] == 0):  
+            self.visionPose = Pose2d(self.visionPose[0], self.visionPose[1], self.visionPose[5])
+            self.drive.odometry.addVisionMeasurement(self.visionPose, wpilib.Timer.getFPGATimestamp())
+        self.robotPose = self.drive.odometry.getEstimatedPosition()
+        self.robotX = self.robotPose.X()
+        self.robotY = self.robotPose.Y()
+        self.robotTheta = self.robotPose.rotation().radians() 
+        self.robotPoseTable.putNumber("robotX" , self.robotX)
+        self.robotPoseTable.putNumber("robotY" , self.robotY)
+        self.robotPoseTable.putNumber("robotTheta" , self.robotTheta)
+        
+        self.hal.publish(self.telemetryTable)
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
@@ -181,6 +213,8 @@ class Robot(wpilib.TimedRobot):
         profiler.end("hardware update")
         self.table.putNumber("TIME FOR FRAME", wpilib.getTime() - frameStart)
 
+        
+    
     def autonomousInit(self) -> None:
         pass
 

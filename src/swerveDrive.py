@@ -12,6 +12,7 @@ from wpimath.kinematics import (
     SwerveModulePosition,
     SwerveModuleState,
 )
+from wpimath.estimator import SwerveDrive4PoseEstimator
 
 
 
@@ -37,10 +38,12 @@ class SwerveDrive():
 
 
         self.kinematics = SwerveDrive4Kinematics(*self.modulePositions)
+
         # assert(len(wheelStates) == 4)
         self.odometry = SwerveDrive4Odometry(self.kinematics, angle, tuple(wheelStates), pose) #type: ignore // because of tuple type mismatch, which is assert gaurded
         self.turningPIDs = [PIDController(0, 0, 0) for i in range(4)]
         self.drivePIDs = [PIDController(0, 0, 0) for i in range(4)]
+
 
 
 
