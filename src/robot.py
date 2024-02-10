@@ -46,7 +46,7 @@ class RobotInputs():
         # arm controller
         self.intake = float(self.armCtrlr.getAButton()) - float(self.armCtrlr.getXButton())
 
-        self.tempShooterAim = self.armCtrlr.getRightY()
+        self.tempShooterAim = -self.armCtrlr.getLeftY()
         self.tempShooterSpin: float = 1 if self.armCtrlr.getYButton() else 0
         # self.shootSpeaker: bool = arm.getYButton()
         # self.shootAmp: bool = arm.getBButton()

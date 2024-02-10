@@ -22,17 +22,18 @@ class RobotHALBuffer():
         self.shooterSpeed: float = 0 # -1 to 1 // volts to motor controller
         self.shooterAimSpeed: float = 0 # -1 to 1 // volts to motor controller
         self.shooterIntakeSpeed: float = 0 # -1 to 1 // volts to motor controller
-
         self.shooterAimPos: float = 0 # rads out from resting position
+
+        self.shooterAngVelocityMeasured : float = 0
 
         self.lowerShooterLimitSwitch: bool = False
         self.upperShooterLimitSwitch: bool = False
 
         self.intakeSensor: bool = False
-        self.colorSensorProx: bool = False
+        self.shooterSensor: bool = False
 
         self.yaw: float = 0
-
+       
     def resetEncoders(self) -> None:
         # swerve encoders
         for i in range(4):
@@ -77,11 +78,13 @@ class RobotHALBuffer():
 
         table.putNumber("ShooterAimPos", self.shooterAimPos)
 
+        table.putNumber("ShooterAngVelMeasured", self.shooterAngVelocityMeasured)
+
         table.putBoolean("LowerShooterLimitSwitch", self.lowerShooterLimitSwitch)
         table.putBoolean("UpperShooterLimitSwitch", self.upperShooterLimitSwitch)
 
         table.putBoolean("IntakeSensor", self.intakeSensor)
-        table.putBoolean("ShooterProxSensor", self.colorSensorProx)
+        table.putBoolean("ShooterSensor", self.shooterSensor)
 
         # gyro
         table.putNumber("yaw", self.yaw)
@@ -126,6 +129,7 @@ class RobotHAL():
         self.shooterTopMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless)
         self.shooterBottomMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
         self.shooterAimMotor = rev.CANSparkMax(14, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterAimMotor.setInverted(True)
         self.shooterIntakeMotor = rev.CANSparkMax(13, rev.CANSparkMax.MotorType.kBrushless)
         # shooter encoders
         self.shooterTopEncoder = self.shooterTopMotor.getEncoder()
@@ -137,7 +141,7 @@ class RobotHAL():
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
 
         self.lowerShooterLimitSwitch = wpilib.DigitalInput(2)
-        self.upperShooterLimitSwitch = wpilib.DigitalInput(3)
+        self.upperShooterLimitSwitch = wpilib.DigitalInput(1)
 
         self.intakeSensor = wpilib.DigitalInput(0)
         self.I2C = wpilib.I2C.Port.kOnboard
@@ -172,14 +176,12 @@ class RobotHAL():
         #     e = self.intakeEncoders[i]
         #     buf.intakePositions[i] = e.getPosition()
 
-        # shooter motors speeds
         self.shooterTopMotor.set(buf.shooterSpeed) # bottom shooter motor is on follower mode
         self.shooterAimMotor.set(buf.shooterAimSpeed)
         self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
-        # get shooter encoder values
-        self.shooterTopAngularVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
-        self.shooterBottomAngularVelocityMeasured = (self.shooterBottomEncoder.getVelocity()/60)*math.pi*2
-        self.shooterAimPos = self.shooterAimEncoder.getPosition()
+
+        buf.shooterAngVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
+        buf.shooterAimPos = self.shooterAimEncoder.getPosition()
 
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
@@ -189,8 +191,9 @@ class RobotHAL():
         buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
         buf.upperShooterLimitSwitch = self.upperShooterLimitSwitch.get()
 
+        ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
         if self.colorSensor.getProximity() > 1950:
-            buf.colorSensorProx = True
+            buf.shooterSensor = True
         else:
-            buf.colorSensorProx = False
+            buf.shooterSensor = False
         buf.intakeSensor = self.intakeSensor.get()
