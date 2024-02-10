@@ -28,7 +28,7 @@ class RobotInputs():
         self.brakeButton: bool = False
         self.absToggle: bool = False
 
-        self.startIntaking: bool = False
+        self.intake: bool = False
 
         self.tempShooterAim: float = 0.0
 
@@ -45,7 +45,7 @@ class RobotInputs():
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
         # arm controller
-        self.startIntaking = self.armCtrlr.getAButtonPressed()
+        self.intake = self.armCtrlr.getAButton()
 
         self.tempShooterAim = -self.armCtrlr.getLeftY()
         self.tempShooterSpin: float = 1 if self.armCtrlr.getYButton() else 0
@@ -114,7 +114,7 @@ class Robot(wpilib.TimedRobot):
         self.hal.shooterSpeed = self.input.tempShooterSpin * 0.4
         self.hal.shooterIntakeSpeed = self.input.tempShooterSpin * 0.4
 
-        self.intakeStateMachine.update(self.hal, self.input.startIntaking)
+        self.intakeStateMachine.update(self.hal, self.input.intake)
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
