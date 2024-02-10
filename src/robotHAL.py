@@ -26,6 +26,7 @@ class RobotHALBuffer():
 
         self.shooterAngVelocityMeasured : float = 0
 
+
         self.lowerShooterLimitSwitch: bool = False
         self.upperShooterLimitSwitch: bool = False
 
@@ -88,6 +89,8 @@ class RobotHALBuffer():
 
         # gyro
         table.putNumber("yaw", self.yaw)
+        table.putBoolean("Shooter Sensor", self.shooterSensor)
+        table.putBoolean("Intake Sensor", self.intakeSensor)
 
 class RobotHAL():
     def __init__(self) -> None:
@@ -188,11 +191,12 @@ class RobotHAL():
 
         buf.yaw = math.radians(-self.gyro.getYaw())
 
+
         buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
         buf.upperShooterLimitSwitch = self.upperShooterLimitSwitch.get()
 
         ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
-        if self.colorSensor.getProximity() > 1950:
+        if self.colorSensor.getProximity() >= 2047:
             buf.shooterSensor = True
         else:
             buf.shooterSensor = False

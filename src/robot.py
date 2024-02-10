@@ -5,6 +5,7 @@ from intakeStateMachine import IntakeStateMachine
 from mechanism import Mechanism
 from ntcore import NetworkTableInstance
 from real import lerp
+from shooterStateMachine import StateMachine
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from utils import Scalar
@@ -33,6 +34,11 @@ class RobotInputs():
 
         self.tempShooterAim: float = 0.0
 
+        self.ampShot: bool = False
+        self.podiumShot: bool = False
+        self.subwooferShot: bool = False
+        self.shoot: bool = False
+
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
         self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
@@ -54,6 +60,20 @@ class RobotInputs():
         # self.shootAmp: bool = arm.getBButton()
         # self.shooterIntake: bool = arm.getLeftBumper()
 
+        #POV is also known as the Dpad
+        if(self.armCtrlr.getPOV() != -1):
+            self.ampShot = self.armCtrlr.getPOV() < 100 and self.armCtrlr.getPOV() > 80  #right
+            self.podiumShot = self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170 #down
+            self.subwooferShot = self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260 #left
+            self.shoot = self.armCtrlr.getPOV() < 10 or self.armCtrlr.getPOV() > 350
+        else:
+            self.ampShot = True
+            self.podiumShot = False
+            self.subwooferShot = False
+            self.shoot = False
+
+    
+
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -74,6 +94,10 @@ class Robot(wpilib.TimedRobot):
 
         self.intakeStateMachine = IntakeStateMachine()
 
+        self.shooterStateMachine = StateMachine()
+
+        self.shooterStateMachineState = 0
+
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -83,12 +107,19 @@ class Robot(wpilib.TimedRobot):
 
         self.table.putBoolean("ctrl/absOn", self.abs)
         self.table.putBoolean("ctrl/absOffset", self.abs)
+
+        self.table.putNumber("shooterStateMachine/state", self.shooterStateMachineState)
+        self.table.putBoolean("shooterStateMachine/amp", self.input.ampShot)
+
         profiler.end("robotPeriodic")
 
+
+
     def teleopInit(self) -> None:
-        pass
+        self.shooterStateMachine.state = 0
 
     def teleopPeriodic(self) -> None:
+        frameStart = wpilib.getTime()
         self.input.update()
         self.hal.stopMotors()
 
@@ -116,16 +147,26 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("odomY", pose.y)
 
         self.hal.shooterAimSpeed = self.input.tempShooterAim * 0.1
-        self.hal.shooterSpeed = self.input.tempShooterSpin * 0.4
-        self.hal.shooterIntakeSpeed = self.input.tempShooterSpin * 0.4
+        # self.hal.shooterSpeed = self.input.tempShooterSpin * 0.4
+        # self.hal.shooterIntakeSpeed = self.input.tempShooterSpin * 0.4
+
+        self.table.putNumber("POV", self.input.armCtrlr.getPOV())
+        self.table.putBoolean("amp", self.input.ampShot)
+        self.table.putBoolean("shoot", self.input.shoot)
 
         profiler.start()
         self.intakeStateMachine.update(self.hal, self.input.intake)
         profiler.end("intake state machine")
 
         profiler.start()
+        self.shooterStateMachineState = self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, self.time, self.time.dt)
+        profiler.end("shooter state machine")
+
+
+        profiler.start()
         self.hardware.update(self.hal)
         profiler.end("hardware update")
+        self.table.putNumber("TIME FOR FRAME", wpilib.getTime() - frameStart)
 
     def autonomousInit(self) -> None:
         pass

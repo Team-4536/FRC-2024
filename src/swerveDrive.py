@@ -14,6 +14,7 @@ from wpimath.kinematics import (
 )
 
 
+
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
 class SwerveDrive():
     def __init__(self, angle: Rotation2d, pose: Pose2d, wheelStates: list[SwerveModulePosition]) -> None:
@@ -41,6 +42,8 @@ class SwerveDrive():
         self.turningPIDs = [PIDController(0, 0, 0) for i in range(4)]
         self.drivePIDs = [PIDController(0, 0, 0) for i in range(4)]
 
+
+
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
     def update(self, dt: float, hal: robotHAL.RobotHALBuffer, speed: ChassisSpeeds):
         steerKp = self.table.getNumber("SteeringKp", 0.0)
@@ -61,17 +64,22 @@ class SwerveDrive():
         for i in range(4):
             # state = SwerveModuleState.optimize(targetStates[i], wheelPositions[i].angle)
             state = self.optimizeTarget(targetStates[i], wheelPositions[i].angle)
+            """
             if abs(hal.driveSpeedMeasured[i]) > 0.1:
                 hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
             elif angleWrap(abs(hal.steeringPositions[i] - state.angle.radians())) < 0.09:
                 hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
             else:
                 hal.driveSpeeds[i] = 0
+                """
+            hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
 
             telemetryTable.putNumber(prefs[i] + "targetAngle", state.angle.radians())
             telemetryTable.putNumber(prefs[i] + "targetSpeed", state.speed)
             steeringError = angleWrap(state.angle.radians() - wheelPositions[i].angle.radians())
             hal.steeringSpeeds[i] = self.turningPIDs[i].tickErr(steeringError, state.angle.radians(), dt)
+
+        
 
     def updateOdometry(self, hal: robotHAL.RobotHALBuffer):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
