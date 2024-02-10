@@ -1,5 +1,6 @@
 import robotHAL
 import wpilib
+from intakeStateMachine import IntakeStateMachine
 from mechanism import Mechanism
 from ntcore import NetworkTableInstance
 from real import lerp
@@ -27,7 +28,9 @@ class RobotInputs():
         self.brakeButton: bool = False
         self.absToggle: bool = False
 
-        self.intake: float = 0.0
+        self.intake: bool = False
+
+        self.tempShooterAim: float = 0.0
 
         self.ampShot: bool = False
         self.podiumShot: bool = False
@@ -47,7 +50,10 @@ class RobotInputs():
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
         # arm controller
-        self.intake = float(self.armCtrlr.getAButton()) - float(self.armCtrlr.getXButton())
+        self.intake = self.armCtrlr.getAButton()
+
+        self.tempShooterAim = -self.armCtrlr.getLeftY()
+        self.tempShooterSpin: float = 1 if self.armCtrlr.getYButton() else 0
         # self.shootSpeaker: bool = arm.getYButton()
         # self.shootAmp: bool = arm.getBButton()
         # self.shooterIntake: bool = arm.getLeftBumper()
@@ -82,7 +88,7 @@ class Robot(wpilib.TimedRobot):
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
 
-        self.mech = Mechanism(self.hal)
+        self.intakeStateMachine = IntakeStateMachine()
 
         self.shooterStateMachine = StateMachine()
 
@@ -130,22 +136,15 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("odomX", pose.x)
         self.table.putNumber("odomY", pose.y)
 
-        if self.input.intake:
-            self.hal.intakeSpeeds = [0.4 * self.input.intake, 0.4 * self.input.intake]
-        else:
-            self.hal.intakeSpeeds = [0.0, 0.0]
+        self.hal.shooterAimSpeed = self.input.tempShooterAim * 0.1
+        self.hal.shooterSpeed = self.input.tempShooterSpin * 0.4
+        self.hal.shooterIntakeSpeed = self.input.tempShooterSpin * 0.4
 
-        #shooter
-        # if self.input.shootSpeaker:
-        #     self.hal.shooterSpeed = 0.25
 
-        # if self.input.shootAmp:
-        #     self.hal.shooterSpeed = 0.1
 
-        # if self.input.shooterIntake:
-        #     self.hal.shooterIntakeSpeed = 0.1
-
+        self.intakeStateMachine.update(self.hal, self.input.intake)
         self.shooterStateMachineState = self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, False, self.time.dt)
+
 
         self.hardware.update(self.hal)
 

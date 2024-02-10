@@ -13,40 +13,35 @@ class RobotHALBuffer():
         self.driveSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1 // volts to motor controller
         self.steeringSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1
         self.drivePositions: list[float] = [0, 0, 0, 0] # in meters
-        self.steeringPositions: list[float] = [0, 0, 0, 0] # in rads
+        self.steeringPositions: list[float] = [0, 0, 0, 0] # in CCW rads
         self.driveSpeedMeasured: list[float] = [0, 0, 0, 0] # m/s // output from encoders
 
-
         self.intakeSpeeds: list[float] = [0, 0] # -1 to 1 // volts to motor controller
-        self.intakePositions: list[float] = [0, 0] # whatever encoders return
+        # self.intakePositions: list[float] = [0, 0] # whatever encoders return
 
         self.shooterSpeed: float = 0 # -1 to 1 // volts to motor controller
-        self.shooterAimSpeed: float = 0 # ^
-        self.shooterIntakeSpeed: float = 0 # ^
+        self.shooterAimSpeed: float = 0 # -1 to 1 // volts to motor controller
+        self.shooterIntakeSpeed: float = 0 # -1 to 1 // volts to motor controller
+        self.shooterAimPos: float = 0 # rads out from resting position
 
-        self.shooterTopPos: float = 0 # raw encoder readings
-        self.shooterBottomPos: float = 0 # ^
-        self.shooterAimPos: float = 0 # ^
-        self.shooterIntakePos: float = 0 # ^
+        self.shooterAngVelocityMeasured : float = 0
 
-        self.shooterAngularVelocity: float = 0
-        self.shooterIntakeAngularVelocity: float = 0
+
+        self.lowerShooterLimitSwitch: bool = False
+        self.upperShooterLimitSwitch: bool = False
+
+        self.intakeSensor: bool = False
+        self.shooterSensor: bool = False
 
         self.yaw: float = 0
-        self.shooterSensor: bool = False
-        self.intakeSensor: bool = False
-
-
+       
     def resetEncoders(self) -> None:
         # swerve encoders
         for i in range(4):
             self.drivePositions[i] = 0
             self.steeringPositions[i] = 0
 
-        # shooter encoders
-        self.shooterPos = 0
         self.shooterAimPos = 0
-        self.shooterIntakePos = 0
 
     def stopMotors(self) -> None:
         # swerve motors
@@ -74,18 +69,23 @@ class RobotHALBuffer():
 
         table.putNumber("GreenIntakeSpeed", self.intakeSpeeds[0])
         table.putNumber("BlueIntakeSpeed", self.intakeSpeeds[1])
-        table.putNumber("GreenIntakeEncoder", self.intakePositions[0])
-        table.putNumber("BlueIntakeEncoder", self.intakePositions[1])
+        # table.putNumber("GreenIntakeEncoder", self.intakePositions[0])
+        # table.putNumber("BlueIntakeEncoder", self.intakePositions[1])
 
         # shooter motors
         table.putNumber("ShooterSpeed", self.shooterSpeed)
         table.putNumber("ShooterAimSpeed", self.shooterAimSpeed)
         table.putNumber("ShooterIntakeSpeed", self.shooterIntakeSpeed)
 
-        table.putNumber("ShooterPos", self.shooterTopPos)
-        table.putNumber("ShooterPos", self.shooterBottomPos)
         table.putNumber("ShooterAimPos", self.shooterAimPos)
-        table.putNumber("ShooterIntakePos", self.shooterIntakePos)
+
+        table.putNumber("ShooterAngVelMeasured", self.shooterAngVelocityMeasured)
+
+        table.putBoolean("LowerShooterLimitSwitch", self.lowerShooterLimitSwitch)
+        table.putBoolean("UpperShooterLimitSwitch", self.upperShooterLimitSwitch)
+
+        table.putBoolean("IntakeSensor", self.intakeSensor)
+        table.putBoolean("ShooterSensor", self.shooterSensor)
 
         # gyro
         table.putNumber("yaw", self.yaw)
@@ -128,24 +128,32 @@ class RobotHAL():
         for k in self.intakeMotors:
             k.setSmartCurrentLimit(30)
 
-        # # shooter motors
-        # self.shooterTopMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless)
-        # self.shooterBottomMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
-        # self.shooterAimMotor = rev.CANSparkMax(35, rev.CANSparkMax.MotorType.kBrushless)
-        # self.shooterIntakeMotor = rev.CANSparkMax(13, rev.CANSparkMax.MotorType.kBrushless)
-        # # shooter encoders
-        # self.shooterTopEncoder = self.shooterTopMotor.getEncoder()
-        # self.shooterBottomEncoder = self.shooterBottomMotor.getEncoder()
-        # self.shooterAimEncoder = self.shooterAimMotor.getEncoder()
-        # self.shooterIntakeEncoder = self.shooterIntakeMotor.getEncoder()
+        # shooter motors
+        self.shooterTopMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterBottomMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
+        self.shooterAimMotor = rev.CANSparkMax(14, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterAimMotor.setInverted(True)
+        self.shooterIntakeMotor = rev.CANSparkMax(13, rev.CANSparkMax.MotorType.kBrushless)
+        # shooter encoders
+        self.shooterTopEncoder = self.shooterTopMotor.getEncoder()
+        self.shooterBottomEncoder = self.shooterBottomMotor.getEncoder()
+        self.shooterAimEncoder = self.shooterAimMotor.getEncoder()
+        self.shooterIntakeEncoder = self.shooterIntakeMotor.getEncoder()
 
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
 
+        self.lowerShooterLimitSwitch = wpilib.DigitalInput(2)
+        self.upperShooterLimitSwitch = wpilib.DigitalInput(1)
+
+        self.intakeSensor = wpilib.DigitalInput(0)
+        self.I2C = wpilib.I2C.Port.kOnboard
+        self.colorSensor = rev.ColorSensorV3(self.I2C)
+
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
 
-        self.shooterSensor: wpilib.DigitalInput = wpilib.DigitalInput(0) #Not certain ports
+        self.shooterSensor: wpilib.DigitalInput = wpilib.DigitalInput(0)
         self.intakeSensor: wpilib.DigitalInput = wpilib.DigitalInput(1)
 
     def update(self, buf: RobotHALBuffer) -> None:
@@ -170,24 +178,29 @@ class RobotHAL():
         for m, s in zip(self.intakeMotors, buf.intakeSpeeds):
             m.set(s)
 
-        for i in range(0, 2):
-            e = self.intakeEncoders[i]
-            buf.intakePositions[i] = e.getPosition()
+        # for i in range(0, 2):
+        #     e = self.intakeEncoders[i]
+        #     buf.intakePositions[i] = e.getPosition()
 
-        # # shooter motors speeds
-        # self.shooterTopMotor.set(buf.shooterSpeed) # bottom shooter motor is on follower mode
-        # self.shooterAimMotor.set(buf.shooterAimSpeed)
-        # self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
-        # # get shooter encoder values
-        # self.shooterTopPos = self.shooterTopEncoder.getPosition()
-        # self.shooterBottomPos = self.shooterBottomEncoder.getPosition()
-        # self.shooterAimPos = self.shooterAimEncoder.getPosition()
-        # self.shooterIntakePos = self.shooterIntakeEncoder.getPosition()
+        self.shooterTopMotor.set(buf.shooterSpeed) # bottom shooter motor is on follower mode
+        self.shooterAimMotor.set(buf.shooterAimSpeed)
+        self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
+
+        buf.shooterAngVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
+        buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 25
 
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
 
         buf.yaw = math.radians(-self.gyro.getYaw())
 
-        buf.shooterSensor = self.shooterSensor.get()
+
+        buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
+        buf.upperShooterLimitSwitch = self.upperShooterLimitSwitch.get()
+
+        ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
+        if self.colorSensor.getProximity() > 1950:
+            buf.shooterSensor = True
+        else:
+            buf.shooterSensor = False
         buf.intakeSensor = self.intakeSensor.get()
