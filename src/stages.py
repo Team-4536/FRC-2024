@@ -32,7 +32,7 @@ def makePathStage(t: PathPlannerTrajectory) -> Stage:
         return (r.time.timeSinceInit - r.auto.stagestart) > time
     return stage
 def makePathAndIntakeStage(speed: float, intakeTriggerPercent: float, t: PathPlannerTrajectory):
-    stagePath = stages.makePathStage(PathPlannerTrajectory)
+    stagePath = stages.makePathStage(t)
     def stage(r: 'Robot') -> bool:
         isOver = stagePath(r)
         if ((r.time.timeSinceInit - r.auto.stagestart) > (t.getTotalTimeSeconds() * intakeTriggerPercent)):

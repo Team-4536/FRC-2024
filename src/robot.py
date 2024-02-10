@@ -32,7 +32,7 @@ class RobotInputs():
         self.absToggle: bool = False
         self.odometryReset: bool = False
 
-        self.intake: float = 0.0
+        #self.intake: float = 0.0
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -57,6 +57,7 @@ AUTO_SIDE_BLUE = "blue"
 
 AUTO_NONE = "none"
 AUTO_TEST = "test"
+AUTO_PATHANDINTAKE = "path and intake"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -84,6 +85,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser = wpilib.SendableChooser()
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
         self.autoChooser.addOption(AUTO_TEST, AUTO_TEST)
+        self.autoChooser.addOption(AUTO_PATHANDINTAKE, AUTO_PATHANDINTAKE)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
 
@@ -180,11 +182,19 @@ class Robot(wpilib.TimedRobot):
             stageList = [
                 stages.makeTelemetryStage("test auto"),
                 stages.makePathStage(path.getTrajectory(ChassisSpeeds(), initialPose.rotation())),
-                stages.makeIntakeStage(1, 0.4),
+                #stages.makeIntakeStage(1, 0.4),
                 stages.makePathStage(self.loadPathFlipped("testPathReversed", flipToRed).getTrajectory(ChassisSpeeds(0, 0, 0), initialPose.rotation()))
             ]
         else:
             assert(False)
+
+        if self.autoChooser.getSelected() == AUTO_PATHANDINTAKE:
+            path = self.loadPathFlipped("testPath", flipToRed)
+            initialPose = path.getPreviewStartingHolonomicPose()
+            stageList = [
+                stages.makeTelemetryStage("auto path and intake"),
+                stages.makePathAndIntakeStage(1, 0.8, (path.getTrajectory(ChassisSpeeds(), initialPose.rotation())))
+            ]
 
         self.auto = auto.Auto(stageList, self.time.timeSinceInit)
 
