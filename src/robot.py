@@ -1,7 +1,9 @@
+from tkinter import getboolean
 import auto
 import robotHAL
 import stages
 import wpilib
+from ntcore import NetworkTable, NetworkTableEntry
 from mechanism import Mechanism
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
@@ -31,8 +33,8 @@ class RobotInputs():
         self.brakeButton: bool = False
         self.absToggle: bool = False
         self.odometryReset: bool = False
-
         #self.intake: float = 0.0
+       
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -58,6 +60,7 @@ AUTO_SIDE_BLUE = "blue"
 AUTO_NONE = "none"
 AUTO_TEST = "test"
 AUTO_PATHANDINTAKE = "path and intake"
+AUTO_FMS = "FMS side"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -79,14 +82,16 @@ class Robot(wpilib.TimedRobot):
         self.mech = Mechanism(self.hal)
 
         self.autoSideChooser = wpilib.SendableChooser()
-        self.autoSideChooser.setDefaultOption(AUTO_SIDE_BLUE, AUTO_SIDE_BLUE)
+        self.autoSideChooser.setDefaultOption(AUTO_FMS, AUTO_FMS)
         self.autoSideChooser.addOption(AUTO_SIDE_RED, AUTO_SIDE_RED)
+        self.autoSideChooser.addOption(AUTO_SIDE_BLUE, AUTO_SIDE_BLUE)
         wpilib.SmartDashboard.putData('auto side chooser', self.autoSideChooser)
         self.autoChooser = wpilib.SendableChooser()
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
         self.autoChooser.addOption(AUTO_TEST, AUTO_TEST)
         self.autoChooser.addOption(AUTO_PATHANDINTAKE, AUTO_PATHANDINTAKE)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
+        
 
 
 
@@ -170,13 +175,22 @@ class Robot(wpilib.TimedRobot):
         #     deployPath = "/home/lvuser/py/deploy/pathplanner/paths"
 
         flipToRed = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
-
+        if self.autoSideChooser.getSelected() == AUTO_FMS:
+            if NetworkTableInstance.getDefault().getEntry("FMSinfo/IsRedAlliance") == True:
+               flipToRed = True
+            else:
+                flipToRed = False
+          
+             
+             
         stageList: list[auto.Stage] = []
         initialPose: Pose2d = Pose2d()
+       
 
         if self.autoChooser.getSelected() == AUTO_NONE:
             stageList = []
         elif self.autoChooser.getSelected() == AUTO_TEST:
+
             path = self.loadPathFlipped("testPath", flipToRed)
             initialPose = path.getPreviewStartingHolonomicPose()
             stageList = [
