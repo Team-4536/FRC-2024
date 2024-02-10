@@ -64,7 +64,6 @@ class RobotInputs():
 
         #POV is also known as the Dpad
         if(self.armCtrlr.getPOV() != -1):
-            self.ampShot = self.armCtrlr.getPOV() < 100 and self.armCtrlr.getPOV() > 80  #right
             self.podiumShot = self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170 #down
             self.subwooferShot = self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260 #left
             self.shoot = self.armCtrlr.getPOV() < 10 or self.armCtrlr.getPOV() > 350
@@ -73,6 +72,8 @@ class RobotInputs():
             self.podiumShot = False
             self.subwooferShot = False
             self.shoot = False
+
+        self.ampShot = self.armCtrlr.getLeftTriggerAxis() > 0.2
 
         self.moveIntakeShooter = self.armCtrlr.getRightTriggerAxis() > 0.2
 
