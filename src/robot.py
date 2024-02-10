@@ -36,7 +36,7 @@ class RobotInputs():
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
-        self.limelightTestButton = self.driveCtrlr.getAButton()
+        self.limelightRingButton = self.driveCtrlr.getAButton()
         self.gyroReset = self.driveCtrlr.getYButtonPressed()
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
@@ -82,19 +82,12 @@ class Robot(wpilib.TimedRobot):
     def teleopInit(self) -> None:
         pass
 
-    def limelightfunctionthing(self):
+    def limelightRingDrive(self):
         self.tx = self.limelightTable.getNumber("tx", 0.0)
         self.ty = self.limelightTable.getNumber("ty", 0.0)
-        # if(self.tx>5):
-        #     self.tx = self.tx - 3
-        # if(self.tx<-5):
-        #     self.tx = self.tx + 3
         self.ringTurnAngle = self.tx
-        #self.ringTurnRadians =  Rotation2d(math.radians(self.ringTurnAngle))
         self.ringTurnRadians = math.radians(self.ringTurnAngle)
         self.drive.update(self.time.dt, self.hal, ChassisSpeeds(0, 0, self.ringTurnRadians*0.1))
-        
-        
         self.limelightYError = self.ty - self.minimumLimelightYValue
         if self.limelightYError <100:
             self.hal.intakeSpeeds = [0.2, 0.2]
@@ -106,9 +99,7 @@ class Robot(wpilib.TimedRobot):
             self.tx = self.limelightTable.putNumber("tx", self.tx - 1)
         elif(self.tx<0):
             self.tx = self.limelightTable.putNumber("tx", self.tx + 1)
-
-
-
+        #we need this    
         if self.tx == 0:
             self.drive.update(self.time.dt, self.hal, ChassisSpeeds(self.limelightYError, 0, 0))
         #this is manually modifying the ty which should be done by the limelight on the robot
@@ -129,8 +120,8 @@ class Robot(wpilib.TimedRobot):
 
         speedControlEdited = lerp(1.5, 5.0, self.input.speedCtrl)
         turnScalar = 3
-        if self.input.limelightTestButton:
-            self.limelightfunctionthing()
+        if self.input.limelightRingButton:
+            self.limelightRingDrive()
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
