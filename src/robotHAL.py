@@ -153,9 +153,6 @@ class RobotHAL():
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
 
-        self.shooterSensor: wpilib.DigitalInput = wpilib.DigitalInput(0)
-        self.intakeSensor: wpilib.DigitalInput = wpilib.DigitalInput(1)
-
     def update(self, buf: RobotHALBuffer) -> None:
         prev = self.prev
         self.prev = copy.deepcopy(buf)
@@ -199,7 +196,7 @@ class RobotHAL():
         buf.upperShooterLimitSwitch = self.upperShooterLimitSwitch.get()
 
         ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
-        if self.colorSensor.getProximity() > 1950:
+        if self.colorSensor.getProximity() >= 2047:
             buf.shooterSensor = True
         else:
             buf.shooterSensor = False

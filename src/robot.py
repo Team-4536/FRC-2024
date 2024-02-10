@@ -59,7 +59,7 @@ class RobotInputs():
         # self.shooterIntake: bool = arm.getLeftBumper()
 
         #POV is also known as the Dpad
-        if(self.armCtrlr.getPOV != -1):
+        if(self.armCtrlr.getPOV() != -1):
             self.ampShot = self.armCtrlr.getPOV() < 100 and self.armCtrlr.getPOV() > 80  #right
             self.podiumShot = self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170 #down
             self.subwooferShot = self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260 #left
@@ -69,6 +69,8 @@ class RobotInputs():
             self.podiumShot = False
             self.subwooferShot = False
             self.shoot = False
+
+    
 
 
 class Robot(wpilib.TimedRobot):
@@ -109,9 +111,10 @@ class Robot(wpilib.TimedRobot):
 
 
     def teleopInit(self) -> None:
-        pass
+        self.shooterStateMachine.state = 0
 
     def teleopPeriodic(self) -> None:
+        frameStart = wpilib.getTime()
         self.input.update()
         self.hal.stopMotors()
 
@@ -137,16 +140,19 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("odomY", pose.y)
 
         self.hal.shooterAimSpeed = self.input.tempShooterAim * 0.1
-        self.hal.shooterSpeed = self.input.tempShooterSpin * 0.4
-        self.hal.shooterIntakeSpeed = self.input.tempShooterSpin * 0.4
+        # self.hal.shooterSpeed = self.input.tempShooterSpin * 0.4
+        # self.hal.shooterIntakeSpeed = self.input.tempShooterSpin * 0.4
 
-
+        self.table.putNumber("POV", self.input.armCtrlr.getPOV())
+        self.table.putBoolean("amp", self.input.ampShot)
+        self.table.putBoolean("shoot", self.input.shoot)
 
         self.intakeStateMachine.update(self.hal, self.input.intake)
-        self.shooterStateMachineState = self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, False, self.time.dt)
+        self.shooterStateMachineState = self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, self.time, self.time.dt)
 
 
         self.hardware.update(self.hal)
+        self.table.putNumber("TIME FOR FRAME", wpilib.getTime() - frameStart)
 
     def autonomousInit(self) -> None:
         pass
