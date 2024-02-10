@@ -53,10 +53,16 @@ class RobotInputs():
         # self.shooterIntake: bool = arm.getLeftBumper()
 
         #POV is also known as the Dpad
-        self.ampShot = self.armCtrlr.getPOV() < 100 and self.armCtrlr.getPOV() > 80  #right
-        self.podiumShot = self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170 #down
-        self.subwooferShot = self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260 #left
-        self.shoot = False
+        if(self.armCtrlr.getPOV != -1):
+            self.ampShot = self.armCtrlr.getPOV() < 100 and self.armCtrlr.getPOV() > 80  #right
+            self.podiumShot = self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170 #down
+            self.subwooferShot = self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260 #left
+            self.shoot = self.armCtrlr.getPOV() < 10 or self.armCtrlr.getPOV() > 350
+        else:
+            self.ampShot = True
+            self.podiumShot = False
+            self.subwooferShot = False
+            self.shoot = False
 
 
 class Robot(wpilib.TimedRobot):
@@ -78,6 +84,10 @@ class Robot(wpilib.TimedRobot):
 
         self.mech = Mechanism(self.hal)
 
+        self.shooterStateMachine = StateMachine()
+
+        self.shooterStateMachineState = 0
+
 
     def robotPeriodic(self) -> None:
         self.time = TimeData(self.time)
@@ -87,8 +97,13 @@ class Robot(wpilib.TimedRobot):
         self.table.putBoolean("ctrl/absOn", self.abs)
         self.table.putBoolean("ctrl/absOffset", self.abs)
 
+        self.table.putNumber("shooterStateMachine/state", self.shooterStateMachineState)
+        self.table.putBoolean("shooterStateMachine/amp", self.input.ampShot)
+
+
+
     def teleopInit(self) -> None:
-        self.shooterStateMachine = StateMachine
+        pass
 
     def teleopPeriodic(self) -> None:
         self.input.update()
@@ -130,9 +145,9 @@ class Robot(wpilib.TimedRobot):
         # if self.input.shooterIntake:
         #     self.hal.shooterIntakeSpeed = 0.1
 
-        self.hardware.update(self.hal)
+        self.shooterStateMachineState = self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, False)
 
-        self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, False)
+        self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
         pass

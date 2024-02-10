@@ -29,6 +29,8 @@ class RobotHALBuffer():
         self.shooterAimPos: float = 0 # ^
         self.shooterIntakePos: float = 0 # ^
 
+        self.shooterAngularVelocity: float = 0
+        self.shooterIntakeAngularVelocity: float = 0
 
         self.yaw: float = 0
         self.shooterSensor: bool = False
