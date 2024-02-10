@@ -25,4 +25,4 @@ class IntakeStateMachine:
         if(self.state == self.STORING):
             hal.intakeSpeeds = [0, 0]
             if not hal.intakeSensor:
-                self.state = self.INTAKING
+                self.state = self.START
