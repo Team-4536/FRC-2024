@@ -3,7 +3,7 @@ from robotHAL import RobotHALBuffer, RobotHAL
 #from wpimath.controller import PIDController
 from wpimath.controller import SimpleMotorFeedforwardMeters
 from PIDController import PIDControllerForArm, PIDController
-
+#from robot import RobotInputs
 
 class StateMachine():
     READY_FOR_RING = 0
@@ -35,7 +35,7 @@ class StateMachine():
         self.intakeShooterVelocity = 0
 
 
-    def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputShoot: bool, time, dt) -> int:
+    def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputShoot: bool, time, dt, trigger: bool) -> int:
         self.shooterPID.kff = self.table.getNumber("kff", 0)
         self.shooterPID.kp = self.table.getNumber("kp", 0)
         
@@ -108,8 +108,12 @@ class StateMachine():
                 
         elif(self.state == self.AIM_AMP):
             self.aimSetpoint = 0
-            self.shooterVelocityTarget = self.table.getNumber("targetSpeed", 0)
+            self.shooterVelocityTarget = 0 #self.table.getNumber("targetSpeed", 0)
             self.intakeShooterVelocity = 0
+
+            if(trigger):
+                hal.intakeSpeeds[1] = 0.2
+                self.intakeShooterVelocity = 0.2
 
             if(inputShoot):
                 self.state = self.SHOOTING
@@ -119,8 +123,11 @@ class StateMachine():
 
         elif(self.state == self.AIM_PODIUM):
             self.aimSetpoint = 0
-            self.shooterVelocityTarget = self.table.getNumber("targetSpeed", 0)
+            self.shooterVelocityTarget = 0 #self.table.getNumber("targetSpeed", 0)
             self.intakeShooterVelocity = 0
+            if(trigger):
+                hal.intakeSpeeds[1] = 0.2
+                self.intakeShooterVelocity = 0.2
         
             if(inputShoot):
                 self.state = self.SHOOTING
@@ -130,8 +137,11 @@ class StateMachine():
 
         elif(self.state == self.AIM_SUBWOOFER):
             self.aimSetpoint = 0
-            self.shooterVelocityTarget = self.table.getNumber("targetSpeed", 0)
+            self.shooterVelocityTarget = 0 #self.table.getNumber("targetSpeed", 0)
             self.intakeShooterVelocity = 0
+            if(trigger):
+                hal.intakeSpeeds[1] = 0.2
+                self.intakeShooterVelocity = 0.2
         
             if(inputShoot):
                 self.state = self.SHOOTING

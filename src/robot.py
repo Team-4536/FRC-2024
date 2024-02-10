@@ -39,6 +39,8 @@ class RobotInputs():
         self.subwooferShot: bool = False
         self.shoot: bool = False
 
+        self.moveIntakeShooter: bool = False
+
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
         self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
@@ -71,6 +73,8 @@ class RobotInputs():
             self.podiumShot = False
             self.subwooferShot = False
             self.shoot = False
+
+        self.moveIntakeShooter = self.armCtrlr.getRightTriggerAxis() > 0.2
 
     
 
@@ -159,7 +163,7 @@ class Robot(wpilib.TimedRobot):
         profiler.end("intake state machine")
 
         profiler.start()
-        self.shooterStateMachineState = self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, self.time, self.time.dt)
+        self.shooterStateMachineState = self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, self.time, self.time.dt, self.input.moveIntakeShooter)
         profiler.end("shooter state machine")
 
 
