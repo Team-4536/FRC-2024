@@ -23,9 +23,6 @@ class RobotHALBuffer():
         self.shooterAimSpeed: float = 0 # -1 to 1 // volts to motor controller
         self.shooterIntakeSpeed: float = 0 # -1 to 1 // volts to motor controller
 
-        self.shooterBottomSpeed: float = 0 # -1 to 1 // volts to motor controller
-        self.shooterTopSpeed: float = 0 # -1 to 1 // volts to motor controller
-
         self.shooterAimPos: float = 0 # rads out from resting position
 
         self.lowerShooterLimitSwitch: bool = False
@@ -33,7 +30,6 @@ class RobotHALBuffer():
 
         self.intakeSensor: bool = False
         self.colorSensorProx: bool = False
-    
 
         self.yaw: float = 0
 
@@ -43,11 +39,7 @@ class RobotHALBuffer():
             self.drivePositions[i] = 0
             self.steeringPositions[i] = 0
 
-        # shooter encoders
-        self.shooterTopPos = 0
-        self.shooterBottomPos = 0
         self.shooterAimPos = 0
-    
 
     def stopMotors(self) -> None:
         # swerve motors
@@ -62,10 +54,6 @@ class RobotHALBuffer():
         self.shooterSpeed = 0
         self.shooterAimSpeed = 0
         self.shooterIntakeSpeed = 0
-
-        self.shooterTopSpeed = 0
-        self.shooterBottomSpeed = 0  # motor on follower
-       
 
     def publish(self, table: ntcore.NetworkTable) -> None:
         # swerve modules
@@ -145,14 +133,13 @@ class RobotHAL():
         self.shooterAimEncoder = self.shooterAimMotor.getEncoder()
         self.shooterIntakeEncoder = self.shooterIntakeMotor.getEncoder()
 
-        
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
 
         self.lowerShooterLimitSwitch = wpilib.DigitalInput(2)
         self.upperShooterLimitSwitch = wpilib.DigitalInput(3)
 
-        self.intakeSensor = wpilib.DigitalInput(0) 
+        self.intakeSensor = wpilib.DigitalInput(0)
         self.I2C = wpilib.I2C.Port.kOnboard
         self.colorSensor = rev.ColorSensorV3(self.I2C)
 
@@ -193,7 +180,6 @@ class RobotHAL():
         self.shooterTopAngularVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
         self.shooterBottomAngularVelocityMeasured = (self.shooterBottomEncoder.getVelocity()/60)*math.pi*2
         self.shooterAimPos = self.shooterAimEncoder.getPosition()
-    
 
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()

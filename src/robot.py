@@ -29,6 +29,8 @@ class RobotInputs():
 
         self.intake: float = 0.0
 
+        self.tempShooterAim: float = 0.0
+
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
         self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
@@ -43,6 +45,9 @@ class RobotInputs():
 
         # arm controller
         self.intake = float(self.armCtrlr.getAButton()) - float(self.armCtrlr.getXButton())
+
+        self.tempShooterAim = self.armCtrlr.getRightY()
+        self.tempShooterSpin: float = 1 if self.armCtrlr.getYButton() else 0
         # self.shootSpeaker: bool = arm.getYButton()
         # self.shootAmp: bool = arm.getBButton()
         # self.shooterIntake: bool = arm.getLeftBumper()
@@ -109,15 +114,9 @@ class Robot(wpilib.TimedRobot):
         else:
             self.hal.intakeSpeeds = [0.0, 0.0]
 
-        #shooter
-        # if self.input.shootSpeaker:
-        #     self.hal.shooterSpeed = 0.25
-
-        # if self.input.shootAmp:
-        #     self.hal.shooterSpeed = 0.1
-
-        # if self.input.shooterIntake:
-        #     self.hal.shooterIntakeSpeed = 0.1
+        self.hal.shooterAimSpeed = self.input.tempShooterAim * 0.1
+        self.hal.shooterSpeed = self.input.tempShooterSpin * 0.4
+        self.hal.shooterIntakeSpeed = self.input.tempShooterSpin * 0.4
 
         self.hardware.update(self.hal)
 
