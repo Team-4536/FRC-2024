@@ -181,7 +181,7 @@ class RobotHAL():
         self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
 
         buf.shooterAngVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
-        buf.shooterAimPos = self.shooterAimEncoder.getPosition()
+        buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 25
 
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
