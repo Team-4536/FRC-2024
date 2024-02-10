@@ -1,5 +1,6 @@
 import robotHAL
 import wpilib
+from intakeStateMachine import IntakeStateMachine
 from mechanism import Mechanism
 from ntcore import NetworkTableInstance
 from real import lerp
@@ -27,7 +28,7 @@ class RobotInputs():
         self.brakeButton: bool = False
         self.absToggle: bool = False
 
-        self.intake: float = 0.0
+        self.startIntaking: bool = False
 
         self.tempShooterAim: float = 0.0
 
@@ -44,7 +45,7 @@ class RobotInputs():
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
         # arm controller
-        self.intake = float(self.armCtrlr.getAButton()) - float(self.armCtrlr.getXButton())
+        self.startIntaking = self.armCtrlr.getAButtonPressed()
 
         self.tempShooterAim = -self.armCtrlr.getLeftY()
         self.tempShooterSpin: float = 1 if self.armCtrlr.getYButton() else 0
@@ -70,7 +71,7 @@ class Robot(wpilib.TimedRobot):
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
 
-        self.mech = Mechanism(self.hal)
+        self.intakeStateMachine = IntakeStateMachine()
 
 
     def robotPeriodic(self) -> None:
@@ -109,15 +110,11 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("odomX", pose.x)
         self.table.putNumber("odomY", pose.y)
 
-        if self.input.intake:
-            self.hal.intakeSpeeds = [0.4 * self.input.intake, 0.4 * self.input.intake]
-        else:
-            self.hal.intakeSpeeds = [0.0, 0.0]
-
         self.hal.shooterAimSpeed = self.input.tempShooterAim * 0.1
         self.hal.shooterSpeed = self.input.tempShooterSpin * 0.4
         self.hal.shooterIntakeSpeed = self.input.tempShooterSpin * 0.4
 
+        self.intakeStateMachine.update(self.hal, self.input.startIntaking)
         self.hardware.update(self.hal)
 
     def autonomousInit(self) -> None:
