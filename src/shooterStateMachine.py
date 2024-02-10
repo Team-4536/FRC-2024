@@ -1,6 +1,8 @@
 from robotHAL import RobotHALBuffer, RobotHAL
-from wpimath.controller import PIDController
+#from wpimath.controller import PIDController
 from wpimath.controller import SimpleMotorFeedforwardMeters
+from PIDController import PIDControllerForArm, PIDController
+
 
 class StateMachine():
     READY_FOR_RING = 0
@@ -20,15 +22,15 @@ class StateMachine():
 
     def __init__(self):
         self.state = self.READY_FOR_RING
-        self.aimPID = PIDController(0, 0, 0)
+        self.aimPID = PIDControllerForArm(0, 0, 0, 0, 0, 0)
         self.aimSetpoint = 0
-        self.shooterPID = SimpleMotorFeedforwardMeters(0, 0, 0)
-        self.shooterVelocity = 0
-        self.intakeShooterPID = SimpleMotorFeedforwardMeters(0, 0, 0)
+        self.shooterPID = PIDController(0, 0, 0)
+        self.shooterVelocityTarget = 0
+        self.intakeShooterPID = PIDController(0., 0, 0)
         self.intakeShooterVelocity = 0
 
 
-    def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputShoot: bool, time) -> int:
+    def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputShoot: bool, time, dt) -> int:
 
         if(inputAmp):
             if(self.state == self.FEED_PODIUM or self.state == self.FEED_SUBWOOFER or self.state == self.READY_FOR_RING):
@@ -54,7 +56,7 @@ class StateMachine():
 
         if(self.state == self.READY_FOR_RING):
             self.aimSetpoint = 0
-            self.shooterVelocity = 0
+            self.shooterVelocityTarget = 0
             self.intakeShooterVelocity = 0
             
 
@@ -62,7 +64,7 @@ class StateMachine():
 
         elif(self.state == self.FEED_AMP):
             self.aimSetpoint = 0
-            self.shooterVelocity = 1
+            self.shooterVelocityTarget = 1
             self.intakeShooterVelocity = 1
 
             if(hal.shooterSensor == True):
@@ -72,7 +74,7 @@ class StateMachine():
 
         elif(self.state == self.FEED_PODIUM):
             self.aimSetpoint = 0
-            self.shooterVelocity = 1
+            self.shooterVelocityTarget = 1
             self.intakeShooterVelocity = 1
 
             if(hal.shooterSensor == True):
@@ -82,7 +84,7 @@ class StateMachine():
 
         elif(self.state == self.FEED_SUBWOOFER):
             self.aimSetpoint = 0
-            self.shooterVelocity = 1
+            self.shooterVelocityTarget = 1
             self.intakeShooterVelocity = 1
 
             if(hal.shooterSensor == True):
@@ -94,10 +96,10 @@ class StateMachine():
                 
         elif(self.state == self.AIM_AMP):
             self.aimSetpoint = 0
-            self.shooterVelocity = 1
+            self.shooterVelocityTarget = 1
             self.intakeShooterVelocity = 0
 
-            if(self.aimPID.atSetpoint() and inputShoot):
+            if(hal.shooterAimPos and inputShoot):
                 self.state = self.SHOOTING
                 self.time = time
             
@@ -105,10 +107,10 @@ class StateMachine():
 
         elif(self.state == self.AIM_PODIUM):
             self.aimSetpoint = 0
-            self.shooterVelocity = 1
+            self.shooterVelocityTarget = 1
             self.intakeShooterVelocity = 0
         
-            if(self.aimPID.atSetpoint() and inputShoot):
+            if(inputShoot):
                 self.state = self.SHOOTING
                 self.time = time
             
@@ -116,10 +118,10 @@ class StateMachine():
 
         elif(self.state == self.AIM_SUBWOOFER):
             self.aimSetpoint = 0
-            self.shooterVelocity = 1
+            self.shooterVelocityTarget = 1
             self.intakeShooterVelocity = 0
         
-            if(self.aimPID.atSetpoint() and inputShoot):
+            if(inputShoot):
                 self.state = self.SHOOTING
                 self.time = time
             
@@ -128,16 +130,17 @@ class StateMachine():
 
         elif(self.state == self.SHOOTING):
             self.aimSetpoint = 0
-            self.shooterVelocity = 1
+            self.shooterVelocityTarget = 1
             self.intakeShooterVelocity = 0
 
             if(time - self.time > 4.0):
                 self.state = self.READY_FOR_RING
 
         
-        hal.shooterAimSpeed = self.aimPID.calculate(hal.shooterPos, self.aimSetpoint)
-        hal.shooterSpeed = self.shooterPID.calculate(self.shooterVelocity)
-        hal.shooterIntakeSpeed = self.intakeShooterPID.calculate(self.intakeShooterVelocity)
+        #hal.shooterAimSpeed = self.aimPID.calculate(hal.shooterAimPos, self.aimSetpoint)
+        hal.shooterAimSpeed = self.aimPID.tick(self.aimSetpoint, hal.shooterAimPos, dt)
+        hal.shooterSpeed = self.shooterPID.tick(self.shooterVelocityTarget, hal.shooterAngularVelocity, dt)
+        hal.shooterIntakeSpeed = self.intakeShooterVelocity
 
         return self.state
         

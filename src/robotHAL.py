@@ -36,6 +36,7 @@ class RobotHALBuffer():
         self.shooterSensor: bool = False
         self.intakeSensor: bool = False
 
+
     def resetEncoders(self) -> None:
         # swerve encoders
         for i in range(4):

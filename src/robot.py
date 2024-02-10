@@ -145,7 +145,7 @@ class Robot(wpilib.TimedRobot):
         # if self.input.shooterIntake:
         #     self.hal.shooterIntakeSpeed = 0.1
 
-        self.shooterStateMachineState = self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, False)
+        self.shooterStateMachineState = self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, False, self.time.dt)
 
         self.hardware.update(self.hal)
 
