@@ -1,3 +1,4 @@
+import profiler
 import robotHAL
 import wpilib
 from intakeStateMachine import IntakeStateMachine
@@ -75,12 +76,14 @@ class Robot(wpilib.TimedRobot):
 
 
     def robotPeriodic(self) -> None:
+        profiler.start()
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
         self.drive.updateOdometry(self.hal)
 
         self.table.putBoolean("ctrl/absOn", self.abs)
         self.table.putBoolean("ctrl/absOffset", self.abs)
+        profiler.end("robotPeriodic")
 
     def teleopInit(self) -> None:
         pass
@@ -98,6 +101,7 @@ class Robot(wpilib.TimedRobot):
         speedControlEdited = lerp(1.5, 5.0, self.input.speedCtrl)
         turnScalar = 3
 
+        profiler.start()
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
@@ -105,6 +109,7 @@ class Robot(wpilib.TimedRobot):
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
         speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
         self.drive.update(self.time.dt, self.hal, speed)
+        profiler.end("drive updates")
 
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x)
@@ -114,8 +119,13 @@ class Robot(wpilib.TimedRobot):
         self.hal.shooterSpeed = self.input.tempShooterSpin * 0.4
         self.hal.shooterIntakeSpeed = self.input.tempShooterSpin * 0.4
 
+        profiler.start()
         self.intakeStateMachine.update(self.hal, self.input.intake)
+        profiler.end("intake state machine")
+
+        profiler.start()
         self.hardware.update(self.hal)
+        profiler.end("hardware update")
 
     def autonomousInit(self) -> None:
         pass
