@@ -79,10 +79,19 @@ class StateMachine():
 
         elif(self.state == self.AIMING):
             aimTarget = self.aimSetpoint
+            speedTarget = 0
+            if(inputRev):
+                self.state = self.REVVING
+
+        elif(self.state == self.REVVING):
+            aimTarget = self.table.getNumber("aim target", 0) #self.aimSetpoint
             speedTarget = self.speedSetpoint
+            if(not inputRev):
+                self.state = self.AIMING
             if(inputShoot):
                 self.state = self.SHOOTING
                 self.time = time
+
 
         elif(self.state == self.SHOOTING):
             aimTarget = self.table.getNumber("aim target", 0) #self.aimSetpoint
@@ -96,11 +105,12 @@ class StateMachine():
             aimTarget = 0
             speedTarget = 0
 
-        # hal.shooterAimSpeed = self.aimPID.tick(self.aimSetpoint, hal.shooterAimPos, dt)
-        self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * self.AIM_SCALAR + self.PIDspeedSetpoint
         self.PIDaimTarget = (aimTarget - self.PIDaimTarget) * self.AIM_SCALAR + self.PIDaimTarget
-        self.table.putNumber("PIDaimTarget", self.PIDaimTarget)
         hal.shooterAimSpeed = self.aimPID.tick(self.PIDaimTarget, hal.shooterAimPos, dt)
+
+        self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * self.AIM_SCALAR + self.PIDspeedSetpoint
         hal.shooterSpeed = self.shooterPID.tick(self.PIDspeedSetpoint, hal.shooterAngVelocityMeasured, dt)
+
+        self.table.putNumber("PIDaimTarget", self.PIDaimTarget)
 
         return self.state
