@@ -24,9 +24,9 @@ class StateMachine():
         self.table.putNumber("kff", 0.00181)
         self.table.putNumber("kp", 0.0008)
         self.table.putNumber("aim kp", 0)
-        self.table.putNumber("aim kg", 0)
+        self.table.putNumber("aim kg", 0.04)
         self.table.putNumber("aim target", 0)
-        self.table.putNumber("aim scaler", 0)
+        self.table.putNumber("aim scaler", 1)
 
         self.aimSetpoint = 0
         self.speedSetpoint = 0
@@ -94,7 +94,7 @@ class StateMachine():
 
 
         elif(self.state == self.SHOOTING):
-            aimTarget = self.table.getNumber("aim target", 0) #self.aimSetpoint
+            aimTarget = self.aimSetpoint
             speedTarget = self.speedSetpoint
             hal.shooterIntakeSpeed = 0.4
             hal.intakeSpeeds[1] = 0.4
@@ -105,11 +105,12 @@ class StateMachine():
             aimTarget = 0
             speedTarget = 0
 
-        self.PIDaimTarget = (aimTarget - self.PIDaimTarget) * self.AIM_SCALAR + self.PIDaimTarget
-        hal.shooterAimSpeed = self.aimPID.tick(self.PIDaimTarget, hal.shooterAimPos, dt)
+        # self.PIDaimTarget = (aimTarget - self.PIDaimTarget) * self.AIM_SCALAR + self.PIDaimTarget
+        aimTarget = self.table.getNumber("aim target", 0)
+        hal.shooterAimSpeed = self.aimPID.tick(aimTarget, hal.shooterAimPos, dt)
 
         self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * self.AIM_SCALAR + self.PIDspeedSetpoint
-        hal.shooterSpeed = self.shooterPID.tick(self.PIDspeedSetpoint, hal.shooterAngVelocityMeasured, dt)
+        hal.shooterSpeed = self.shooterPID.tick(speedTarget, hal.shooterAngVelocityMeasured, dt)
 
         self.table.putNumber("PIDaimTarget", self.PIDaimTarget)
 

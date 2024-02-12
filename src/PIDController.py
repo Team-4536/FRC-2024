@@ -1,4 +1,6 @@
 import math
+
+from ntcore import NetworkTableInstance
 # (Rob): It hurts my soul to keep this class here, but the wpilib controller assumes a fixed period which is not changable, and i don't think that it is possible to gaurantee that
 
 class PIDController:
@@ -56,7 +58,10 @@ class PIDControllerForArm(PIDController):
 
         out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target)
         self.prevErr = error
+        NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings").putNumber("pid comp", out)
 
-        out += self.kg * math.cos(position + self.balanceAngle)
+        g = self.kg * math.cos(position + self.balanceAngle)
+        NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings").putNumber("g comp", g)
+        out += g
 
         return out
