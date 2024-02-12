@@ -9,7 +9,8 @@ class StateMachine():
     READY_FOR_RING = 0
     FEEDING = 1
     AIMING = 2
-    SHOOTING = 3
+    REVVING = 3
+    SHOOTING = 4
 
     SHOOTER_SCALER = 0.05
 
@@ -33,7 +34,7 @@ class StateMachine():
         self.intakeShooterPID = PIDController(0., 0, 0)
 
 
-    def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputShoot: bool, time: float, dt: float):
+    def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputRev: bool, inputShoot: bool, time: float, dt: float):
         self.shooterPID.kff = self.table.getNumber("kff", 0)
         self.shooterPID.kp = self.table.getNumber("kp", 0)
 
@@ -70,8 +71,16 @@ class StateMachine():
 
         elif(self.state == self.AIMING):
             aimTarget = self.aimSetpoint
+            speedTarget = 0
+            if(inputRev):
+                self.state = self.REVVING
+
+        elif(self.state == self.REVVING):
+            aimTarget = self.aimSetpoint
             speedTarget = self.speedSetpoint
-            if(inputShoot):
+            if(not inputRev):
+                self.state = self.AIMING
+            elif(inputShoot):
                 self.state = self.SHOOTING
                 self.time = time
 
