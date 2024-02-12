@@ -12,7 +12,7 @@ class StateMachine():
     REVVING = 3
     SHOOTING = 4
 
-    SHOOTER_SCALER = 0.1
+    AIM_SCALAR = 1
 
     # 0 is target aim, 1 is target speeds
     ampSetpoint = (0, 0)
@@ -23,10 +23,10 @@ class StateMachine():
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
         self.table.putNumber("kff", 0.00181)
         self.table.putNumber("kp", 0.0008)
-        self.table.putNumber("Arm kp", 0)
-        self.table.putNumber("Arm kg", 0)
-        self.table.putNumber("armTarget", 0)
-        self.table.putNumber("shooter scaler", 0)
+        self.table.putNumber("aim kp", 0)
+        self.table.putNumber("aim kg", 0)
+        self.table.putNumber("aim target", 0)
+        self.table.putNumber("aim scaler", 0)
 
         self.aimSetpoint = 0
         self.speedSetpoint = 0
@@ -42,9 +42,9 @@ class StateMachine():
     def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputRev: bool, inputShoot: bool, time: float, dt: float):
         self.shooterPID.kff = self.table.getNumber("kff", 0)
         self.shooterPID.kp = self.table.getNumber("kp", 0)
-        self.aimPID.kp = self.table.getNumber("Arm kp", 0)
-        self.aimPID.kg = self.table.getNumber("Arm kg", 0)
-        self.SHOOTER_SCALER = self.table.getNumber("shooter scaler", 0)
+        self.aimPID.kp = self.table.getNumber("aim kp", 0)
+        self.aimPID.kg = self.table.getNumber("aim kg", 0)
+        self.AIM_SCALAR = self.table.getNumber("aim scaler", 0)
 
         if(inputAmp):
             if(self.state == self.READY_FOR_RING):
@@ -85,7 +85,7 @@ class StateMachine():
                 self.time = time
 
         elif(self.state == self.SHOOTING):
-            aimTarget = self.table.getNumber("armTarget", 0) #self.aimSetpoint
+            aimTarget = self.table.getNumber("aim target", 0) #self.aimSetpoint
             speedTarget = self.speedSetpoint
             hal.shooterIntakeSpeed = 0.4
             hal.intakeSpeeds[1] = 0.4
@@ -97,9 +97,9 @@ class StateMachine():
             speedTarget = 0
 
         # hal.shooterAimSpeed = self.aimPID.tick(self.aimSetpoint, hal.shooterAimPos, dt)
-        self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * self.SHOOTER_SCALER + self.PIDspeedSetpoint
-        self.PIDaimTarget = (aimTarget - self.PIDaimTarget) * self.AIM_SCALER + self.PIDaimTarget
-        self.table.putNumber("PIDarmTarget", self.PIDaimTarget)
+        self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * self.AIM_SCALAR + self.PIDspeedSetpoint
+        self.PIDaimTarget = (aimTarget - self.PIDaimTarget) * self.AIM_SCALAR + self.PIDaimTarget
+        self.table.putNumber("PIDaimTarget", self.PIDaimTarget)
         hal.shooterAimSpeed = self.aimPID.tick(self.PIDaimTarget, hal.shooterAimPos, dt)
         hal.shooterSpeed = self.shooterPID.tick(self.PIDspeedSetpoint, hal.shooterAngVelocityMeasured, dt)
 
