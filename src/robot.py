@@ -9,7 +9,6 @@ from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 
-
 class RobotInputs():
     def __init__(self) -> None:
         self.driveCtrlr = wpilib.XboxController(0)
@@ -29,13 +28,13 @@ class RobotInputs():
 
         self.intake: float = 0.0
 
-    def update(self) -> None:
+    def shopUpdate(self) -> None:
         ##flipped x and y inputs so they are relative to bot
-        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
-        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
-        self.turning = self.rotScalar(self.driveCtrlr.getRightX())
+        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())*.5
+        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())*.5
+        self.turning = self.rotScalar(self.driveCtrlr.getRightX())*.5
 
-        self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
+        self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()*.5
 
         self.gyroReset = self.driveCtrlr.getYButtonPressed()
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
@@ -47,9 +46,34 @@ class RobotInputs():
         # self.shootAmp: bool = arm.getBButton()
         # self.shooterIntake: bool = arm.getLeftBumper()
 
+    def compUpdate(self) -> None:
+        ##flipped x and y inputs so they are relative to bot
+        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
+        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
+        self.turning = self.rotScalar(self.driveCtrlr.getRightX())
+
+        self.speedCtrl = 1-self.driveCtrlr.getRightTriggerAxis()
+
+        self.gyroReset = self.driveCtrlr.getYButtonPressed()
+        self.brakeButton = self.driveCtrlr.getBButtonPressed()
+        self.absToggle = self.driveCtrlr.getXButtonPressed()
+
+        # arm controller
+        self.intake = float(self.armCtrlr.getAButton()) - float(self.armCtrlr.getXButton())
+        # self.shootSpeaker: bool = arm.getYButton()
+        # self.shootAmp: bool = arm.getBButton()
+        # self.shooterIntake: bool = arm.getLeftBumper()
+
+INPUT_SHOP = "shop"
+INPUT_COMP = "comp"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
+        self.inputChooser = wpilib.SendableChooser()
+        self.inputChooser.setDefaultOption(INPUT_SHOP, INPUT_SHOP)
+        self.inputChooser.addOption(INPUT_COMP, INPUT_COMP)
+        wpilib.SmartDashboard.putData('input chooser', self.inputChooser)
+    
         self.hal = robotHAL.RobotHALBuffer()
         self.hardware = robotHAL.RobotHAL()
         self.hardware.update(self.hal)
@@ -80,7 +104,11 @@ class Robot(wpilib.TimedRobot):
         pass
 
     def teleopPeriodic(self) -> None:
-        self.input.update()
+        if self.inputChooser.getSelected() == INPUT_SHOP:
+            self.input.shopUpdate()
+        elif self.inputChooser.getSelected() == INPUT_COMP:
+            self.input.compUpdate()
+
         self.hal.stopMotors()
 
         if self.input.gyroReset:
@@ -133,7 +161,6 @@ class Robot(wpilib.TimedRobot):
     def disabledPeriodic(self) -> None:
         self.hal.stopMotors()
         self.hardware.update(self.hal)
-
 
 if __name__ == "__main__":
     wpilib.run(Robot)
