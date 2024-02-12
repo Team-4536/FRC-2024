@@ -11,6 +11,8 @@ class StateMachine():
     AIMING = 2
     SHOOTING = 3
 
+    SHOOTER_SCALER = 0.1
+
     # 0 is target aim, 1 is target speeds
     ampSetpoint = (0, 0)
     podiumSetpoint = (0, 0)
@@ -24,6 +26,7 @@ class StateMachine():
 
         self.aimSetpoint = 0
         self.speedSetpoint = 0
+        self.speedSetpointActual = 0
         self.state = self.READY_FOR_RING
 
         self.aimPID = PIDControllerForArm(0, 0, 0, 0, 0, 0)
@@ -86,7 +89,8 @@ class StateMachine():
             speedTarget = 0
 
         # hal.shooterAimSpeed = self.aimPID.tick(self.aimSetpoint, hal.shooterAimPos, dt)
+        self.speedSetpointActual = (speedTarget - self.speedSetpointActual) * self.SHOOTER_SCALER + self.speedSetpointActual
         hal.shooterAimSpeed = aimTarget
-        hal.shooterSpeed = self.shooterPID.tick(speedTarget, hal.shooterAngVelocityMeasured, dt)
+        hal.shooterSpeed = self.shooterPID.tick(self.speedSetpointActual, hal.shooterAngVelocityMeasured, dt)
 
         return self.state
