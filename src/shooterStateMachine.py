@@ -14,13 +14,12 @@ class StateMachine():
     # 0 is target aim, 1 is target speeds
     ampSetpoint = (0, 0)
     podiumSetpoint = (0, 0)
-    subwooferSetpoint = (0, 0)
+    subwooferSetpoint = (0, 200)
 
     def __init__(self):
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
         self.table.putNumber("kff", 0.00181)
         self.table.putNumber("kp", 0.0008)
-        self.table.putNumber("targetSpeed", 200)
 
         self.aimSetpoint = 0
         self.speedSetpoint = 0
@@ -31,7 +30,7 @@ class StateMachine():
         self.intakeShooterPID = PIDController(0., 0, 0)
 
 
-    def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputShoot: bool, time, dt) -> int:
+    def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputShoot: bool, time: float, dt: float):
         self.shooterPID.kff = self.table.getNumber("kff", 0)
         self.shooterPID.kp = self.table.getNumber("kp", 0)
 
@@ -61,8 +60,8 @@ class StateMachine():
         elif(self.state == self.FEEDING):
             aimTarget = 0
             speedTarget = 0
-            hal.shooterIntakeSpeed = 0.2
-            hal.intakeSpeeds[1] = 0.2
+            hal.shooterIntakeSpeed = 0.1
+            hal.intakeSpeeds[1] = 0.1
             if hal.shooterSensor:
                 self.state = self.AIMING
 
@@ -78,7 +77,7 @@ class StateMachine():
             speedTarget = self.speedSetpoint
             hal.shooterIntakeSpeed = 0.4
             hal.intakeSpeeds[1] = 0.4
-            if(time - self.time > 4.0):
+            if(time - self.time > 1.0):
                self.state = self.READY_FOR_RING
 
         else:

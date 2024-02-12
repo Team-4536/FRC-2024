@@ -64,16 +64,15 @@ class RobotInputs():
 
         #POV is also known as the Dpad
         if(self.armCtrlr.getPOV() != -1):
-            self.podiumShot = self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170 #down
-            self.subwooferShot = self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260 #left
-            self.shoot = self.armCtrlr.getPOV() < 10 or self.armCtrlr.getPOV() > 350
+            self.ampShot = self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170 #down
+            self.podiumShot = self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260 #left
+            self.subwooferShot = self.armCtrlr.getPOV() < 10 or self.armCtrlr.getPOV() > 350 # up
         else:
-            self.ampShot = True
+            self.ampShot = False
             self.podiumShot = False
             self.subwooferShot = False
-            self.shoot = False
 
-        self.ampShot = self.armCtrlr.getLeftTriggerAxis() > 0.2
+        self.shoot = self.armCtrlr.getLeftTriggerAxis() > 0.2
 
         self.moveIntakeShooter = self.armCtrlr.getRightTriggerAxis() > 0.2
 
@@ -101,9 +100,6 @@ class Robot(wpilib.TimedRobot):
 
         self.shooterStateMachine = StateMachine()
 
-        self.shooterStateMachineState = 0
-
-
     def robotPeriodic(self) -> None:
         profiler.start()
         self.time = TimeData(self.time)
@@ -113,8 +109,10 @@ class Robot(wpilib.TimedRobot):
         self.table.putBoolean("ctrl/absOn", self.abs)
         self.table.putBoolean("ctrl/absOffset", self.abs)
 
-        self.table.putNumber("shooterStateMachine/state", self.shooterStateMachineState)
+        self.table.putNumber("shooterStateMachine/state", self.shooterStateMachine.state)
         self.table.putBoolean("shooterStateMachine/amp", self.input.ampShot)
+        self.table.putNumber("shooterStateMachine/targetSpeed", self.shooterStateMachine.speedSetpoint)
+        self.table.putNumber("shooterStateMachine/targetAim", self.shooterStateMachine.aimSetpoint)
 
         profiler.end("robotPeriodic")
 
@@ -164,7 +162,7 @@ class Robot(wpilib.TimedRobot):
         profiler.end("intake state machine")
 
         profiler.start()
-        self.shooterStateMachineState = self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, self.time, self.time.dt, self.input.moveIntakeShooter)
+        self.shooterStateMachine.update(self.hal, self.input.ampShot, self.input.podiumShot, self.input.subwooferShot, self.input.shoot, self.time.timeSinceInit, self.time.dt)
         profiler.end("shooter state machine")
 
 
