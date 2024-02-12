@@ -112,6 +112,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("shooterStateMachine/state", self.shooterStateMachine.state)
         self.table.putBoolean("shooterStateMachine/amp", self.input.ampShot)
         self.table.putNumber("shooterStateMachine/targetSpeed", self.shooterStateMachine.speedSetpoint)
+        self.table.putNumber("shooterStateMachine/targetSpeedActual", self.shooterStateMachine.speedSetpointActual)
         self.table.putNumber("shooterStateMachine/targetAim", self.shooterStateMachine.aimSetpoint)
 
         profiler.end("robotPeriodic")

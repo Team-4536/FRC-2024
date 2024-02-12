@@ -11,12 +11,12 @@ class StateMachine():
     AIMING = 2
     SHOOTING = 3
 
-    SHOOTER_SCALER = 0.1
+    SHOOTER_SCALER = 0.05
 
     # 0 is target aim, 1 is target speeds
     ampSetpoint = (0, 0)
     podiumSetpoint = (0, 0)
-    subwooferSetpoint = (0, 200)
+    subwooferSetpoint = (0, 250)
 
     def __init__(self):
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
