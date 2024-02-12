@@ -9,15 +9,15 @@ class StateMachine():
     READY_FOR_RING = 0
     FEEDING = 1
     AIMING = 2
-    SHOOTING = 3
+    REVVING = 3
+    SHOOTING = 4
 
     SHOOTER_SCALER = 0.1
-    AIM_SCALER = 0.1
 
     # 0 is target aim, 1 is target speeds
     ampSetpoint = (0, 0)
     podiumSetpoint = (0, 0)
-    subwooferSetpoint = (0, 200)
+    subwooferSetpoint = (0, 250)
 
     def __init__(self):
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
@@ -39,7 +39,7 @@ class StateMachine():
         self.intakeShooterPID = PIDController(0., 0, 0)
 
 
-    def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputShoot: bool, time: float, dt: float):
+    def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputRev: bool, inputShoot: bool, time: float, dt: float):
         self.shooterPID.kff = self.table.getNumber("kff", 0)
         self.shooterPID.kp = self.table.getNumber("kp", 0)
         self.aimPID.kp = self.table.getNumber("Arm kp", 0)
@@ -78,11 +78,8 @@ class StateMachine():
                 self.state = self.AIMING
 
         elif(self.state == self.AIMING):
-            #aimTarget = self.aimSetpoint
+            aimTarget = self.aimSetpoint
             speedTarget = self.speedSetpoint
-
-            aimTarget = self.table.getNumber("armTarget", 0)
-
             if(inputShoot):
                 self.state = self.SHOOTING
                 self.time = time
