@@ -1,5 +1,6 @@
 from utils import Scalar
 
+
 def test_scaler_default():
     s = Scalar()
 

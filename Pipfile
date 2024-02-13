@@ -9,6 +9,7 @@ robotpy = { version="<2025", extras=["swerveDrive","wpilib","wpimath","navx","nt
 [dev-packages]
 flake8 = "*"
 pytest = "*"
+black = "*"
 
 [requires]
 python_version = "3.12"

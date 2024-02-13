@@ -2,7 +2,7 @@ import math
 
 
 class Scalar:
-    def __init__(self, deadZone = .1, exponent = 1):
+    def __init__(self, deadZone=0.1, exponent=1):
         self.deadzone = deadZone
         self.exponent = exponent
 
@@ -12,7 +12,7 @@ class Scalar:
         else:
             delta = abs(input) - self._deadZone
             sign = math.copysign(1, input)
-            return sign * (delta/self._scale)**self._exponent
+            return sign * (delta / self._scale) ** self._exponent
 
     def __call__(self, input):
         return self.scale(input)
