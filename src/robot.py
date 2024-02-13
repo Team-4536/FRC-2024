@@ -4,7 +4,6 @@ import robotHAL
 import stages
 import wpilib
 from intakeStateMachine import IntakeStateMachine
-from mechanism import Mechanism
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
