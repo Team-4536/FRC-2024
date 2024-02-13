@@ -86,7 +86,9 @@ AUTO_SIDE_FMS = "FMS side"
 
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
-
+AUTO_INTAKE_LOWER_RING = "grab bottom ring"
+AUTO_INTAKE_UPPER_RING = "grab bottom ring" 
+AUTO_INTAKE_ALL_RINGS = "grab all ring"
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.hal = robotHAL.RobotHALBuffer()
@@ -115,6 +117,9 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser = wpilib.SendableChooser()
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
         self.autoChooser.addOption(AUTO_INTAKE_CENTER_RING, AUTO_INTAKE_CENTER_RING)
+        self.autoChooser.addOption(AUTO_INTAKE_LOWER_RING, AUTO_INTAKE_LOWER_RING)
+        self.autoChooser.addOption(AUTO_INTAKE_UPPER_RING, AUTO_INTAKE_UPPER_RING)
+        self.autoChooser.addOption(AUTO_INTAKE_ALL_RINGS, AUTO_INTAKE_ALL_RINGS)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
     def robotPeriodic(self) -> None:
@@ -226,6 +231,83 @@ class Robot(wpilib.TimedRobot):
             path = self.loadPathFlipped("middle", flipToRed)
             initialPose = path.getPreviewStartingHolonomicPose()
             stageList = [
+                stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
+                stages.makeShooterAimStage(2, True),
+                stages.makeShooterFireStage(),
+                stages.makePathStageWithTriggerAtPercent(
+                        path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
+                        0.6, stages.makeIntakeStage()),
+                stages.makeIntakeStage(),
+                stages.makeStageSet([
+                    stages.makePathStage(self.loadPathFlipped("middleBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
+                    stages.makeShooterAimStage(2, True),
+                ]),
+                stages.makeShooterFireStage()
+            ]
+        elif  self.autoChooser.getSelected() == AUTO_INTAKE_LOWER_RING:
+            path = self.loadPathFlipped("lower", flipToRed)
+            initialPose = path.getPreviewStartingHolonomicPose()
+            stageList = [
+                stages.makeTelemetryStage(AUTO_INTAKE_LOWER_RING),
+                stages.makeShooterAimStage(2, True),
+                stages.makeShooterFireStage(),
+                stages.makePathStageWithTriggerAtPercent(
+                        path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
+                        0.6, stages.makeIntakeStage()),
+                stages.makeIntakeStage(),
+                stages.makeStageSet([
+                    stages.makePathStage(self.loadPathFlipped("lowerBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
+                    stages.makeShooterAimStage(2, True),
+                ]),
+                stages.makeShooterFireStage()
+            ]
+        elif  self.autoChooser.getSelected() == AUTO_INTAKE_UPPER_RING:
+            path = self.loadPathFlipped("upper", flipToRed)
+            initialPose = path.getPreviewStartingHolonomicPose()
+            stageList = [
+                stages.makeTelemetryStage(AUTO_INTAKE_UPPER_RING),
+                stages.makeShooterAimStage(2, True),
+                stages.makeShooterFireStage(),
+                stages.makePathStageWithTriggerAtPercent(
+                        path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
+                        0.6, stages.makeIntakeStage()),
+                stages.makeIntakeStage(),
+                stages.makeStageSet([
+                    stages.makePathStage(self.loadPathFlipped("upperBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
+                    stages.makeShooterAimStage(2, True),
+                ]),
+                stages.makeShooterFireStage()
+            ]
+        elif  self.autoChooser.getSelected() == AUTO_INTAKE_ALL_RINGS:
+            path = self.loadPathFlipped("upper", flipToRed)
+            initialPose = path.getPreviewStartingHolonomicPose()
+            stageList = [
+                stages.makeTelemetryStage(AUTO_INTAKE_UPPER_RING),
+                stages.makeShooterAimStage(2, True),
+                stages.makeShooterFireStage(),
+                stages.makePathStageWithTriggerAtPercent(
+                        path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
+                        0.6, stages.makeIntakeStage()),
+                stages.makeIntakeStage(),
+                stages.makeStageSet([
+                    stages.makePathStage(self.loadPathFlipped("upperBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
+                    stages.makeShooterAimStage(2, True),
+                ]),
+                stages.makeShooterFireStage(),
+
+                stages.makeTelemetryStage(AUTO_INTAKE_LOWER_RING),
+                stages.makeShooterAimStage(2, True),
+                stages.makeShooterFireStage(),
+                stages.makePathStageWithTriggerAtPercent(
+                        path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
+                        0.6, stages.makeIntakeStage()),
+                stages.makeIntakeStage(),
+                stages.makeStageSet([
+                    stages.makePathStage(self.loadPathFlipped("lowerBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
+                    stages.makeShooterAimStage(2, True),
+                ]),
+                stages.makeShooterFireStage(),
+
                 stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
                 stages.makeShooterAimStage(2, True),
                 stages.makeShooterFireStage(),
