@@ -1,9 +1,7 @@
-from tkinter import getboolean
 import auto
 import robotHAL
 import stages
 import wpilib
-from ntcore import NetworkTable, NetworkTableEntry
 from mechanism import Mechanism
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
@@ -34,7 +32,6 @@ class RobotInputs():
         self.absToggle: bool = False
         self.odometryReset: bool = False
         #self.intake: float = 0.0
-       
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -56,11 +53,10 @@ class RobotInputs():
 
 AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
+AUTO_SIDE_FMS = "FMS side"
 
 AUTO_NONE = "none"
-AUTO_TEST = "test"
-AUTO_PATHANDINTAKE = "path and intake"
-AUTO_FMS = "FMS side"
+AUTO_INTAKE_CENTER_RING = "grab center ring"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -82,18 +78,14 @@ class Robot(wpilib.TimedRobot):
         self.mech = Mechanism(self.hal)
 
         self.autoSideChooser = wpilib.SendableChooser()
-        self.autoSideChooser.setDefaultOption(AUTO_FMS, AUTO_FMS)
+        self.autoSideChooser.setDefaultOption(AUTO_SIDE_FMS, AUTO_SIDE_FMS)
         self.autoSideChooser.addOption(AUTO_SIDE_RED, AUTO_SIDE_RED)
         self.autoSideChooser.addOption(AUTO_SIDE_BLUE, AUTO_SIDE_BLUE)
         wpilib.SmartDashboard.putData('auto side chooser', self.autoSideChooser)
         self.autoChooser = wpilib.SendableChooser()
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
-        self.autoChooser.addOption(AUTO_TEST, AUTO_TEST)
-        self.autoChooser.addOption(AUTO_PATHANDINTAKE, AUTO_PATHANDINTAKE)
+        self.autoChooser.addOption(AUTO_INTAKE_CENTER_RING, AUTO_INTAKE_CENTER_RING)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
-        
-
-
 
     def robotPeriodic(self) -> None:
         self.time = TimeData(self.time)
@@ -108,7 +100,7 @@ class Robot(wpilib.TimedRobot):
             self.drive.resetOdometry(Pose2d(0,0,Rotation2d(0)), self.hal)
 
         self.table.putBoolean("ctrl/absOn", self.abs)
-        self.table.putBoolean("ctrl/absOffset", self.abs)
+        self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
 
     def teleopInit(self) -> None:
         pass
@@ -139,16 +131,6 @@ class Robot(wpilib.TimedRobot):
         else:
             self.hal.intakeSpeeds = [0.0, 0.0]
 
-        #shooter
-        # if self.input.shootSpeaker:
-        #     self.hal.shooterSpeed = 0.25
-
-        # if self.input.shootAmp:
-        #     self.hal.shooterSpeed = 0.1
-
-        # if self.input.shooterIntake:
-        #     self.hal.shooterIntakeSpeed = 0.1
-
         self.hardware.update(self.hal)
 
     def loadPathFlipped(self, name: str, flipped: bool) -> PathPlannerPath:
@@ -157,11 +139,8 @@ class Robot(wpilib.TimedRobot):
             p = p.flipPath()
         return p
 
-
     def autonomousInit(self) -> None:
 
-        # self.RotationController = ProfiledPIDControllerRadians(self.table.getNumber("path/Rp", 0.0), 0, 0,
-        #      TrapezoidProfileRadians.Constraints(6.28, 1))
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),
             PIDConstants(7, 0, 0),
@@ -175,43 +154,32 @@ class Robot(wpilib.TimedRobot):
         #     deployPath = "/home/lvuser/py/deploy/pathplanner/paths"
 
         flipToRed = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
-        if self.autoSideChooser.getSelected() == AUTO_FMS:
-            if NetworkTableInstance.getDefault().getEntry("FMSinfo/IsRedAlliance") == True:
+        if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
+            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
                flipToRed = True
             else:
                 flipToRed = False
-          
-             
-             
+
+        print(f'flip to red {flipToRed}')
+
         stageList: list[auto.Stage] = []
         initialPose: Pose2d = Pose2d()
-       
 
         if self.autoChooser.getSelected() == AUTO_NONE:
             stageList = []
-        elif self.autoChooser.getSelected() == AUTO_TEST:
-
-            path = self.loadPathFlipped("testPath", flipToRed)
+        elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
+            path = self.loadPathFlipped("middle", flipToRed)
             initialPose = path.getPreviewStartingHolonomicPose()
             stageList = [
-                stages.makeTelemetryStage("test auto"),
-                stages.makePathStage(path.getTrajectory(ChassisSpeeds(), initialPose.rotation())),
-                #stages.makeIntakeStage(1, 0.4),
-                stages.makePathStage(self.loadPathFlipped("testPathReversed", flipToRed).getTrajectory(ChassisSpeeds(0, 0, 0), initialPose.rotation()))
+                stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
+                stages.makePathAndIntakeStage(1, 0.8, (path.getTrajectory(ChassisSpeeds(), initialPose.rotation()))),
+                stages.makePathAndIntakeStage(1, 0.8, self.loadPathFlipped("middleBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation()))
             ]
         else:
             assert(False)
-
-        if self.autoChooser.getSelected() == AUTO_PATHANDINTAKE:
-            path = self.loadPathFlipped("testPath", flipToRed)
-            initialPose = path.getPreviewStartingHolonomicPose()
-            stageList = [
-                stages.makeTelemetryStage("auto path and intake"),
-                stages.makePathAndIntakeStage(1, 0.8, (path.getTrajectory(ChassisSpeeds(), initialPose.rotation())))
-            ]
-
         self.auto = auto.Auto(stageList, self.time.timeSinceInit)
 
+        self.driveGyroYawOffset = initialPose.rotation().radians()
         self.hardware.gyro.setAngleAdjustment(-initialPose.rotation().degrees())
         self.hardware.update(self.hal)
         self.drive.resetOdometry(initialPose, self.hal)
