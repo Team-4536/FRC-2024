@@ -32,13 +32,17 @@ class RobotInputs():
 
         self.intake: bool = False
 
-        self.tempShooterAim: float = 0.0
+        self.shooterAimManual: float = 0.0
+        # self.shooterFeedManual: float = 0.0
+        # self.shooterSpeedManual: float = 0.0
 
         self.ampShot: bool = False
         self.podiumShot: bool = False
         self.subwooferShot: bool = False
         self.rev: bool = False
         self.shoot: bool = False
+
+        # self.stateMachineOverrideToggle: bool = False
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -55,11 +59,7 @@ class RobotInputs():
         # arm controller
         self.intake = self.armCtrlr.getAButton()
 
-        self.tempShooterAim = -self.armCtrlr.getLeftY()
-        self.tempShooterSpin: float = 1 if self.armCtrlr.getYButton() else 0
-        # self.shootSpeaker: bool = arm.getYButton()
-        # self.shootAmp: bool = arm.getBButton()
-        # self.shooterIntake: bool = arm.getLeftBumper()
+        self.shooterAimManual = -self.armCtrlr.getLeftY()
 
         #POV is also known as the Dpad
         if(self.armCtrlr.getPOV() != -1):
@@ -148,10 +148,6 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("odomX", pose.x)
         self.table.putNumber("odomY", pose.y)
 
-        self.hal.shooterAimSpeed = self.input.tempShooterAim * 0.1
-        # self.hal.shooterSpeed = self.input.tempShooterSpin * 0.4
-        # self.hal.shooterIntakeSpeed = self.input.tempShooterSpin * 0.4
-
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
         self.table.putBoolean("amp", self.input.ampShot)
         self.table.putBoolean("shoot", self.input.shoot)
@@ -168,6 +164,7 @@ class Robot(wpilib.TimedRobot):
             self.input.subwooferShot,
             self.input.rev,
             self.input.shoot,
+            self.input.shooterAimManual,
             self.time.timeSinceInit,
             self.time.dt)
         profiler.end("shooter state machine")

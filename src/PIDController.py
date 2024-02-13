@@ -58,10 +58,8 @@ class PIDControllerForArm(PIDController):
 
         out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target)
         self.prevErr = error
-        NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings").putNumber("pid comp", out)
 
         g = self.kg * math.cos(position + self.balanceAngle)
-        NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings").putNumber("g comp", g)
         out += g
 
         return out

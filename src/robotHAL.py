@@ -138,6 +138,7 @@ class RobotHAL():
         self.shooterTopEncoder = self.shooterTopMotor.getEncoder()
         self.shooterBottomEncoder = self.shooterBottomMotor.getEncoder()
         self.shooterAimEncoder = self.shooterAimMotor.getEncoder()
+        self.shooterAimEncoder.setPosition(0)
         self.shooterIntakeEncoder = self.shooterIntakeMotor.getEncoder()
 
         # other
