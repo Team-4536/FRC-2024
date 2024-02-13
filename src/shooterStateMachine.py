@@ -97,8 +97,9 @@ class StateMachine():
             if(not inputRev):
                 self.state = self.AIMING
             if(inputShoot):
-                self.state = self.SHOOTING
-                self.time = time
+                if(abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAimSpeed - self.speedSetpoint) < 10):
+                    self.state = self.SHOOTING
+                    self.time = time
 
 
         elif(self.state == self.SHOOTING):

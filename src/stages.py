@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+
 import stages
 from auto import Stage
 from ntcore import NetworkTableInstance
@@ -25,20 +26,27 @@ def makePathStage(t: PathPlannerTrajectory) -> Stage:
         return (r.time.timeSinceInit - r.auto.stagestart) > t.getTotalTimeSeconds()
     return stage
 
-#speed is percentage
-#def makeIntakeStage(time: float, speed: float):
+def makeIntakeStage() -> Stage:
     def stage(r: 'Robot') -> bool:
-        r.hal.intakeSpeeds = [ speed, speed ]
-        return (r.time.timeSinceInit - r.auto.stagestart) > time
+        r.intakeStateMachine.update(r.hal, True)
+        return r.intakeStateMachine.state == r.intakeStateMachine.STORING
     return stage
-def makePathAndIntakeStage(speed: float, intakeTriggerPercent: float, t: PathPlannerTrajectory):
+
+def makePathStageWithTriggerAtPercent(t: PathPlannerTrajectory, percent: float, triggered: Stage):
     stagePath = stages.makePathStage(t)
     def stage(r: 'Robot') -> bool:
         isOver = stagePath(r)
-        if ((r.time.timeSinceInit - r.auto.stagestart) > (t.getTotalTimeSeconds() * intakeTriggerPercent)):
-            r.hal.intakeSpeeds = [ speed, speed ]
+        if ((r.time.timeSinceInit - r.auto.stagestart) > (t.getTotalTimeSeconds() * percent)):
+            triggered(r)
         return isOver
     return stage
+
+# def makeShooterAimStage(target: int) -> Stage:
+#     def stage(r: 'Robot') -> bool:
+#         r.shooterStateMachine.update(r.hal, False, False, False, False, False, 0, r.time.timeSinceInit, r.time.dt)
+#         return True
+#     return stage
+
 def makeTelemetryStage(s: str) -> Stage:
     def log(r: 'Robot') -> bool:
         NetworkTableInstance.getDefault().getTable("autos").putString("telemStageLog", s)
