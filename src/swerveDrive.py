@@ -61,12 +61,16 @@ class SwerveDrive():
         for i in range(4):
             # state = SwerveModuleState.optimize(targetStates[i], wheelPositions[i].angle)
             state = self.optimizeTarget(targetStates[i], wheelPositions[i].angle)
+            """
+            # I don't like this while driving in teleop but for autos we should use it
             if abs(hal.driveSpeedMeasured[i]) > 0.1:
                 hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
             elif angleWrap(abs(hal.steeringPositions[i] - state.angle.radians())) < 0.09:
                 hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
             else:
                 hal.driveSpeeds[i] = 0
+            """
+            hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
 
             telemetryTable.putNumber(prefs[i] + "targetAngle", state.angle.radians())
             telemetryTable.putNumber(prefs[i] + "targetSpeed", state.speed)
