@@ -44,6 +44,7 @@ class SwerveDrive():
     def resetOdometry(self, pose: Pose2d, hal):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         self.odometry.resetPosition(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]), pose)
+
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
     def update(self, dt: float, hal: robotHAL.RobotHALBuffer, speed: ChassisSpeeds):
         steerKp = self.table.getNumber("SteeringKp", 0.0)
@@ -64,12 +65,15 @@ class SwerveDrive():
         for i in range(4):
             # state = SwerveModuleState.optimize(targetStates[i], wheelPositions[i].angle)
             state = self.optimizeTarget(targetStates[i], wheelPositions[i].angle)
+            """
             if abs(hal.driveSpeedMeasured[i]) > 0.1:
                 hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
             elif angleWrap(abs(hal.steeringPositions[i] - state.angle.radians())) < 0.09:
                 hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
             else:
                 hal.driveSpeeds[i] = 0
+                """
+            hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
 
             telemetryTable.putNumber(prefs[i] + "targetAngle", state.angle.radians())
             telemetryTable.putNumber(prefs[i] + "targetSpeed", state.speed)
@@ -98,5 +102,3 @@ class SwerveDrive():
         output = SwerveModuleState(outputSpeed, outputAngleRot2d)
 
         return output
-
-    # TODO: reset state function
