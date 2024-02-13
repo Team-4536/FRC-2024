@@ -3,6 +3,7 @@ import profiler
 import robotHAL
 import stages
 import wpilib
+from hal import initialize
 from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
@@ -227,8 +228,17 @@ class Robot(wpilib.TimedRobot):
             initialPose = path.getPreviewStartingHolonomicPose()
             stageList = [
                 stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
-                stages.makePathAndIntakeStage(1, 0.8, (path.getTrajectory(ChassisSpeeds(), initialPose.rotation()))),
-                stages.makePathAndIntakeStage(1, 0.8, self.loadPathFlipped("middleBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation()))
+                stages.makeShooterAimStage(2, True),
+                stages.makeShooterFireStage(),
+                stages.makePathStageWithTriggerAtPercent(
+                        path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
+                        0.6, stages.makeIntakeStage()),
+                stages.makeIntakeStage(),
+                stages.makeStageSet([
+                    stages.makePathStage(self.loadPathFlipped("middleBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
+                    stages.makeShooterAimStage(2, True),
+                ]),
+                stages.makeShooterFireStage()
             ]
         else:
             assert(False)

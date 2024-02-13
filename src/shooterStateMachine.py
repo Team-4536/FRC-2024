@@ -40,6 +40,8 @@ class StateMachine():
         self.shooterPID = PIDController(0, 0, 0, 0.2)
         self.intakeShooterPID = PIDController(0., 0, 0)
 
+        self.onTarget: bool = True # variable for autos to check in on this, as well as for not firing to early
+
 
     def update(self, hal: RobotHALBuffer, inputAmp: bool, inputPodium: bool, inputSubwoofer: bool, inputRev: bool, inputShoot: bool, inputAimManual: float, time: float, dt: float):
         self.shooterPID.kff = self.table.getNumber("kff", 0)
@@ -68,6 +70,7 @@ class StateMachine():
             self.aimSetpoint = self.subwooferSetpoint[0]
             self.speedSetpoint = self.subwooferSetpoint[1]
 
+        self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAimSpeed - self.speedSetpoint) < 10
 
         if(self.state == self.READY_FOR_RING):
             # aimSpeed = inputAimManual * 0.1
@@ -97,7 +100,7 @@ class StateMachine():
             if(not inputRev):
                 self.state = self.AIMING
             if(inputShoot):
-                if(abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAimSpeed - self.speedSetpoint) < 10):
+                if(self.onTarget):
                     self.state = self.SHOOTING
                     self.time = time
 

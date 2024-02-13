@@ -49,13 +49,13 @@ def makeShooterAimStage(target: int, rev: bool) -> Stage:
 
     def stage(r: 'Robot') -> bool:
         r.shooterStateMachine.update(r.hal, False, False, False, rev, False, 0, r.time.timeSinceInit, r.time.dt)
-        return True
+        return r.shooterStateMachine.onTarget
     return stage
 
 def makeShooterFireStage() -> Stage:
     def stage(r: 'Robot') -> bool:
         r.shooterStateMachine.update(r.hal, False, False, False, False, True, 0, r.time.timeSinceInit, r.time.dt)
-        return True
+        return r.shooterStateMachine.state == r.shooterStateMachine.READY_FOR_RING
     return stage
 
 def makeTelemetryStage(s: str) -> Stage:
@@ -63,3 +63,12 @@ def makeTelemetryStage(s: str) -> Stage:
         NetworkTableInstance.getDefault().getTable("autos").putString("telemStageLog", s)
         return True
     return log
+
+def makeStageSet(stages: list[Stage]) -> Stage:
+    def stage(r: 'Robot') -> bool:
+        broken: bool = False
+        for s in stages:
+            if not s(r):
+                broken = True
+        return not broken
+    return stage
