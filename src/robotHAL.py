@@ -26,6 +26,8 @@ class RobotHALBuffer():
 
         self.shooterAngVelocityMeasured : float = 0
 
+        self.camSpeed: float = 0
+        self.camPos: float = 0
 
         self.lowerShooterLimitSwitch: bool = False
         self.upperShooterLimitSwitch: bool = False
@@ -42,6 +44,7 @@ class RobotHALBuffer():
             self.steeringPositions[i] = 0
 
         self.shooterAimPos = 0
+        self.camPos = 0
 
     def stopMotors(self) -> None:
         # swerve motors
@@ -56,6 +59,8 @@ class RobotHALBuffer():
         self.shooterSpeed = 0
         self.shooterAimSpeed = 0
         self.shooterIntakeSpeed = 0
+
+        self.camSpeed = 0
 
     def publish(self, table: ntcore.NetworkTable) -> None:
         # swerve modules
@@ -86,6 +91,9 @@ class RobotHALBuffer():
 
         table.putBoolean("IntakeSensor", self.intakeSensor)
         table.putBoolean("ShooterSensor", self.shooterSensor)
+
+        table.putNumber("camSpeed", self.camSpeed)
+        table.putNumber("camPos", self.camPos)
 
         # gyro
         table.putNumber("yaw", self.yaw)
@@ -141,6 +149,9 @@ class RobotHAL():
         self.shooterAimEncoder.setPosition(0)
         self.shooterIntakeEncoder = self.shooterIntakeMotor.getEncoder()
 
+        self.camMotor = rev.CANSparkMax(15, rev.CANSparkMax.MotorType.kBrushless)
+        self.camEncoder = self.camMotor.getEncoder()
+
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
 
@@ -191,6 +202,9 @@ class RobotHAL():
 
         buf.shooterAngVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
         buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 25
+        
+        self.camMotor.set(buf.camSpeed)
+        buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
         profiler.end("shooter motor encoder updates")
 
         profiler.start()

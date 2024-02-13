@@ -42,6 +42,7 @@ class RobotInputs():
         self.rev: bool = False
         self.shoot: bool = False
 
+        self.camTemp: float = 0.0
         # self.stateMachineOverrideToggle: bool = False
 
     def update(self) -> None:
@@ -73,6 +74,8 @@ class RobotInputs():
 
         self.rev = self.armCtrlr.getLeftTriggerAxis() > 0.2
         self.shoot = self.armCtrlr.getLeftBumper()
+
+        self.camTemp = -self.armCtrlr.getRightY()
 
 
     
@@ -171,6 +174,7 @@ class Robot(wpilib.TimedRobot):
             self.time.dt)
         profiler.end("shooter state machine")
 
+        self.hal.camSpeed = self.input.camTemp * 0.2
 
         profiler.start()
         self.hardware.update(self.hal)

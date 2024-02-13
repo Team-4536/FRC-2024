@@ -18,7 +18,7 @@ class StateMachine():
 
     # 0 is target aim, 1 is target speeds
     ampSetpoint = (1.6, 100)
-    podiumSetpoint = (0.5, 250)
+    podiumSetpoint = (0, 0)
     subwooferSetpoint = (0, 250)
 
     def __init__(self):
@@ -27,6 +27,9 @@ class StateMachine():
         self.table.putNumber("kp", 0.0008)
         self.table.putNumber("aim kp", 0.4)
         self.table.putNumber("aim kg", 0.04)
+
+        self.table.putNumber("podiumAim", 0)
+        self.table.putNumber("podiumSpeed", 0)
 
         self.aimSetpoint = 0
         self.speedSetpoint = 0
@@ -45,6 +48,8 @@ class StateMachine():
         self.aimPID.kp = self.table.getNumber("aim kp", 0)
         self.aimPID.kg = self.table.getNumber("aim kg", 0)
 
+        self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0))
+
         if(inputAmp):
             if(self.state == self.READY_FOR_RING):
                 self.state = self.FEEDING
@@ -52,6 +57,7 @@ class StateMachine():
             self.speedSetpoint = self.ampSetpoint[1]
 
         if(inputPodium):
+            self.table.putString("HAH", "podium pressed")
             if(self.state == self.READY_FOR_RING):
                 self.state = self.FEEDING
             self.aimSetpoint = self.podiumSetpoint[0]
