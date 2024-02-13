@@ -43,12 +43,12 @@ def makePathStageWithTriggerAtPercent(t: PathPlannerTrajectory, percent: float, 
 
 # targets go: 0 - amp, 1 - podium, 2 - subwoofer
 def makeShooterAimStage(target: int, rev: bool) -> Stage:
-    flags = [False, False, False, False, False]
+    flags = [False, False, False]
     assert(target >= 0 and target <= 2)
     flags[target] = True
 
     def stage(r: 'Robot') -> bool:
-        r.shooterStateMachine.update(r.hal, False, False, False, rev, False, 0, r.time.timeSinceInit, r.time.dt)
+        r.shooterStateMachine.update(r.hal, flags[0], flags[1], flags[2], rev, False, 0, r.time.timeSinceInit, r.time.dt)
         return r.shooterStateMachine.onTarget
     return stage
 

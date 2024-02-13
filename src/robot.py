@@ -3,7 +3,6 @@ import profiler
 import robotHAL
 import stages
 import wpilib
-from hal import initialize
 from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
