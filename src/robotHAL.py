@@ -144,12 +144,12 @@ class RobotHAL():
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
 
-        self.lowerShooterLimitSwitch = wpilib.DigitalInput(2)
+        self.lowerShooterLimitSwitch = wpilib.DigitalInput(3)
         self.upperShooterLimitSwitch = wpilib.DigitalInput(1)
 
         self.intakeSensor = wpilib.DigitalInput(0)
         self.I2C = wpilib.I2C.Port.kOnboard
-        self.colorSensor = rev.ColorSensorV3(self.I2C)
+        self.shooterSensor = wpilib.DigitalInput(2)
 
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
@@ -208,9 +208,11 @@ class RobotHAL():
 
         profiler.start()
         # ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
-        if self.colorSensor.getProximity() >= 2047:
-            buf.shooterSensor = True
-        else:
-            buf.shooterSensor = False
+        # if self.colorSensor.getProximity() >= 2047:
+        #     buf.shooterSensor = True
+        # else:
+        #     buf.shooterSensor = False
+        # buf.intakeSensor = self.intakeSensor.get()
         buf.intakeSensor = self.intakeSensor.get()
+        buf.shooterSensor = not self.shooterSensor.get()
         profiler.end("sensor updates")
