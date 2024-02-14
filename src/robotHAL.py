@@ -98,8 +98,6 @@ class RobotHALBuffer():
 
         # gyro
         table.putNumber("yaw", self.yaw)
-        table.putBoolean("Shooter Sensor", self.shooterSensor)
-        table.putBoolean("Intake Sensor", self.intakeSensor)
 
 class RobotHAL():
     def __init__(self) -> None:

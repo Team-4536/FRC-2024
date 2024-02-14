@@ -66,6 +66,7 @@ class StateMachine():
         self.table.putNumber("targetSpeedSmoothed", self.PIDspeedSetpoint)
         self.table.putNumber("targetAim", self.aimSetpoint)
         self.table.putNumber("targetAimSmoothed", self.PIDaimSetpoint)
+        self.table.putBoolean("onTarget", self.onTarget)
 
 
     # To send commands to the state machine, use aim(), rev(), and shoot() before calling this
@@ -92,7 +93,7 @@ class StateMachine():
                 self.aimSetpoint = self.subwooferSetpoint[0]
                 self.speedSetpoint = self.subwooferSetpoint[1]
 
-        self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAimSpeed - self.speedSetpoint) < 10
+        self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 10
 
         if(self.state == self.READY_FOR_RING):
             aimTarget = 0
