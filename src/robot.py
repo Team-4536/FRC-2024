@@ -8,7 +8,7 @@ from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
 from real import lerp
-from shooterStateMachine import StateMachine
+from shooterStateMachine import ShooterTarget, StateMachine
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from utils import Scalar
@@ -35,18 +35,11 @@ class RobotInputs():
 
         self.intake: bool = False
 
-        self.shooterAimManual: float = 0.0
-        # self.shooterFeedManual: float = 0.0
-        # self.shooterSpeedManual: float = 0.0
-
-        self.ampShot: bool = False
-        self.podiumShot: bool = False
-        self.subwooferShot: bool = False
+        self.aim: ShooterTarget = ShooterTarget.NONE
         self.rev: bool = False
         self.shoot: bool = False
 
         self.camTemp: float = 0.0
-        # self.stateMachineOverrideToggle: bool = False
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -65,15 +58,15 @@ class RobotInputs():
 
         self.shooterAimManual = -self.armCtrlr.getLeftY()
 
-        #POV is also known as the Dpad
+        #POV is also known as the Dpad, 0 is centered on top, angles go clockwise
+        self.aim = ShooterTarget.NONE
         if(self.armCtrlr.getPOV() != -1):
-            self.ampShot = self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170 #down
-            self.podiumShot = self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260 #left
-            self.subwooferShot = self.armCtrlr.getPOV() < 10 or self.armCtrlr.getPOV() > 350 # up
-        else:
-            self.ampShot = False
-            self.podiumShot = False
-            self.subwooferShot = False
+            if self.armCtrlr.getPOV() < 10 or self.armCtrlr.getPOV() > 350: # up
+                self.aim = ShooterTarget.SUBWOOFER
+            elif self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260: # left
+                self.aim = ShooterTarget.PODIUM
+            elif self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170: # down
+                self.aim = ShooterTarget.AMP
 
         self.rev = self.armCtrlr.getLeftTriggerAxis() > 0.2
         self.shoot = self.armCtrlr.getLeftBumper()
@@ -121,7 +114,10 @@ class Robot(wpilib.TimedRobot):
         profiler.start()
 
         self.time = TimeData(self.time)
+
         self.hal.publish(self.table)
+        self.shooterStateMachine.publishInfo()
+
         self.drive.updateOdometry(self.hal)
 
         pose = self.drive.odometry.getPose()
@@ -130,13 +126,8 @@ class Robot(wpilib.TimedRobot):
 
         self.table.putBoolean("ctrl/absOn", self.abs)
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
-
-        self.table.putNumber("shooterStateMachine/state", self.shooterStateMachine.state)
-        self.table.putBoolean("shooterStateMachine/amp", self.input.ampShot)
-        self.table.putNumber("shooterStateMachine/targetSpeed", self.shooterStateMachine.speedSetpoint)
-        self.table.putNumber("shooterStateMachine/targetSpeedActual", self.shooterStateMachine.PIDspeedSetpoint)
-        self.table.putNumber("shooterStateMachine/targetAim", self.shooterStateMachine.aimSetpoint)
-        self.table.putNumber("shooterStateMachine/targetAimActual", self.shooterStateMachine.PIDaimSetpoint)
+        self.table.putNumber("ctrl/driveX", self.input.driveX)
+        self.table.putNumber("ctrl/driveY", self.input.driveY)
 
         profiler.end("robotPeriodic")
 
@@ -160,8 +151,6 @@ class Robot(wpilib.TimedRobot):
         profiler.start()
         speedControlEdited = lerp(1.5, 5.0, self.input.speedCtrl)
         turnScalar = 3
-        self.table.putNumber("ctrl/driveX", self.input.driveX)
-        self.table.putNumber("ctrl/driveY", self.input.driveY)
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         if self.abs:
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
@@ -170,24 +159,16 @@ class Robot(wpilib.TimedRobot):
         profiler.end("drive updates")
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
-        self.table.putBoolean("amp", self.input.ampShot)
-        self.table.putBoolean("shoot", self.input.shoot)
 
         profiler.start()
         self.intakeStateMachine.update(self.hal, self.input.intake)
         profiler.end("intake state machine")
 
         profiler.start()
-        self.shooterStateMachine.update(
-            self.hal,
-            self.input.ampShot,
-            self.input.podiumShot,
-            self.input.subwooferShot,
-            self.input.rev,
-            self.input.shoot,
-            self.input.shooterAimManual,
-            self.time.timeSinceInit,
-            self.time.dt)
+        self.shooterStateMachine.aim(self.input.aim)
+        self.shooterStateMachine.rev(self.input.rev)
+        self.shooterStateMachine.shoot(self.input.shoot)
+        self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
         profiler.end("shooter state machine")
 
         self.hal.camSpeed = self.input.camTemp * 0.2
@@ -227,7 +208,7 @@ class Robot(wpilib.TimedRobot):
             initialPose = path.getPreviewStartingHolonomicPose()
             stageList = [
                 stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
-                stages.makeShooterAimStage(2, True),
+                stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
                 stages.makeShooterFireStage(),
                 stages.makePathStageWithTriggerAtPercent(
                         path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
@@ -235,7 +216,7 @@ class Robot(wpilib.TimedRobot):
                 stages.makeIntakeStage(),
                 stages.makeStageSet([
                     stages.makePathStage(self.loadPathFlipped("middleBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
-                    stages.makeShooterAimStage(2, True),
+                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
                 ]),
                 stages.makeShooterFireStage()
             ]
@@ -251,6 +232,7 @@ class Robot(wpilib.TimedRobot):
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
         self.auto.update(self)
+        self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
         self.hardware.update(self.hal)
 
     def disabledInit(self) -> None:

@@ -4,6 +4,7 @@ import stages
 from auto import Stage
 from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
+from shooterStateMachine import ShooterTarget
 
 if TYPE_CHECKING:
     from robot import Robot
@@ -41,20 +42,17 @@ def makePathStageWithTriggerAtPercent(t: PathPlannerTrajectory, percent: float, 
         return isOver
     return stage
 
-# targets go: 0 - amp, 1 - podium, 2 - subwoofer
-def makeShooterAimStage(target: int, rev: bool) -> Stage:
-    flags = [False, False, False]
-    assert(target >= 0 and target <= 2)
-    flags[target] = True
-
+# ends when state is on target
+def makeShooterPrepStage(target: ShooterTarget, rev: bool) -> Stage:
     def stage(r: 'Robot') -> bool:
-        r.shooterStateMachine.update(r.hal, flags[0], flags[1], flags[2], rev, False, 0, r.time.timeSinceInit, r.time.dt)
+        r.shooterStateMachine.aim(target)
+        r.shooterStateMachine.rev(rev)
         return r.shooterStateMachine.onTarget
     return stage
 
 def makeShooterFireStage() -> Stage:
     def stage(r: 'Robot') -> bool:
-        r.shooterStateMachine.update(r.hal, False, False, False, False, True, 0, r.time.timeSinceInit, r.time.dt)
+        r.shooterStateMachine.shoot(True)
         return r.shooterStateMachine.state == r.shooterStateMachine.READY_FOR_RING
     return stage
 
