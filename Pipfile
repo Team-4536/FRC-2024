@@ -7,6 +7,9 @@ name = "pypi"
 robotpy = { version="<2025", extras=["swerveDrive","wpilib","wpimath","navx","ntcore","rev","phoenix6","PIDController"]}
 
 [dev-packages]
+flake8 = "*"
+pytest = "*"
+black = "*"
 
 [requires]
 python_version = "3.12"
