@@ -65,7 +65,7 @@ class RobotInputs():
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
-        self.gyroReset = self.driveCtrlr.getYButtonPressed()
+        self.gyroReset = self.driveCtrlr.getAButtonPressed()
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
@@ -95,7 +95,7 @@ class RobotInputs():
         if(self.armCtrlr.getXButtonPressed()):
             self.overideIntakeStateMachine = not self.overideIntakeStateMachine
         
-        self.manualFeedMotor = self.armCtrlr.getRightTriggerAxis() > 0.2
+        self.manualFeedMotor = self.armCtrlr.getBButton()
         self.manualAimJoystickY = self.armCtrlr.getRightY()
         self.aimEncoderReset = self.armCtrlr.getRightStickButtonPressed()
         
@@ -166,6 +166,8 @@ class Robot(wpilib.TimedRobot):
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
         self.manualAimPID = PIDControllerForArm(0, 0, 0, 0, 0.04, 0)
+        self.manualShooterPID = PIDController(0, 0, 0, 0.2)
+        self.PIDspeedSetpoint = 0
 
 
     def teleopPeriodic(self) -> None:
@@ -200,8 +202,10 @@ class Robot(wpilib.TimedRobot):
 
         if(not self.input.overideIntakeStateMachine):
             self.intakeStateMachine.update(self.hal, self.input.intake)
-        elif(self.input.intake):
-            self.hal.intakeSpeeds = [0.4, 0.4]
+        else:
+            if(self.input.intake):
+                self.hal.intakeSpeeds = [0.4, 0.4]
+            self.intakeStateMachine.state = 0
 
         profiler.end("intake state machine")
 
@@ -228,6 +232,17 @@ class Robot(wpilib.TimedRobot):
                 self.hal.shooterAimSpeed += -0.2
             if(self.input.manualAimJoystickY < -0.2):
                 self.hal.shooterAimSpeed += 0.2
+            if(self.input.manualFeedMotor):
+                self.hal.intakeSpeeds[1] = 0.4
+                self.hal.shooterIntakeSpeed = 0.4
+            speedTarget = 0
+            if(self.input.rev):
+                speedTarget = 100
+            self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * 0.1 + self.PIDspeedSetpoint
+            self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
+            if(self.input.shoot):
+                self.hal.shooterIntakeSpeed = 0.4
+            
 
         self.table.putBoolean("ShooterStateMachineOveride", self.input.overideShooterStateMachine)
         self.table.putBoolean("IntakeStateMachineOveride", self.input.overideIntakeStateMachine)
