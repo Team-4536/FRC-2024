@@ -202,7 +202,7 @@ class RobotHAL():
         self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
 
         buf.shooterAngVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
-        buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 25
+        buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 45
 
         self.camMotor.set(buf.camSpeed)
         buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
