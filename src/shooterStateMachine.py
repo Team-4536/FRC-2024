@@ -31,7 +31,7 @@ class StateMachine():
         self.table.putNumber("kff", 0.00181)
         self.table.putNumber("kp", 0.0008)
         self.table.putNumber("aim kp", 0.4)
-        self.table.putNumber("aim kg", 0.04)
+        self.table.putNumber("aim kg", 0.06)
 
         self.table.putNumber("podiumAim", 0)
         self.table.putNumber("podiumSpeed", 0)
