@@ -16,12 +16,14 @@ from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
+from PIDController import PIDController
 
 
 class RobotInputs():
     def __init__(self) -> None:
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
+        self.buttonPanel = wpilib.Joystick(4) 
 
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
@@ -34,6 +36,8 @@ class RobotInputs():
         self.gyroReset: bool = False
         self.brakeButton: bool = False
         self.absToggle: bool = False
+
+        self.turningPIDButton: float = 0.0
 
         self.intake: bool = False
 
@@ -55,13 +59,17 @@ class RobotInputs():
         ##flipped x and y inputs so they are relative to bot
         self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
         self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
+
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
+       
+        self.turningPIDButton = self.driveCtrlr.getYButton()
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
         self.gyroReset = self.driveCtrlr.getYButtonPressed()
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
+
 
         # arm controller
         self.intake = self.armCtrlr.getAButton()
@@ -158,9 +166,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveY", self.input.driveY)
 
         profiler.end("robotPeriodic")
-
-
-
+    
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
         self.manualAimPID = PIDControllerForArm(0, 0, 0, 0, 0.04, 0)
@@ -168,6 +174,9 @@ class Robot(wpilib.TimedRobot):
         self.PIDspeedSetpoint = 0
 
 
+        self.turnPID = PIDController(0, 0, 0)
+
+        self.currentAngle = self.hal.yaw
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
         self.input.update()
@@ -186,8 +195,23 @@ class Robot(wpilib.TimedRobot):
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         if self.abs:
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
-        speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+
+     
+
+        if self.input.driveCtrlr.getPOV() < 190 and self.input.driveCtrlr.getPOV() > 170:
+            targetAngle = 180
+        elif self.input.driveCtrlr.getPOV() < 280  and self.input.driveCtrlr.getPOV() > 260: #left
+            targetAngle = 90
+        elif self.input.driveCtrlr.getPOV() < 10 or self.input.driveCtrlr.getPOV() > 350:
+            targetAngle = 0
+
+        if not self.input.turningPIDButton:
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+        else:
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.currentAngle - targetAngle), targetAngle, self.time.dt) * turnScalar)
+            
         self.drive.update(self.time.dt, self.hal, speed)
+    
         profiler.end("drive updates")
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
