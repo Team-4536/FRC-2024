@@ -1,6 +1,9 @@
 import profiler
 import robotHAL
 import wpilib
+import timing
+import swerveDrive
+
 from intakeStateMachine import IntakeStateMachine
 from mechanism import Mechanism
 from ntcore import NetworkTableInstance
@@ -89,7 +92,7 @@ class Robot(wpilib.TimedRobot):
 
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
-        self.input: RobotInputs = RobotInputs(self.driveCtrlr, self.armCtrlr)
+        #self.input: RobotInputs = RobotInputs(self.driveCtrlr, self.armCtrlr)
 
         self.telemetryTable = NetworkTableInstance.getDefault().getTable("telemetry")
         self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight")
@@ -121,25 +124,11 @@ class Robot(wpilib.TimedRobot):
         self.hal.publish(self.table)
         self.drive.updateOdometry(self.hal)
 
-        self.table.putBoolean("ctrl/absOn", self.abs)
-        self.table.putBoolean("ctrl/absOffset", self.abs)
-
-        self.table.putNumber("shooterStateMachine/state", self.shooterStateMachine.state)
-        self.table.putBoolean("shooterStateMachine/amp", self.input.ampShot)
-        self.table.putNumber("shooterStateMachine/targetSpeed", self.shooterStateMachine.speedSetpoint)
-        self.table.putNumber("shooterStateMachine/targetSpeedActual", self.shooterStateMachine.PIDspeedSetpoint)
-        self.table.putNumber("shooterStateMachine/targetAim", self.shooterStateMachine.aimSetpoint)
-        self.table.putNumber("shooterStateMachine/targetAimActual", self.shooterStateMachine.PIDaimSetpoint)
-
-        profiler.end("robotPeriodic")
-
-        #(jack): since visoin measurements were added there needs to be a way to specify where the robot is starting
         self.drive = swerveDrive.SwerveDrive(Rotation2d(0), Pose2d(5.60, 1.39, 2),
             [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)])
 
     
-        self.time = timing.TimeData(self.time)
-        self.drive
+        
         self.visionPose = self.limelightTable.getNumberArray("botpose", [0,0,0,0,0,0,0])
         if not (self.visionPose[0] == 0 and self.visionPose[1] == 0 and self.visionPose[5] == 0):  
             self.visionPose = Pose2d(self.visionPose[0], self.visionPose[1], self.visionPose[5])
@@ -181,9 +170,9 @@ class Robot(wpilib.TimedRobot):
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
 
-        pose = self.drive.odometry.getPose()
-        self.table.putNumber("odomX", pose.x)
-        self.table.putNumber("odomY", pose.y)
+        #pose = self.drive.odometry.getPose()
+        # self.table.putNumber("odomX", pose.x)
+        # self.table.putNumber("odomY", pose.y)
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
         self.table.putBoolean("amp", self.input.ampShot)
