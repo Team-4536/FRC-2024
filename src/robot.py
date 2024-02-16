@@ -17,6 +17,7 @@ class RobotInputs():
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
+        self.speedControlScalar = Scalar(deadZone = .05, exponent = 1)
 
         self.driveX: float = 0.0
         self.driveY: float = 0.0
@@ -27,18 +28,37 @@ class RobotInputs():
         self.absToggle: bool = False
 
         self.intake: float = 0.0
-        
+
     def compUpdate(self) -> None:
         ##flipped x and y inputs so they are relative to bot
         self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
         self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
 
-        self.speedCtrl = 1-self.driveCtrlr.getRightTriggerAxis()
+        self.speedCtrl = 1.1 - self.speedControlScalar(self.driveCtrlr.getRightTriggerAxis())
+        if self.speedCtrl > 1: self.speedCtrl = 1
 
         self.gyroReset = self.driveCtrlr.getYButtonPressed()
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
-        self.absToggle = self.driveCtrlr.getXButtonPressed()
+        self.absToggle = self.driveCtrlr.getStartButtonPressed()
+
+        # arm controller
+        self.intake = float(self.armCtrlr.getAButton()) - float(self.armCtrlr.getXButton())
+        # self.shootSpeaker: bool = arm.getYButton()
+        # self.shootAmp: bool = arm.getBButton()
+        # self.shooterIntake: bool = arm.getLeftBumper()
+
+    def childUpdate(self) -> None:
+        ##flipped x and y inputs so they are relative to bot
+        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY()) * 0.2
+        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX()) * 0.2
+        self.turning = self.rotScalar(self.driveCtrlr.getRightX()) * 0.5
+
+        self.speedCtrl = 1
+
+        self.gyroReset = self.driveCtrlr.getYButtonPressed()
+        self.brakeButton = self.driveCtrlr.getBButtonPressed()
+        self.absToggle = self.driveCtrlr.getStartButtonPressed()
 
         # arm controller
         self.intake = float(self.armCtrlr.getAButton()) - float(self.armCtrlr.getXButton())
@@ -55,14 +75,16 @@ class RobotInputs():
 
 INPUT_SHOP = "shop"
 INPUT_COMP = "comp"
+INPUT_CHILD = "child"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.inputChooser = wpilib.SendableChooser()
+
         self.inputChooser.setDefaultOption(INPUT_COMP, INPUT_COMP)
         self.inputChooser.addOption(INPUT_SHOP, INPUT_SHOP)
         wpilib.SmartDashboard.putData('input chooser', self.inputChooser)
-    
+
         self.hal = robotHAL.RobotHALBuffer()
         self.hardware = robotHAL.RobotHAL()
         self.hardware.update(self.hal)
@@ -107,7 +129,7 @@ class Robot(wpilib.TimedRobot):
             self.abs = not self.abs
 
         speedControlEdited = lerp(1.5, 5.0, self.input.speedCtrl)
-        turnScalar = 3
+        turnScalar = 3.5
 
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
