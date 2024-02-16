@@ -92,7 +92,7 @@ class RobotInputs():
             self.overideIntakeStateMachine = not self.overideIntakeStateMachine
         
         self.manualFeedMotor = self.armCtrlr.getBButton()
-        self.manualAimJoystickY = self.armCtrlr.getRightY()
+        self.manualAimJoystickY = self.armCtrlr.getLeftY()
         self.aimEncoderReset = self.armCtrlr.getRightStickButtonPressed()
 
     def childUpdate(self) -> None:
