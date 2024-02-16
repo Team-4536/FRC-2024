@@ -1,3 +1,4 @@
+from multiprocessing.dummy.connection import families
 import auto
 import profiler
 import robotHAL
@@ -14,7 +15,7 @@ from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-
+from PIDController import PIDController, PIDControllerForArm
 
 class RobotInputs():
     def __init__(self) -> None:
@@ -41,6 +42,14 @@ class RobotInputs():
 
         self.camTemp: float = 0.0
 
+        self.overideShooterStateMachine: bool = False
+        self.overideIntakeStateMachine: bool = False
+
+        self.manualAimJoystickY: float = 0
+        self.aimEncoderReset: bool = False
+        self.manualFeedMotor: bool = False
+
+
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
         self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
@@ -49,7 +58,7 @@ class RobotInputs():
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
-        self.gyroReset = self.driveCtrlr.getYButtonPressed()
+        self.gyroReset = self.driveCtrlr.getAButtonPressed()
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
@@ -72,6 +81,18 @@ class RobotInputs():
         self.shoot = self.armCtrlr.getLeftBumper()
 
         self.camTemp = -self.armCtrlr.getRightY()
+
+
+        if(self.armCtrlr.getYButtonPressed()):
+            self.overideShooterStateMachine = not self.overideShooterStateMachine
+        if(self.armCtrlr.getXButtonPressed()):
+            self.overideIntakeStateMachine = not self.overideIntakeStateMachine
+        
+        self.manualFeedMotor = self.armCtrlr.getBButton()
+        self.manualAimJoystickY = self.armCtrlr.getRightY()
+        self.aimEncoderReset = self.armCtrlr.getRightStickButtonPressed()
+        
+
 
 AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
@@ -135,6 +156,10 @@ class Robot(wpilib.TimedRobot):
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
+        self.manualAimPID = PIDControllerForArm(0, 0, 0, 0, 0.04, 0)
+        self.manualShooterPID = PIDController(0, 0, 0, 0.2)
+        self.PIDspeedSetpoint = 0
+
 
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
@@ -161,14 +186,51 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
         profiler.start()
-        self.intakeStateMachine.update(self.hal, self.input.intake)
+
+        if(not self.input.overideIntakeStateMachine):
+            self.intakeStateMachine.update(self.hal, self.input.intake)
+        else:
+            if(self.input.intake):
+                self.hal.intakeSpeeds = [0.4, 0.4]
+            self.intakeStateMachine.state = 0
+
         profiler.end("intake state machine")
 
         profiler.start()
-        self.shooterStateMachine.aim(self.input.aim)
-        self.shooterStateMachine.rev(self.input.rev)
-        self.shooterStateMachine.shoot(self.input.shoot)
-        self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
+
+        if(self.input.aimEncoderReset):
+            self.hardware.shooterAimEncoder.setPosition(0)
+
+        if(not self.input.overideShooterStateMachine):
+            self.shooterStateMachine.aim(self.input.aim)
+            self.shooterStateMachine.rev(self.input.rev)
+            self.shooterStateMachine.shoot(self.input.shoot)
+            self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
+        else:
+            self.shooterStateMachine.state = 0
+            self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
+            if(self.input.manualAimJoystickY > 0.2):
+                self.hal.shooterAimSpeed += -0.2
+            if(self.input.manualAimJoystickY < -0.2):
+                self.hal.shooterAimSpeed += 0.2
+            if(self.input.manualFeedMotor):
+                self.hal.intakeSpeeds[1] = 0.4
+                self.hal.shooterIntakeSpeed = 0.4
+            speedTarget = 0
+            if(self.input.rev):
+                speedTarget = 100
+            self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * 0.1 + self.PIDspeedSetpoint
+            self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
+            if(self.input.shoot):
+                self.hal.shooterIntakeSpeed = 0.4
+            
+
+        self.table.putBoolean("ShooterStateMachineOveride", self.input.overideShooterStateMachine)
+        self.table.putBoolean("IntakeStateMachineOveride", self.input.overideIntakeStateMachine)
+        self.table.putNumber("RightStickX", self.input.manualAimJoystickY)
+        self.table.putNumber("AimEncoder", self.hardware.shooterAimEncoder.getPosition())
+        
+
         profiler.end("shooter state machine")
 
         self.hal.camSpeed = self.input.camTemp * 0.2
