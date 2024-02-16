@@ -98,8 +98,6 @@ class RobotHALBuffer():
 
         # gyro
         table.putNumber("yaw", self.yaw)
-        table.putBoolean("Shooter Sensor", self.shooterSensor)
-        table.putBoolean("Intake Sensor", self.intakeSensor)
 
 class RobotHAL():
     def __init__(self) -> None:
@@ -138,8 +136,9 @@ class RobotHAL():
             k.setSmartCurrentLimit(30)
 
         # shooter motors
-        self.shooterTopMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless)
-        self.shooterBottomMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
+        self.shooterTopMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterTopMotor.setInverted(True)
+        self.shooterBottomMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
         self.shooterAimMotor = rev.CANSparkMax(14, rev.CANSparkMax.MotorType.kBrushless)
         self.shooterAimMotor.setInverted(True)
         self.shooterIntakeMotor = rev.CANSparkMax(13, rev.CANSparkMax.MotorType.kBrushless)
@@ -161,7 +160,8 @@ class RobotHAL():
 
         self.intakeSensor = wpilib.DigitalInput(0)
         self.I2C = wpilib.I2C.Port.kOnboard
-        self.shooterSensor = wpilib.DigitalInput(2)
+        # self.shooterSensor = wpilib.DigitalInput(2)
+        self.colorSensor = rev.ColorSensorV3(self.I2C)
 
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
@@ -220,12 +220,13 @@ class RobotHAL():
         profiler.end("switch updates")
 
         profiler.start()
-        # ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
-        # if self.colorSensor.getProximity() >= 2047:
-        #     buf.shooterSensor = True
-        # else:
-        #     buf.shooterSensor = False
-        # buf.intakeSensor = self.intakeSensor.get()
+
+        ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
+        if self.colorSensor.getProximity() >= 400:
+            buf.shooterSensor = True
+        else:
+            buf.shooterSensor = False
         buf.intakeSensor = self.intakeSensor.get()
-        buf.shooterSensor = not self.shooterSensor.get()
+        buf.intakeSensor = self.intakeSensor.get()
+        # buf.shooterSensor = not self.shooterSensor.get()
         profiler.end("sensor updates")

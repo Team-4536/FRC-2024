@@ -1,6 +1,5 @@
 import math
 
-from ntcore import NetworkTableInstance
 # (Rob): It hurts my soul to keep this class here, but the wpilib controller assumes a fixed period which is not changable, and i don't think that it is possible to gaurantee that
 
 class PIDController:
