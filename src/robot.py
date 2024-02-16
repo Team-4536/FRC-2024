@@ -90,7 +90,8 @@ class RobotInputs():
         
         self.manualFeedMotor = self.armCtrlr.getBButton()
         self.manualAimJoystickY = self.armCtrlr.getLeftY()
-        self.aimEncoderReset = self.armCtrlr.getRightStickButtonPressed()
+        self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
+        self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
         
 
 
@@ -201,6 +202,9 @@ class Robot(wpilib.TimedRobot):
         if(self.input.aimEncoderReset):
             self.hardware.shooterAimEncoder.setPosition(0)
 
+        if(self.input.camEncoderReset):
+            self.hardware.camEncoder.setPosition(0)
+
         if(not self.input.overideShooterStateMachine):
             self.shooterStateMachine.aim(self.input.aim)
             self.shooterStateMachine.rev(self.input.rev)
@@ -227,7 +231,7 @@ class Robot(wpilib.TimedRobot):
 
         self.table.putBoolean("ShooterStateMachineOveride", self.input.overideShooterStateMachine)
         self.table.putBoolean("IntakeStateMachineOveride", self.input.overideIntakeStateMachine)
-        self.table.putNumber("RightStickX", self.input.manualAimJoystickY)
+        self.table.putNumber("LeftStickY", self.input.manualAimJoystickY)
         self.table.putNumber("AimEncoder", self.hardware.shooterAimEncoder.getPosition())
         
 
