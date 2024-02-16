@@ -27,25 +27,7 @@ class RobotInputs():
         self.absToggle: bool = False
 
         self.intake: float = 0.0
-
-    def shopUpdate(self) -> None:
-        ##flipped x and y inputs so they are relative to bot
-        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())*.5
-        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())*.5
-        self.turning = self.rotScalar(self.driveCtrlr.getRightX())*.5
-
-        self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()*.5
-
-        self.gyroReset = self.driveCtrlr.getYButtonPressed()
-        self.brakeButton = self.driveCtrlr.getBButtonPressed()
-        self.absToggle = self.driveCtrlr.getXButtonPressed()
-
-        # arm controller
-        self.intake = float(self.armCtrlr.getAButton()) - float(self.armCtrlr.getXButton())
-        # self.shootSpeaker: bool = arm.getYButton()
-        # self.shootAmp: bool = arm.getBButton()
-        # self.shooterIntake: bool = arm.getLeftBumper()
-
+        
     def compUpdate(self) -> None:
         ##flipped x and y inputs so they are relative to bot
         self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
@@ -64,14 +46,21 @@ class RobotInputs():
         # self.shootAmp: bool = arm.getBButton()
         # self.shooterIntake: bool = arm.getLeftBumper()
 
+    def shopUpdate(self) -> None:
+        input.compUpdate()
+        self.driveX *= .5
+        self.driveY *= .5
+        self.turning *= .5
+        self.speedCtrl *= .5
+
 INPUT_SHOP = "shop"
 INPUT_COMP = "comp"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.inputChooser = wpilib.SendableChooser()
-        self.inputChooser.setDefaultOption(INPUT_SHOP, INPUT_SHOP)
-        self.inputChooser.addOption(INPUT_COMP, INPUT_COMP)
+        self.inputChooser.setDefaultOption(INPUT_COMP, INPUT_COMP)
+        self.inputChooser.addOption(INPUT_SHOP, INPUT_SHOP)
         wpilib.SmartDashboard.putData('input chooser', self.inputChooser)
     
         self.hal = robotHAL.RobotHALBuffer()
