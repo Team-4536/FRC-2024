@@ -16,7 +16,7 @@ robotpy_extras = [
    "ntcore",
    "rev",
    "phoenix6",
-   "pathplannerlib"
+   "pathplannerlib",
 ]
 
 # Other pip packages to install
