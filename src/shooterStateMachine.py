@@ -54,10 +54,13 @@ class StateMachine():
 
     # none will not change currently targeted pos
     def aim(self, target: ShooterTarget):
+        self.table.putNumber("aimed", target.value)
         self.inputAim = target
     def rev(self, rev: bool):
+        self.table.putBoolean("revved", rev)
         self.inputRev = rev
     def shoot(self, shoot: bool):
+        self.table.putBoolean("shooting", shoot)
         self.inputShoot = shoot
 
     def publishInfo(self):
@@ -79,10 +82,7 @@ class StateMachine():
 
         self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0))
 
-        if(self.inputAim):
-            if(self.state == self.READY_FOR_RING):
-                self.state = self.FEEDING
-
+        if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):
                 self.aimSetpoint = self.ampSetpoint[0]
                 self.speedSetpoint = self.ampSetpoint[1]
@@ -98,6 +98,8 @@ class StateMachine():
         if(self.state == self.READY_FOR_RING):
             aimTarget = 0
             speedTarget = 0
+            if(self.inputAim != ShooterTarget.NONE):
+                self.state = self.FEEDING
 
         elif(self.state == self.FEEDING):
             aimTarget = 0
