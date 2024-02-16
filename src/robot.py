@@ -17,6 +17,7 @@ from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 from PIDController import PIDController, PIDControllerForArm
 
+
 class RobotInputs():
     def __init__(self) -> None:
         self.driveCtrlr = wpilib.XboxController(0)
@@ -25,6 +26,7 @@ class RobotInputs():
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
+        self.speedControlScalar = Scalar(deadZone = .05, exponent = 1)
 
         self.driveX: float = 0.0
         self.driveY: float = 0.0
@@ -50,17 +52,18 @@ class RobotInputs():
         self.manualFeedMotor: bool = False
 
 
-    def update(self) -> None:
+    def compUpdate(self) -> None:
         ##flipped x and y inputs so they are relative to bot
         self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
         self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
 
-        self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
+        self.speedCtrl = 1.1 - self.speedControlScalar(self.driveCtrlr.getRightTriggerAxis())
+        if self.speedCtrl > 1: self.speedCtrl = 1
 
         self.gyroReset = self.driveCtrlr.getAButtonPressed()
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
-        self.absToggle = self.driveCtrlr.getXButtonPressed()
+        self.absToggle = self.driveCtrlr.getStartButtonPressed()
 
         # arm controller
         self.intake = self.armCtrlr.getAButton()
@@ -91,6 +94,35 @@ class RobotInputs():
         self.manualFeedMotor = self.armCtrlr.getBButton()
         self.manualAimJoystickY = self.armCtrlr.getRightY()
         self.aimEncoderReset = self.armCtrlr.getRightStickButtonPressed()
+
+    def childUpdate(self) -> None:
+        ##flipped x and y inputs so they are relative to bot
+        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY()) * 0.2
+        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX()) * 0.2
+        self.turning = self.rotScalar(self.driveCtrlr.getRightX()) * 0.5
+
+        self.speedCtrl = 1
+
+        self.gyroReset = self.driveCtrlr.getYButtonPressed()
+        self.brakeButton = self.driveCtrlr.getBButtonPressed()
+        self.absToggle = self.driveCtrlr.getStartButtonPressed()
+
+        # arm controller
+        self.intake = self.armCtrlr.getAButton()
+        # self.shootSpeaker: bool = arm.getYButton()
+        # self.shootAmp: bool = arm.getBButton()
+        # self.shooterIntake: bool = arm.getLeftBumper()
+
+    def shopUpdate(self) -> None:
+        input.compUpdate()
+        self.driveX *= .5
+        self.driveY *= .5
+        self.turning *= .5
+        self.speedCtrl *= .5
+
+INPUT_SHOP = "shop"
+INPUT_COMP = "comp"
+INPUT_CHILD = "child"
         
 
 
@@ -101,8 +133,16 @@ AUTO_SIDE_FMS = "FMS side"
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 
+
+
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
+        self.inputChooser = wpilib.SendableChooser()
+
+        self.inputChooser.setDefaultOption(INPUT_COMP, INPUT_COMP)
+        self.inputChooser.addOption(INPUT_SHOP, INPUT_SHOP)
+        wpilib.SmartDashboard.putData('input chooser', self.inputChooser)
+
         self.hal = robotHAL.RobotHALBuffer()
         self.hardware = robotHAL.RobotHAL()
         self.hardware.update(self.hal)
@@ -162,8 +202,13 @@ class Robot(wpilib.TimedRobot):
 
 
     def teleopPeriodic(self) -> None:
+         
         frameStart = wpilib.getTime()
-        self.input.update()
+        if self.inputChooser.getSelected() == INPUT_SHOP:
+            self.input.shopUpdate()
+        elif self.inputChooser.getSelected() == INPUT_COMP:
+            self.input.compUpdate()
+
         self.hal.stopMotors()
 
         if self.input.gyroReset:
@@ -175,7 +220,12 @@ class Robot(wpilib.TimedRobot):
 
         profiler.start()
         speedControlEdited = lerp(1.5, 5.0, self.input.speedCtrl)
-        turnScalar = 3
+
+        turnScalar = 3.5
+
+        self.table.putNumber("ctrl/driveX", self.input.driveX)
+        self.table.putNumber("ctrl/driveY", self.input.driveY)
+
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         if self.abs:
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
