@@ -221,8 +221,8 @@ class RobotHAL():
 
         profiler.start()
 
-        # ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
-        if self.colorSensor.getProximity() >= 2047:
+        ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
+        if self.colorSensor.getProximity() >= 400:
             buf.shooterSensor = True
         else:
             buf.shooterSensor = False
