@@ -43,12 +43,12 @@ class SwerveDrive():
         self.drivePIDs = [PIDController(0, 0, 0) for i in range(4)]
 
 
-
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
     def update(self, dt: float, hal: robotHAL.RobotHALBuffer, speed: ChassisSpeeds):
         steerKp = self.table.getNumber("SteeringKp", 0.0)
         driveKp = self.table.getNumber("DriveKp", 0.0)
         driveKff = self.table.getNumber("DriveKff", 0.0)
+        
         for i in range(4):
             self.turningPIDs[i].kp = steerKp
             self.drivePIDs[i].kp = driveKp
