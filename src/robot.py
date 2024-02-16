@@ -198,7 +198,7 @@ class Robot(wpilib.TimedRobot):
 
         profiler.start()
 
-         if(self.input.aimEncoderReset):
+        if(self.input.aimEncoderReset):
             self.hardware.shooterAimEncoder.setPosition(0)
 
         if(not self.input.overideShooterStateMachine):
