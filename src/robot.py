@@ -122,7 +122,7 @@ class Robot(wpilib.TimedRobot):
         profiler.start()
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
-        self.drive.updateOdometry(self.hal)
+        
 
         self.drive = swerveDrive.SwerveDrive(Rotation2d(0), Pose2d(5.60, 1.39, 2),
             [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)])
@@ -142,6 +142,8 @@ class Robot(wpilib.TimedRobot):
         self.robotPoseTable.putNumber("robotTheta" , self.robotTheta)
         
         self.hal.publish(self.telemetryTable)
+        self.hal.publish(self.limelightTable)
+        self.drive.updateOdometry(self.hal)
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
