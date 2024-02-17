@@ -102,6 +102,7 @@ AUTO_SIDE_FMS = "FMS side"
 
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
+AUTO_EXIT = "exit"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -131,6 +132,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser = wpilib.SendableChooser()
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
         self.autoChooser.addOption(AUTO_INTAKE_CENTER_RING, AUTO_INTAKE_CENTER_RING)
+        self.autoChooser.addOption(AUTO_EXIT, AUTO_EXIT)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
     def robotPeriodic(self) -> None:
@@ -296,11 +298,19 @@ class Robot(wpilib.TimedRobot):
                 ]),
                 stages.makeShooterFireStage()
             ]
+        elif self.autoChooser.getSelected() == AUTO_EXIT:
+            path = self.loadPathFlipped("exit", flipToRed)
+            initialPose = path.getPreviewStartingHolonomicPose()
+            stageList = [
+                stages.makeTelemetryStage(AUTO_EXIT),
+                stages.makePathStage(path.getTrajectory(ChassisSpeeds(), initialPose.rotation())),
+            ]
         else:
             assert(False)
         self.auto = auto.Auto(stageList, self.time.timeSinceInit)
 
         self.driveGyroYawOffset = initialPose.rotation().radians()
+        self.hardware.gyro.reset()
         self.hardware.gyro.setAngleAdjustment(-initialPose.rotation().degrees())
         self.hardware.update(self.hal)
         self.drive.resetOdometry(initialPose, self.hal)
