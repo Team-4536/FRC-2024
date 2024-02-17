@@ -1,9 +1,10 @@
+import math
 from enum import Enum
 
 from ntcore import NetworkTableInstance
 from PIDController import PIDController, PIDControllerForArm
 from robotHAL import RobotHALBuffer
-import math
+
 
 class ShooterTarget(Enum):
     NONE = 0
@@ -112,7 +113,9 @@ class StateMachine():
         elif(self.state == self.AIMING):
             aimTarget = self.aimSetpoint
             speedTarget = 0
+            self.table.putString("LOG", "AIMING")
             if(self.inputRev):
+                self.table.putString("LOG", "MOVING TO REV")
                 self.state = self.REVVING
 
         elif(self.state == self.REVVING):
@@ -123,6 +126,7 @@ class StateMachine():
                     self.state = self.SHOOTING
                     self.time = time
             elif(not self.inputRev):
+                self.table.putString("LOG", "MOVING BACK TO AIM")
                 self.state = self.AIMING
 
         elif(self.state == self.SHOOTING):
@@ -136,6 +140,8 @@ class StateMachine():
         else:
             aimTarget = 0
             speedTarget = 0
+
+        self.table.putBoolean("inputRev", self.inputRev)
 
         self.PIDaimSetpoint = (aimTarget - self.PIDaimSetpoint) * self.AIM_SMOOTH_SCALAR + self.PIDaimSetpoint
         hal.shooterAimSpeed = self.aimPID.tick(self.PIDaimSetpoint, hal.shooterAimPos, dt)
