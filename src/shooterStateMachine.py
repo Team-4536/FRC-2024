@@ -3,7 +3,7 @@ from enum import Enum
 from ntcore import NetworkTableInstance
 from PIDController import PIDController, PIDControllerForArm
 from robotHAL import RobotHALBuffer
-
+import math
 
 class ShooterTarget(Enum):
     NONE = 0
@@ -33,8 +33,8 @@ class StateMachine():
         self.table.putNumber("aim kp", 0.8)
         self.table.putNumber("aim kg", 0.02)
 
-        self.table.putNumber("podiumAim", 0)
-        self.table.putNumber("podiumSpeed", 0)
+        self.table.putNumber("podiumAim", math.radians(18))
+        self.table.putNumber("podiumSpeed", 250)
 
         self.aimSetpoint = 0
         self.speedSetpoint = 0
