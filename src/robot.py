@@ -58,12 +58,13 @@ class RobotInputs():
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
-        self.gyroReset = self.driveCtrlr.getAButtonPressed()
+        self.gyroReset = self.driveCtrlr.getYButtonPressed()
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
         # arm controller
         self.intake = self.armCtrlr.getAButton()
+        self.intakeReverse = self.armCtrlr.getBButton()
 
         self.shooterAimManual = -self.armCtrlr.getLeftY()
 
@@ -85,10 +86,10 @@ class RobotInputs():
 
         if(self.armCtrlr.getYButtonPressed()):
             self.overideShooterStateMachine = not self.overideShooterStateMachine
-        if(self.armCtrlr.getXButtonPressed()):
-            self.overideIntakeStateMachine = not self.overideIntakeStateMachine
+            self.overideIntakeStateMachine = self.overideShooterStateMachine
         
-        self.manualFeedMotor = self.armCtrlr.getBButton()
+        self.manualFeedMotor = self.armCtrlr.getRightTriggerAxis() > 0.2
+        self.manualFeedReverseMotor = self.armCtrlr.getRightBumper()
         self.manualAimJoystickY = self.armCtrlr.getLeftY()
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
@@ -193,6 +194,8 @@ class Robot(wpilib.TimedRobot):
         else:
             if(self.input.intake):
                 self.hal.intakeSpeeds = [0.4, 0.4]
+            if(self.input.intakeReverse):
+                self.hal.intakeSpeeds = [-0.4, -0.4]
             self.intakeStateMachine.state = 0
 
         profiler.end("intake state machine")
@@ -213,13 +216,20 @@ class Robot(wpilib.TimedRobot):
         else:
             self.shooterStateMachine.state = 0
             self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
+
             if(self.input.manualAimJoystickY > 0.2):
                 self.hal.shooterAimSpeed += -0.2
             if(self.input.manualAimJoystickY < -0.2):
                 self.hal.shooterAimSpeed += 0.2
+
             if(self.input.manualFeedMotor):
-                self.hal.intakeSpeeds[1] = 0.4
-                self.hal.shooterIntakeSpeed = 0.4
+                self.hal.intakeSpeeds[1] += 0.4
+                self.hal.shooterIntakeSpeed += 0.4
+            if(self.input.manualFeedReverseMotor):
+                self.hal.intakeSpeeds[1] -= 0.4
+                self.hal.shooterIntakeSpeed -= 0.4
+
+            # TODO: this is moving to fast
             speedTarget = 0
             if(self.input.rev):
                 speedTarget = 100
