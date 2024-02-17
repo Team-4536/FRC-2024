@@ -285,8 +285,8 @@ class Robot(wpilib.TimedRobot):
             path = self.loadPathFlipped("middle", flipToRed)
             initialPose = path.getPreviewStartingHolonomicPose()
             stageList = [
-                stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
-                stages.makeWaitStage(0.1),
+                # stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
+                # stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, False),
                 stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
                 stages.makeShooterFireStage(),
                 stages.makePathStageWithTriggerAtPercent(

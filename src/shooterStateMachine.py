@@ -1,5 +1,6 @@
 import math
 from enum import Enum
+import wpilib
 
 from ntcore import NetworkTableInstance
 from PIDController import PIDController, PIDControllerForArm
@@ -22,7 +23,7 @@ class StateMachine():
     AIM_SMOOTH_SCALAR = 0.05
 
     # 0 is target aim, 1 is target speeds
-    ampSetpoint = (1.6, 100)
+    ampSetpoint = (1.7, 100)
     podiumSetpoint = (0, 0)
     subwooferSetpoint = (0, 250)
 
@@ -75,6 +76,9 @@ class StateMachine():
     # To send commands to the state machine, use aim(), rev(), and shoot() before calling this
     # Note that calling aim from READY_FOR_RING will feed and then aim
     def update(self, hal: RobotHALBuffer, time: float, dt: float):
+        self.table.putNumber("inputRev", float(self.inputRev))
+        self.table.putNumber("inputAim", self.inputAim.value)
+
         self.shooterPID.kff = self.table.getNumber("kff", 0)
         self.shooterPID.kp = self.table.getNumber("kp", 0)
         self.aimPID.kp = self.table.getNumber("aim kp", 0)
@@ -130,8 +134,6 @@ class StateMachine():
         else:
             aimTarget = 0
             speedTarget = 0
-
-        self.table.putBoolean("inputRev", self.inputRev)
 
         self.PIDaimSetpoint = (aimTarget - self.PIDaimSetpoint) * self.AIM_SMOOTH_SCALAR + self.PIDaimSetpoint
         hal.shooterAimSpeed = self.aimPID.tick(self.PIDaimSetpoint, hal.shooterAimPos, dt)
