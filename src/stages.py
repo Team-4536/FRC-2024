@@ -28,6 +28,11 @@ def makePathStage(t: PathPlannerTrajectory) -> Stage:
         return (r.time.timeSinceInit - r.auto.stagestart) > t.getTotalTimeSeconds()
     return stage
 
+def makeWaitStage(t: float) -> Stage:
+    def stage(r : 'Robot'):
+        return (r.time.timeSinceInit - r.auto.stagestart) > t
+    return stage
+
 def makeIntakeStage() -> Stage:
     def stage(r: 'Robot') -> bool:
         r.intakeStateMachine.update(r.hal, True)

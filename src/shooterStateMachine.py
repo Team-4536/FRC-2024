@@ -16,8 +16,7 @@ class StateMachine():
     READY_FOR_RING = 0
     FEEDING = 1
     AIMING = 2
-    REVVING = 3
-    SHOOTING = 4
+    SHOOTING = 3
 
     SPEED_SMOOTH_SCALAR = 0.1
     AIM_SMOOTH_SCALAR = 0.05
@@ -47,7 +46,7 @@ class StateMachine():
         self.shooterPID = PIDController(0, 0, 0, 0.2)
         self.intakeShooterPID = PIDController(0., 0, 0)
 
-        self.onTarget: bool = True # variable for autos to check in on this, as well as for not firing to early
+        self.onTarget: bool = False # variable for autos to check in on this, as well as for not firing to early
 
         self.inputAim: ShooterTarget = ShooterTarget.NONE
         self.inputRev: bool = False
@@ -113,21 +112,12 @@ class StateMachine():
         elif(self.state == self.AIMING):
             aimTarget = self.aimSetpoint
             speedTarget = 0
-            self.table.putString("LOG", "AIMING")
-            if(self.inputRev):
-                self.table.putString("LOG", "MOVING TO REV")
-                self.state = self.REVVING
-
-        elif(self.state == self.REVVING):
-            aimTarget = self.aimSetpoint
-            speedTarget = self.speedSetpoint
-            if(self.inputShoot):
-                if(self.onTarget):
+            if self.inputRev:
+                speedTarget = self.speedSetpoint
+            if self.inputShoot:
+                if self.onTarget:
                     self.state = self.SHOOTING
                     self.time = time
-            elif(not self.inputRev):
-                self.table.putString("LOG", "MOVING BACK TO AIM")
-                self.state = self.AIMING
 
         elif(self.state == self.SHOOTING):
             aimTarget = self.aimSetpoint
