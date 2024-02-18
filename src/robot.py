@@ -1,4 +1,3 @@
-from multiprocessing.dummy.connection import families
 import auto
 import profiler
 import robotHAL
@@ -8,6 +7,7 @@ from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
+from PIDController import PIDController, PIDControllerForArm
 from real import lerp
 from shooterStateMachine import ShooterTarget, StateMachine
 from swerveDrive import SwerveDrive
@@ -15,7 +15,7 @@ from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from PIDController import PIDController, PIDControllerForArm
+
 
 class RobotInputs():
     def __init__(self) -> None:
@@ -285,8 +285,7 @@ class Robot(wpilib.TimedRobot):
             path = self.loadPathFlipped("middle", flipToRed)
             initialPose = path.getPreviewStartingHolonomicPose()
             stageList = [
-                # stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
-                # stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, False),
+                stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
                 stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
                 stages.makeShooterFireStage(),
                 stages.makePathStageWithTriggerAtPercent(
@@ -332,6 +331,12 @@ class Robot(wpilib.TimedRobot):
 if __name__ == "__main__":
     wpilib.run(Robot)
 
+    # r = Robot()
+    # r.robotInit()
+    # r.autonomousInit()
+    # while(True):
+    #     r.robotPeriodic()
+    #     r.autonomousPeriodic()
 
 
 

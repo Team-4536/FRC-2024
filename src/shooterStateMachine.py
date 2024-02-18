@@ -1,6 +1,5 @@
 import math
 from enum import Enum
-import wpilib
 
 from ntcore import NetworkTableInstance
 from PIDController import PIDController, PIDControllerForArm
@@ -97,7 +96,9 @@ class StateMachine():
                 self.aimSetpoint = self.subwooferSetpoint[0]
                 self.speedSetpoint = self.subwooferSetpoint[1]
 
-        self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 10
+        self.onTarget = False
+        if self.state == self.AIMING and self.state == self.SHOOTING:
+            self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 10
 
         if(self.state == self.READY_FOR_RING):
             aimTarget = 0
