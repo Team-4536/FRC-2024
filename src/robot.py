@@ -104,7 +104,7 @@ AUTO_SIDE_FMS = "FMS side"
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
-AUTO_GET_CENTER_AND_TOP = "grab center and top ring"
+AUTO_GET_ALL = "grab center and top ring"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -135,7 +135,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
         self.autoChooser.addOption(AUTO_INTAKE_CENTER_RING, AUTO_INTAKE_CENTER_RING)
         self.autoChooser.addOption(AUTO_EXIT, AUTO_EXIT)
-        self.autoChooser.addOption(AUTO_GET_CENTER_AND_TOP, AUTO_GET_CENTER_AND_TOP)
+        self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
     def robotPeriodic(self) -> None:
@@ -298,11 +298,11 @@ class Robot(wpilib.TimedRobot):
                 ]),
                 stages.makeShooterFireStage()
             ]
-        elif self.autoChooser.getSelected() == AUTO_GET_CENTER_AND_TOP:
+        elif self.autoChooser.getSelected() == AUTO_GET_ALL:
             traj = self.loadTrajectory("middle", flipToRed)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             stageList = [
-                stages.makeTelemetryStage(AUTO_GET_CENTER_AND_TOP),
+                stages.makeTelemetryStage(AUTO_GET_ALL),
                 stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
                 stages.makeShooterFireStage(),
 
