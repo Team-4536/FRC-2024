@@ -7,6 +7,7 @@ from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
+from pathplannerlib.trajectory import PathPlannerTrajectory
 from PIDController import PIDController, PIDControllerForArm
 from real import lerp
 from shooterStateMachine import ShooterTarget, StateMachine
@@ -103,6 +104,7 @@ AUTO_SIDE_FMS = "FMS side"
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
+AUTO_GET_CENTER_AND_TOP = "grab center and top ring"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -133,6 +135,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
         self.autoChooser.addOption(AUTO_INTAKE_CENTER_RING, AUTO_INTAKE_CENTER_RING)
         self.autoChooser.addOption(AUTO_EXIT, AUTO_EXIT)
+        self.autoChooser.addOption(AUTO_GET_CENTER_AND_TOP, AUTO_GET_CENTER_AND_TOP)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
     def robotPeriodic(self) -> None:
@@ -239,13 +242,11 @@ class Robot(wpilib.TimedRobot):
             self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
             if(self.input.shoot):
                 self.hal.shooterIntakeSpeed = 0.4
-            
 
         self.table.putBoolean("ShooterStateMachineOveride", self.input.overideShooterStateMachine)
         self.table.putBoolean("IntakeStateMachineOveride", self.input.overideIntakeStateMachine)
         self.table.putNumber("LeftStickY", self.input.manualAimJoystickY)
         self.table.putNumber("AimEncoder", self.hardware.shooterAimEncoder.getPosition())
-        
 
         profiler.end("shooter state machine")
 
@@ -256,11 +257,12 @@ class Robot(wpilib.TimedRobot):
         profiler.end("hardware update")
         self.table.putNumber("frame time", wpilib.getTime() - frameStart)
 
-    def loadPathFlipped(self, name: str, flipped: bool) -> PathPlannerPath:
+    def loadTrajectory(self, name: str, flipped: bool) -> PathPlannerTrajectory:
         p = PathPlannerPath.fromPathFile(name)
         if flipped:
             p = p.flipPath()
-        return p
+        t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
+        return t
 
     def autonomousInit(self) -> None:
         self.holonomicController = PPHolonomicDriveController(
@@ -282,28 +284,52 @@ class Robot(wpilib.TimedRobot):
         if self.autoChooser.getSelected() == AUTO_NONE:
             stageList = []
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
-            path = self.loadPathFlipped("middle", flipToRed)
-            initialPose = path.getPreviewStartingHolonomicPose()
+            traj = self.loadTrajectory("middle", flipToRed)
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
             stageList = [
                 stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
                 stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
                 stages.makeShooterFireStage(),
-                stages.makePathStageWithTriggerAtPercent(
-                        path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
-                        0.6, stages.makeIntakeStage()),
+                stages.makePathStageWithTriggerAtPercent(traj, 0.6, stages.makeIntakeStage()),
                 stages.makeIntakeStage(),
                 stages.makeStageSet([
-                    stages.makePathStage(self.loadPathFlipped("middleBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
+                    stages.makePathStage(self.loadTrajectory("middleBack", flipToRed)),
                     stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
                 ]),
                 stages.makeShooterFireStage()
             ]
+        elif self.autoChooser.getSelected() == AUTO_GET_CENTER_AND_TOP:
+            traj = self.loadTrajectory("middle", flipToRed)
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            stageList = [
+                stages.makeTelemetryStage(AUTO_GET_CENTER_AND_TOP),
+                stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
+                stages.makeShooterFireStage(),
+
+                # CENTER RING
+                stages.makePathStageWithTriggerAtPercent(traj, 0.6, stages.makeIntakeStage()),
+                stages.makeIntakeStage(),
+                stages.makeStageSet([
+                    stages.makePathStage(self.loadTrajectory("middleBack", flipToRed)),
+                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
+                ]),
+                stages.makeShooterFireStage(),
+
+                # UPPER RING
+                stages.makePathStageWithTriggerAtPercent(self.loadTrajectory("upper", flipToRed), 0.6, stages.makeIntakeStage()),
+                stages.makeIntakeStage(),
+                stages.makeStageSet([
+                    stages.makePathStage(self.loadTrajectory("upperBack", flipToRed)),
+                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
+                ]),
+                stages.makeShooterFireStage(),
+            ]
         elif self.autoChooser.getSelected() == AUTO_EXIT:
-            path = self.loadPathFlipped("exit", flipToRed)
-            initialPose = path.getPreviewStartingHolonomicPose()
+            traj = self.loadTrajectory("exit", flipToRed)
+            initialPose = traj.getInitialTargetHolonomicPose()
             stageList = [
                 stages.makeTelemetryStage(AUTO_EXIT),
-                stages.makePathStage(path.getTrajectory(ChassisSpeeds(), initialPose.rotation())),
+                stages.makePathStage(traj),
             ]
         else:
             assert(False)
