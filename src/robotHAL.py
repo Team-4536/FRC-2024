@@ -3,10 +3,11 @@ import math
 
 import navx
 import ntcore
+import profiler
 import rev
 import wpilib
 from phoenix6.hardware import CANcoder
-import profiler
+
 
 class RobotHALBuffer():
     def __init__(self) -> None:
@@ -36,7 +37,7 @@ class RobotHALBuffer():
         self.shooterSensor: bool = False
 
         self.yaw: float = 0
-       
+
     def resetEncoders(self) -> None:
         # swerve encoders
         for i in range(4):
@@ -97,8 +98,6 @@ class RobotHALBuffer():
 
         # gyro
         table.putNumber("yaw", self.yaw)
-        table.putBoolean("Shooter Sensor", self.shooterSensor)
-        table.putBoolean("Intake Sensor", self.intakeSensor)
 
 class RobotHAL():
     def __init__(self) -> None:
@@ -137,8 +136,9 @@ class RobotHAL():
             k.setSmartCurrentLimit(30)
 
         # shooter motors
-        self.shooterTopMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless)
-        self.shooterBottomMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
+        self.shooterTopMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterTopMotor.setInverted(True)
+        self.shooterBottomMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
         self.shooterAimMotor = rev.CANSparkMax(14, rev.CANSparkMax.MotorType.kBrushless)
         self.shooterAimMotor.setInverted(True)
         self.shooterIntakeMotor = rev.CANSparkMax(13, rev.CANSparkMax.MotorType.kBrushless)
@@ -161,6 +161,7 @@ class RobotHAL():
         self.intakeSensor = wpilib.DigitalInput(0)
         self.I2C = wpilib.I2C.Port.kOnboard
         self.shooterSensor = wpilib.DigitalInput(2)
+        # self.colorSensor = rev.ColorSensorV3(self.I2C)
 
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
@@ -201,8 +202,8 @@ class RobotHAL():
         self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
 
         buf.shooterAngVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
-        buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 25
-        
+        buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 45
+
         self.camMotor.set(buf.camSpeed)
         buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
         profiler.end("shooter motor encoder updates")
@@ -210,10 +211,8 @@ class RobotHAL():
         profiler.start()
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
-
-        buf.yaw = math.radians(-self.gyro.getYaw())
+        buf.yaw = math.radians(-self.gyro.getAngle())
         profiler.end("gyro updates")
-
 
         profiler.start()
         buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
@@ -221,12 +220,13 @@ class RobotHAL():
         profiler.end("switch updates")
 
         profiler.start()
+
         # ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
-        # if self.colorSensor.getProximity() >= 2047:
+        # if self.colorSensor.getProximity() >= 400:
         #     buf.shooterSensor = True
         # else:
         #     buf.shooterSensor = False
-        # buf.intakeSensor = self.intakeSensor.get()
         buf.intakeSensor = self.intakeSensor.get()
-        buf.shooterSensor = not self.shooterSensor.get()
+        buf.intakeSensor = self.intakeSensor.get()
+        buf.shooterSensor = self.shooterSensor.get()
         profiler.end("sensor updates")
