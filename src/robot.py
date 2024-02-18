@@ -178,8 +178,8 @@ class Robot(wpilib.TimedRobot):
 
 
         profiler.start()
-        speedControlEdited = lerp(1.5, 5.0, self.input.speedCtrl)
-        turnScalar = 4
+        speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
+        turnScalar = 3.6
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         if self.abs:
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
