@@ -104,7 +104,7 @@ AUTO_SIDE_FMS = "FMS side"
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
-AUTO_GET_ALL = "grab center and top ring"
+AUTO_GET_ALL = "grab all"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -267,7 +267,7 @@ class Robot(wpilib.TimedRobot):
     def autonomousInit(self) -> None:
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),
-            PIDConstants(7, 0, 0),
+            PIDConstants(3, 0, 0),
             5.0,
             self.drive.modulePositions[0].distance(Translation2d()))
 
