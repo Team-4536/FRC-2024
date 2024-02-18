@@ -323,6 +323,15 @@ class Robot(wpilib.TimedRobot):
                     stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
                 ]),
                 stages.makeShooterFireStage(),
+
+                # LOWER RING
+                stages.makePathStageWithTriggerAtPercent(self.loadTrajectory("lower", flipToRed), 0.6, stages.makeIntakeStage()),
+                stages.makeIntakeStage(),
+                stages.makeStageSet([
+                    stages.makePathStage(self.loadTrajectory("lowerBack", flipToRed)),
+                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
+                ]),
+                stages.makeShooterFireStage(),
             ]
         elif self.autoChooser.getSelected() == AUTO_EXIT:
             traj = self.loadTrajectory("exit", flipToRed)
