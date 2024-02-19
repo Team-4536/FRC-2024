@@ -88,14 +88,12 @@ class RobotInputs():
         if(self.armCtrlr.getYButtonPressed()):
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
-        
+
         self.manualFeedMotor = self.armCtrlr.getRightTriggerAxis() > 0.2
         self.manualFeedReverseMotor = self.armCtrlr.getRightBumper()
         self.manualAimJoystickY = self.armCtrlr.getLeftY()
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
-        
-
 
 AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
@@ -372,6 +370,3 @@ if __name__ == "__main__":
     # while(True):
     #     r.robotPeriodic()
     #     r.autonomousPeriodic()
-
-
-

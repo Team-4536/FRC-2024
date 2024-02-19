@@ -10,8 +10,8 @@ if TYPE_CHECKING:
     from robot import Robot
 
 def makePathStage(t: PathPlannerTrajectory) -> Stage:
-    def stage(r: 'Robot') -> bool:
-        goal = t.sample(r.time.timeSinceInit - r.auto.stagestart)
+    def func(r: 'Robot') -> bool | None:
+        goal = t.sample(r.time.timeSinceInit - r.auto.stageStart)
 
         table = NetworkTableInstance.getDefault().getTable("autos")
         table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
@@ -25,54 +25,76 @@ def makePathStage(t: PathPlannerTrajectory) -> Stage:
         table.putNumber("pathVelR", adjustedSpeeds.omega)
 
         r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
-        return (r.time.timeSinceInit - r.auto.stagestart) > t.getTotalTimeSeconds()
-    return stage
+
+        return (r.time.timeSinceInit - r.auto.stageStart) > t.getTotalTimeSeconds()
+    return Stage(func, "")
 
 def makeWaitStage(t: float) -> Stage:
-    def stage(r : 'Robot'):
-        return (r.time.timeSinceInit - r.auto.stagestart) > t
-    return stage
+    def func(r : 'Robot') -> bool | None:
+        return (r.time.timeSinceInit - r.auto.stageStart) > t
+    return Stage(func, f"wait for {t}s")
 
 def makeIntakeStage() -> Stage:
-    def stage(r: 'Robot') -> bool:
+    def func(r: 'Robot') -> bool | None:
         r.intakeStateMachine.update(r.hal, True)
-        return r.intakeStateMachine.state == r.intakeStateMachine.STORING
-    return stage
+        return (r.intakeStateMachine.state == r.intakeStateMachine.STORING)
+    return Stage(func, "intake ring")
 
-def makePathStageWithTriggerAtPercent(t: PathPlannerTrajectory, percent: float, triggered: Stage):
+# return status is dictated by the path stage, the triggered stages return is ignored
+def makePathStageWithTriggerAtPercent(t: PathPlannerTrajectory, percent: float, triggered: Stage) -> Stage:
     stagePath = stages.makePathStage(t)
-    def stage(r: 'Robot') -> bool:
-        isOver = stagePath(r)
-        if ((r.time.timeSinceInit - r.auto.stagestart) > (t.getTotalTimeSeconds() * percent)):
-            triggered(r)
+    def func(r: 'Robot') -> bool|None:
+        isOver = stagePath.func(r)
+        if ((r.time.timeSinceInit - r.auto.stageStart) > (t.getTotalTimeSeconds() * percent)):
+            triggered.func(r)
         return isOver
-    return stage
+    return Stage(func, f"path with {triggered.name} trigger")
 
 # ends when state is on target
 def makeShooterPrepStage(target: ShooterTarget, rev: bool) -> Stage:
-    def stage(r: 'Robot') -> bool:
+    def func(r: 'Robot') -> bool | None:
         r.shooterStateMachine.aim(target)
         r.shooterStateMachine.rev(rev)
         return r.shooterStateMachine.onTarget
-    return stage
+    return Stage(func, f"shooter aim at {target.name}, revved: {rev}")
 
 def makeShooterFireStage() -> Stage:
-    def stage(r: 'Robot') -> bool:
+    def func(r: 'Robot') -> bool | None:
         r.shooterStateMachine.shoot(True)
         return r.shooterStateMachine.state == r.shooterStateMachine.READY_FOR_RING
-    return stage
+    return Stage(func, "fire shooter")
 
 def makeTelemetryStage(s: str) -> Stage:
-    def log(r: 'Robot') -> bool:
+    def func(r: 'Robot') -> bool | None:
         NetworkTableInstance.getDefault().getTable("autos").putString("telemStageLog", s)
         return True
-    return log
+    return Stage(func, f"logging {s}")
 
 def makeStageSet(stages: list[Stage]) -> Stage:
-    def stage(r: 'Robot') -> bool:
-        broken: bool = False
+    def func(r: 'Robot') -> bool | None:
+        aborted = False
+        incomplete = False
         for s in stages:
-            if not s(r):
-                broken = True
-        return not broken
-    return stage
+            status = s.func(r)
+            if status is False:
+                incomplete = True
+            elif status is None:
+                aborted = True
+
+        if aborted:
+            return None
+        return not incomplete
+    return Stage(func, f"set [{', '.join(s.name for s in stages)}]")
+
+# NOTE: triggers abort when the timeout is hit, moves to nextStage and abortStage of the given stage
+# passes through aborts from the inner stage
+def makeStageWithTimeout(s: Stage, timeout: float) -> Stage:
+    def func(r: 'Robot') -> bool | None:
+        status = s.func(r)
+        if status is None:
+            return None
+        elif (r.time.timeSinceInit - r.auto.stageStart) > timeout:
+            return None
+        else:
+            return status
+    return Stage(func, f"{s.name} with timeout")
