@@ -88,14 +88,12 @@ class RobotInputs():
         if(self.armCtrlr.getYButtonPressed()):
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
-        
+
         self.manualFeedMotor = self.armCtrlr.getRightTriggerAxis() > 0.2
         self.manualFeedReverseMotor = self.armCtrlr.getRightBumper()
         self.manualAimJoystickY = self.armCtrlr.getLeftY()
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
-        
-
 
 AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
@@ -279,71 +277,59 @@ class Robot(wpilib.TimedRobot):
             else:
                 flipToRed = False
 
-        stageList: list[auto.Stage] = []
+        b = stages.StageBuilder()
         initialPose: Pose2d = Pose2d()
 
         if self.autoChooser.getSelected() == AUTO_NONE:
-            stageList = []
+            pass
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
             traj = self.loadTrajectory("middle", flipToRed)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
-            stageList = [
-                stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
-                stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                stages.makeShooterFireStage(),
-                stages.makePathStageWithTriggerAtPercent(traj, 0.6, stages.makeIntakeStage()),
-                stages.makeIntakeStage(),
-                stages.makeStageSet([
-                    stages.makePathStage(self.loadTrajectory("middleBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                ]),
-                stages.makeShooterFireStage()
-            ]
+
+            b.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
+            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout")
+            b.addShooterFireStage()
+            b.addIntakeStage().triggerAlongPath(traj, 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
+            b.addStageSet(stages.StageBuilder() \
+                          .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            b.addShooterFireStage()
         elif self.autoChooser.getSelected() == AUTO_GET_ALL:
             traj = self.loadTrajectory("middle", flipToRed)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
-            stageList = [
-                stages.makeTelemetryStage(AUTO_GET_ALL),
-                stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                stages.makeShooterFireStage(),
-
-                # CENTER RING
-                stages.makePathStageWithTriggerAtPercent(traj, 0.6, stages.makeIntakeStage()),
-                stages.makeIntakeStage(),
-                stages.makeStageSet([
-                    stages.makePathStage(self.loadTrajectory("middleBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                ]),
-                stages.makeShooterFireStage(),
-
-                # UPPER RING
-                stages.makePathStageWithTriggerAtPercent(self.loadTrajectory("upper", flipToRed), 0.6, stages.makeIntakeStage()),
-                stages.makeIntakeStage(),
-                stages.makeStageSet([
-                    stages.makePathStage(self.loadTrajectory("upperBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                ]),
-                stages.makeShooterFireStage(),
-
-                # LOWER RING
-                stages.makePathStageWithTriggerAtPercent(self.loadTrajectory("lower", flipToRed), 0.6, stages.makeIntakeStage()),
-                stages.makeIntakeStage(),
-                stages.makeStageSet([
-                    stages.makePathStage(self.loadTrajectory("lowerBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                ]),
-                stages.makeShooterFireStage(),
-            ]
+            b.addTelemetryStage(AUTO_GET_ALL)
+            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            b.addShooterFireStage()
+            # CENTER RING
+            b.addIntakeStage().triggerAlongPath(traj, 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
+            b.addStageSet(stages.StageBuilder() \
+                          .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            b.addShooterFireStage()
+            # UPPER RING
+            b.addIntakeStage().triggerAlongPath(self.loadTrajectory("upper", flipToRed), 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
+            b.addStageSet(stages.StageBuilder() \
+                          .addPathStage(self.loadTrajectory("upperBack", flipToRed)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            b.addShooterFireStage()
+            # LOWER RING
+            b.addIntakeStage().triggerAlongPath(self.loadTrajectory("lower", flipToRed), 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
+            b.addStageSet(stages.StageBuilder() \
+                          .addPathStage(self.loadTrajectory("lowerBack", flipToRed)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            b.addShooterFireStage()
         elif self.autoChooser.getSelected() == AUTO_EXIT:
             traj = self.loadTrajectory("exit", flipToRed)
             initialPose = traj.getInitialTargetHolonomicPose()
-            stageList = [
-                stages.makeTelemetryStage(AUTO_EXIT),
-                stages.makePathStage(traj),
-            ]
+            b.addTelemetryStage(AUTO_EXIT)
+            b.addPathStage(traj)
         else:
             assert(False)
-        self.auto = auto.Auto(stageList, self.time.timeSinceInit)
+        self.auto = auto.Auto(self.time.timeSinceInit, b.firstStage)
 
         self.driveGyroYawOffset = initialPose.rotation().radians()
         self.hardware.gyro.reset()
@@ -373,6 +359,3 @@ if __name__ == "__main__":
     # while(True):
     #     r.robotPeriodic()
     #     r.autonomousPeriodic()
-
-
-
