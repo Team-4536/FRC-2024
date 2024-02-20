@@ -20,8 +20,8 @@ class Stage:
         return self, s
 
 class Auto():
-    def __init__(self, time: float) -> None:
-        self.currentStage: Stage | None = None
+    def __init__(self, time: float, start: Stage | None) -> None:
+        self.currentStage: Stage | None = start
         self.stageStart = time
         self.table = NetworkTableInstance.getDefault().getTable("autos")
 

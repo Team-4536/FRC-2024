@@ -1,3 +1,5 @@
+from logging import addLevelName
+
 import auto
 import profiler
 import robotHAL
@@ -276,26 +278,32 @@ class Robot(wpilib.TimedRobot):
             else:
                 flipToRed = False
 
-        stageList: list[auto.Stage] = []
+        b = stages.StageBuilder()
         initialPose: Pose2d = Pose2d()
 
         if self.autoChooser.getSelected() == AUTO_NONE:
-            stageList = []
+            pass
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
             traj = self.loadTrajectory("middle", flipToRed)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
-            stageList = [
-                stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
+            b.add(stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING))
+            b.add(stages.makeStageWithTimeout(stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True), 4)) \
+                .addAbort(stages.makeTelemetryStage("aborted because of timeout on shooter prep"))
+            b.add(stages.makeShooterFireStage())
+            b.add(stages.makeStageWithTimeout(
+                stages.makePathStageWithTriggerAtPercent(
+                    traj,
+                    0.6, stages.makeIntakeStage()),
+                traj.getTotalTimeSeconds() + 3)) \
+                    .addAbort(stages.makeTelemetryStage("path failed because of timeout"))
+            b.add(stages.makeStageWithTimeout(stages.makeIntakeStage(), 5)) \
+                .addAbort(stages.makeTelemetryStage("intake failed because of time"))
+            b.add(stages.makeStageSet([
+                stages.makePathStage(self.loadTrajectory("middleBack", flipToRed)),
                 stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                stages.makeShooterFireStage(),
-                stages.makePathStageWithTriggerAtPercent(traj, 0.6, stages.makeIntakeStage()),
-                stages.makeIntakeStage(),
-                stages.makeStageSet([
-                    stages.makePathStage(self.loadTrajectory("middleBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                ]),
-                stages.makeShooterFireStage()
-            ]
+                ]))
+            b.add(stages.makeShooterFireStage())
+
         elif self.autoChooser.getSelected() == AUTO_GET_ALL:
             traj = self.loadTrajectory("middle", flipToRed)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
@@ -340,7 +348,7 @@ class Robot(wpilib.TimedRobot):
             ]
         else:
             assert(False)
-        self.auto = auto.Auto(stageList, self.time.timeSinceInit)
+        self.auto = auto.Auto(self.time.timeSinceInit, b.firstStage)
 
         self.driveGyroYawOffset = initialPose.rotation().radians()
         self.hardware.gyro.reset()

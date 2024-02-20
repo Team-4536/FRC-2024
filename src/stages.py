@@ -9,6 +9,31 @@ from shooterStateMachine import ShooterTarget
 if TYPE_CHECKING:
     from robot import Robot
 
+class StageBuilder:
+    def __init__(self) -> None:
+        self.firstStage: Stage | None = None
+        self.currentStage: Stage | None = None
+
+    def add(self, new: Stage) -> 'StageBuilder':
+        if self.firstStage is None:
+            self.firstStage = new
+            self.currentStage = new
+
+        if self.currentStage is not None:
+            self.currentStage.nextStage = new
+            self.currentStage = new
+        return self
+
+    def addAbort(self, new: Stage) -> 'StageBuilder':
+        if self.currentStage is not None:
+            self.currentStage.abortStage = new
+        return self
+
+    def addAbortTree(self, new: 'StageBuilder') -> 'StageBuilder':
+        if self.currentStage is not None:
+            self.currentStage.abortStage = new.firstStage
+        return self
+
 def makePathStage(t: PathPlannerTrajectory) -> Stage:
     def func(r: 'Robot') -> bool | None:
         goal = t.sample(r.time.timeSinceInit - r.auto.stageStart)
