@@ -89,6 +89,7 @@ AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_INTAKE_LOWER_RING = "grab bottom ring"
 AUTO_INTAKE_UPPER_RING = "grab bottom ring" 
 AUTO_INTAKE_ALL_RINGS = "grab all ring"
+AUTO_LEAVE = "get out of the way"
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.hal = robotHAL.RobotHALBuffer()
@@ -120,6 +121,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_INTAKE_LOWER_RING, AUTO_INTAKE_LOWER_RING)
         self.autoChooser.addOption(AUTO_INTAKE_UPPER_RING, AUTO_INTAKE_UPPER_RING)
         self.autoChooser.addOption(AUTO_INTAKE_ALL_RINGS, AUTO_INTAKE_ALL_RINGS)
+        self.autoChooser.addOption(AUTO_LEAVE, AUTO_LEAVE)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
     def robotPeriodic(self) -> None:
@@ -261,7 +263,7 @@ class Robot(wpilib.TimedRobot):
                 ]),
                 stages.makeShooterFireStage()
             ]
-        elif  self.autoChooser.getSelected() == AUTO_INTAKE_UPPER_RING:
+        elif self.autoChooser.getSelected() == AUTO_INTAKE_UPPER_RING:
             path = self.loadPathFlipped("upper", flipToRed)
             initialPose = path.getPreviewStartingHolonomicPose()
             stageList = [
@@ -277,6 +279,13 @@ class Robot(wpilib.TimedRobot):
                     stages.makeShooterAimStage(2, True),
                 ]),
                 stages.makeShooterFireStage()
+            ]
+        elif self.autoChooser.getSelected() ==AUTO_LEAVE:
+            path = self.loadPathFlipped("leave", flipToRed)
+            initialPose = path.getPreviewStartingHolonomicPose()
+            stageList = [
+                stages.makeTelemetryStage(AUTO_LEAVE),
+                stages.makePathStage(self.loadPathFlipped("upperBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation()))
             ]
         elif  self.autoChooser.getSelected() == AUTO_INTAKE_ALL_RINGS:
             path = self.loadPathFlipped("upper", flipToRed)
