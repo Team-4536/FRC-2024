@@ -1,4 +1,6 @@
 import math
+from wpimath.geometry import Rotation2d
+import wpilib
 
 
 class Scalar:
@@ -20,3 +22,11 @@ class Scalar:
 
     def setExponent(self, exponent):
         self.exponent = exponent
+
+class CircularDeadzone:
+    def __init__(self, deadzone: float, exponent: int):
+        self.scalar = Scalar(deadzone, exponent)
+
+    def addDeadzone(self, x: float, y: float):
+        angle = math.atan2(y, x)
+        mag = math.sqrt(x**2 + y**2)
