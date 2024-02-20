@@ -105,6 +105,7 @@ AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
 AUTO_GET_ALL = "grab all"
+AUTO_
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
