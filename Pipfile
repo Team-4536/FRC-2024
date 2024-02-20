@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-robotpy = { version="<2025", extras=["swerveDrive","wpilib","wpimath","navx","ntcore","rev","phoenix6","PIDController"]}
+robotpy = { version="<2025", extras=["navx","rev","pathplannerlib","phoenix6"]}
 
 [dev-packages]
 flake8 = "*"
