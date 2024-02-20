@@ -1,6 +1,3 @@
-from logging import addLevelName
-from tkinter.tix import AUTO
-
 import auto
 import profiler
 import robotHAL
