@@ -1,10 +1,9 @@
-from ast import mod
+import math
 
-from phoenix6 import rotation
-from real import angleWrap
 import robotHAL
 from ntcore import NetworkTableInstance
 from PIDController import PIDController
+from real import angleWrap
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import (
     ChassisSpeeds,
@@ -13,7 +12,6 @@ from wpimath.kinematics import (
     SwerveModulePosition,
     SwerveModuleState,
 )
-import math
 
 
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
@@ -24,7 +22,7 @@ class SwerveDrive():
         self.maxSteerSpeed = 1.0 # CCW rads
         # meters, relative to robot center
         oneFtInMeters = 0.305
-        self.modulePositions = [
+        self.modulePositions: list[Translation2d] = [
             Translation2d(oneFtInMeters, oneFtInMeters),
             Translation2d(oneFtInMeters, -oneFtInMeters),
             Translation2d(-oneFtInMeters, oneFtInMeters),
@@ -42,6 +40,10 @@ class SwerveDrive():
         self.odometry = SwerveDrive4Odometry(self.kinematics, angle, tuple(wheelStates), pose) #type: ignore // because of tuple type mismatch, which is assert gaurded
         self.turningPIDs = [PIDController(0, 0, 0) for i in range(4)]
         self.drivePIDs = [PIDController(0, 0, 0) for i in range(4)]
+
+    def resetOdometry(self, pose: Pose2d, hal):
+        wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
+        self.odometry.resetPosition(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]), pose)
 
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
     def update(self, dt: float, hal: robotHAL.RobotHALBuffer, speed: ChassisSpeeds):
@@ -63,12 +65,15 @@ class SwerveDrive():
         for i in range(4):
             # state = SwerveModuleState.optimize(targetStates[i], wheelPositions[i].angle)
             state = self.optimizeTarget(targetStates[i], wheelPositions[i].angle)
+            """
             if abs(hal.driveSpeedMeasured[i]) > 0.1:
                 hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
             elif angleWrap(abs(hal.steeringPositions[i] - state.angle.radians())) < 0.09:
                 hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
             else:
                 hal.driveSpeeds[i] = 0
+                """
+            hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
 
             telemetryTable.putNumber(prefs[i] + "targetAngle", state.angle.radians())
             telemetryTable.putNumber(prefs[i] + "targetSpeed", state.speed)
@@ -97,5 +102,3 @@ class SwerveDrive():
         output = SwerveModuleState(outputSpeed, outputAngleRot2d)
 
         return output
-
-    # TODO: reset state function

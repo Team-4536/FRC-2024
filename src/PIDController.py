@@ -1,3 +1,4 @@
+import math
 
 # (Rob): It hurts my soul to keep this class here, but the wpilib controller assumes a fixed period which is not changable, and i don't think that it is possible to gaurantee that
 
@@ -41,3 +42,23 @@ class PIDController:
         self.prevErr = 0
 
 
+class PIDControllerForArm(PIDController):
+    def __init__(self, kp: float = 0, ki: float = 0, kd: float = 0, kff: float = 0, kg: float = 0, balanceAngle: float = 0.1) -> None:
+        super().__init__(kp = kp, ki = ki, kd = kd, kff = kff)
+
+        self.balanceAngle = balanceAngle
+        self.kg = kg
+
+    def tick(self, target: float, position: float, dt: float) -> float:
+        error = target - position
+
+        derivative = (error - self.prevErr) * dt
+        self.integral += error * dt
+
+        out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target)
+        self.prevErr = error
+
+        g = self.kg * math.cos(position + self.balanceAngle)
+        out += g
+
+        return out
