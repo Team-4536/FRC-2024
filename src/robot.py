@@ -103,7 +103,8 @@ AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
 AUTO_GET_ALL = "grab all"
-AUTO_
+AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
+AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -135,6 +136,8 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_INTAKE_CENTER_RING, AUTO_INTAKE_CENTER_RING)
         self.autoChooser.addOption(AUTO_EXIT, AUTO_EXIT)
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
+        self.autoChooser.addOption(AUTO_SIDE_UPPER, AUTO_SIDE_UPPER)
+        self.autoChooser.addOption(AUTO_SIDE_LOWER, AUTO_SIDE_LOWER)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
     def robotPeriodic(self) -> None:
@@ -327,7 +330,31 @@ class Robot(wpilib.TimedRobot):
             initialPose = traj.getInitialTargetHolonomicPose()
             b.addTelemetryStage(AUTO_EXIT)
             b.addPathStage(traj)
-        else:
+        elif self.autoChooser.getSelected() == AUTO_SIDE_UPPER:
+            traj = self.loadTrajectory("middle", flipToRed)
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            b.addTelemetryStage(AUTO_SIDE_UPPER)
+            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            b.addShooterFireStage()
+            b.addIntakeStage().triggerAlongPath(traj, 0.5)
+            b.addIntakeStage()
+            b.addStageSet(stages.StageBuilder() \
+                          .addPathStage(self.loadTrajectory("upperBack", flipToRed)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            b.addShooterFireStage
+        elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
+            traj = self.loadTrajectory('side-lower', flipToRed)
+            initialPose = traj.getInitialTargetHolonomicPose()
+            b.addTelemetryStage(AUTO_SIDE_LOWER)
+            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            b.addShooterFireStage()
+            b.addIntakeStage().triggerAlongPath(traj, 0.5)
+            b.addIntakeStage()
+            b.addStageSet(stages.StageBuilder() \
+                          .addPathStage(self.loadTrajectory('lowerBack', flipToRed)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            b.addShooterFireStage
+
             assert(False)
         self.auto = auto.Auto(self.time.timeSinceInit, b.firstStage)
 
