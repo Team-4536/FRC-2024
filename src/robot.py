@@ -8,7 +8,7 @@ from real import lerp
 from shooterStateMachine import StateMachine
 from swerveDrive import SwerveDrive
 from timing import TimeData
-from utils import Scalar
+from utils import CircularScalar, Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 
@@ -18,8 +18,7 @@ class RobotInputs():
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
 
-        self.xScalar = Scalar(deadZone = .1, exponent = 1)
-        self.yScalar = Scalar(deadZone = .1, exponent = 1)
+        self.driveScalar = CircularScalar(.05, 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
 
         self.driveX: float = 0.0
@@ -47,8 +46,9 @@ class RobotInputs():
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
-        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
-        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
+
+
+        self.driveX, self.driveY = self.driveScalar.Scale(self.driveCtrlr.getLeftX(), -self.driveCtrlr.getLeftY())
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
