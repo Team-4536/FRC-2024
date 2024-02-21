@@ -5,12 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Robot",
-            "type": "python",
+            "name": "Python: RobotPy (Simulator)",
+            "type": "debugpy",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "program": "src/robot.py",
+            "module": "robotpy",
             "args": [
+                "--main",
+                "src/robot.py",
                 "sim"
             ],
             "console": "integratedTerminal",
