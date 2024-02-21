@@ -7,7 +7,9 @@ import profiler
 import rev
 import wpilib
 from phoenix6.hardware import CANcoder
-
+from phoenix6 import StatusCode
+import math
+from phoenix5.led import CANdle
 
 class RobotHALBuffer():
     def __init__(self) -> None:
@@ -37,6 +39,8 @@ class RobotHALBuffer():
         self.shooterSensor: bool = False
 
         self.yaw: float = 0
+
+        
 
     def resetEncoders(self) -> None:
         # swerve encoders
@@ -165,6 +169,8 @@ class RobotHAL():
 
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
+
+        self.lights: CANdle = CANdle(20)
 
     def update(self, buf: RobotHALBuffer) -> None:
         prev = self.prev

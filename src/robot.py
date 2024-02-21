@@ -16,7 +16,7 @@ from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-
+from lightControl import setLights
 
 class RobotInputs():
     def __init__(self) -> None:
@@ -138,6 +138,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
+
     def robotPeriodic(self) -> None:
         profiler.start()
 
@@ -147,6 +148,9 @@ class Robot(wpilib.TimedRobot):
         self.shooterStateMachine.publishInfo()
 
         self.drive.updateOdometry(self.hal)
+        setLights(self.hardware.lights, self.hal.yaw)
+        #self.hardware.lights.setLEDs(255, 255, 255, 0, 0, 8)
+        
 
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
