@@ -95,7 +95,7 @@ class Robot(wpilib.TimedRobot):
         #self.input: RobotInputs = RobotInputs(self.driveCtrlr, self.armCtrlr)
 
         self.telemetryTable = NetworkTableInstance.getDefault().getTable("telemetry")
-        self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight")
+        self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight-mb")
         self.robotPoseTable = NetworkTableInstance.getDefault().getTable("robot pose")
 
         self.hal = robotHAL.RobotHALBuffer()
@@ -118,27 +118,34 @@ class Robot(wpilib.TimedRobot):
 
         self.shooterStateMachine = StateMachine()
 
+        wpilib.SmartDashboard.putData('Field', self.drive.field)
+
     def robotPeriodic(self) -> None:
         profiler.start()
         self.time = TimeData(self.time)
         self.hal.publish(self.table)
         
 
-        self.drive = swerveDrive.SwerveDrive(Rotation2d(0), Pose2d(5.60, 1.39, 2),
-            [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)])
+        #self.drive = swerveDrive.SwerveDrive(Rotation2d(0), Pose2d(5.60, 1.39, 2),
+        #    [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)])
 
     
         
         self.visionPose = self.limelightTable.getNumberArray("botpose", [0,0,0,0,0,0,0])
+        self.robotPoseTable.putNumber("xPos", self.visionPose[0])
+        self.robotPoseTable.putNumber("yPos", self.visionPose[1])
+        self.robotPoseTable.putNumber("yaw", self.visionPose[5])
         if not (self.visionPose[0] == 0 and self.visionPose[1] == 0 and self.visionPose[5] == 0):  
-            self.visionPose = Pose2d(self.visionPose[0], self.visionPose[1], self.visionPose[5])
-            self.drive.odometry.addVisionMeasurement(self.visionPose, wpilib.Timer.getFPGATimestamp())
+            self.visionPose2D = Pose2d(self.visionPose[0], self.visionPose[1], self.visionPose[5])
+            self.drive.odometry.addVisionMeasurement(self.visionPose2D, wpilib.Timer.getFPGATimestamp())
         self.robotPose = self.drive.odometry.getEstimatedPosition()
         self.robotX = self.robotPose.X()
         self.robotY = self.robotPose.Y()
         self.robotTheta = self.robotPose.rotation().radians() 
         self.robotPoseTable.putNumber("robotX" , self.robotX)
         self.robotPoseTable.putNumber("robotY" , self.robotY)
+        self.robotPoseTable.putNumber("robotXTest" , self.robotPose.x)
+        self.robotPoseTable.putNumber("robotYTest" , self.robotPose.y)
         self.robotPoseTable.putNumber("robotTheta" , self.robotTheta)
         
         self.hal.publish(self.telemetryTable)

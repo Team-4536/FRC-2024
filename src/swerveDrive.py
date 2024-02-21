@@ -13,7 +13,7 @@ from wpimath.kinematics import (
     SwerveModuleState,
 )
 from wpimath.estimator import SwerveDrive4PoseEstimator
-
+import wpilib
 
 
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
@@ -43,6 +43,8 @@ class SwerveDrive():
         self.odometry = SwerveDrive4PoseEstimator(self.kinematics, angle, tuple(wheelStates), pose) #type: ignore // because of tuple type mismatch, which is assert gaurded
         self.turningPIDs = [PIDController(0, 0, 0) for i in range(4)]
         self.drivePIDs = [PIDController(0, 0, 0) for i in range(4)]
+
+        self.field = wpilib.Field2d()
 
 
 
@@ -87,6 +89,8 @@ class SwerveDrive():
     def updateOdometry(self, hal: robotHAL.RobotHALBuffer):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         self.odometry.update(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]))
+
+        self.field.setRobotPose(self.odometry.getEstimatedPosition())
 
 
     def optimizeTarget(self, target: SwerveModuleState, moduleAngle: Rotation2d) -> SwerveModuleState:
