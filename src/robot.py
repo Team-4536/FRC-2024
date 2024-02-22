@@ -148,9 +148,6 @@ class Robot(wpilib.TimedRobot):
         self.shooterStateMachine.publishInfo()
 
         self.drive.updateOdometry(self.hal)
-        setLights(self.hardware.lights, self.hal.yaw)
-        #self.hardware.lights.setLEDs(255, 255, 255, 0, 0, 8)
-        
 
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
