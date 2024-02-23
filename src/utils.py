@@ -29,7 +29,7 @@ class CircularScalar:
         self.scalar = Scalar(deadzone, exponent)
 
     def Scale(self, x: float, y: float):
-        angle = math.atan2(y, x) * 57.2958
+        angle = math.atan2(y, x)
         mag = math.hypot(x, y)
 
         ScaledMag = self.scalar.scale(mag)
