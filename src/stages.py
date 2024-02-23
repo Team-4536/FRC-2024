@@ -23,8 +23,8 @@ def makePathStage(t: PathPlannerTrajectory) -> Stage:
         table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
         table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
 
-        table.putNumber("odomR", r.drive.odometry.getPose().rotation().radians())
-        adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getPose(), goal)
+        table.putNumber("odomR", r.drive.odometry.getEstimatedPosition().rotation().radians())
+        adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getEstimatedPosition(), goal)
         table.putNumber("pathVelX", adjustedSpeeds.vx)
         table.putNumber("pathVelY", adjustedSpeeds.vy)
         table.putNumber("pathVelR", adjustedSpeeds.omega)

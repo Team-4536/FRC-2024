@@ -3,6 +3,9 @@ import profiler
 import robotHAL
 import stages
 import wpilib
+import timing
+import swerveDrive
+
 from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
@@ -108,9 +111,22 @@ AUTO_GET_ALL = "grab all"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
+         
+
+        self.time = timing.TimeData(None)
+
+        self.driveCtrlr = wpilib.XboxController(0)
+        self.armCtrlr = wpilib.XboxController(1)
+        #self.input: RobotInputs = RobotInputs(self.driveCtrlr, self.armCtrlr)
+
+        self.telemetryTable = NetworkTableInstance.getDefault().getTable("telemetry")
+        self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight-mb")
+        self.robotPoseTable = NetworkTableInstance.getDefault().getTable("robot pose")
+
         self.hal = robotHAL.RobotHALBuffer()
         self.hardware = robotHAL.RobotHAL()
         self.hardware.update(self.hal)
+
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
 
@@ -126,6 +142,7 @@ class Robot(wpilib.TimedRobot):
         self.intakeStateMachine = IntakeStateMachine()
         self.shooterStateMachine = StateMachine()
 
+
         self.autoSideChooser = wpilib.SendableChooser()
         self.autoSideChooser.setDefaultOption(AUTO_SIDE_FMS, AUTO_SIDE_FMS)
         self.autoSideChooser.addOption(AUTO_SIDE_RED, AUTO_SIDE_RED)
@@ -138,27 +155,47 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
+        wpilib.SmartDashboard.putData('Field', self.drive.field)
+
+
     def robotPeriodic(self) -> None:
         profiler.start()
 
         self.time = TimeData(self.time)
 
         self.hal.publish(self.table)
+
         self.shooterStateMachine.publishInfo()
 
-        self.drive.updateOdometry(self.hal)
-
-        pose = self.drive.odometry.getPose()
-        self.table.putNumber("odomX", pose.x )
-        self.table.putNumber("odomY", pose.y)
 
         self.table.putBoolean("ctrl/absOn", self.abs)
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
 
-        profiler.end("robotPeriodic")
 
+
+
+        self.visionPose = self.limelightTable.getNumberArray("botpose_wpiblue", [0,0,0,0,0,0,0])
+        self.robotPoseTable.putNumber("limeXPos", self.visionPose[0])
+        self.robotPoseTable.putNumber("limeYPos", self.visionPose[1])
+        self.robotPoseTable.putNumber("limeYaw", self.visionPose[5])
+        if not (self.visionPose[0] == 0 and self.visionPose[1] == 0 and self.visionPose[5] == 0):  
+            self.visionPose2D = Pose2d(self.visionPose[0], self.visionPose[1], self.visionPose[5])
+            self.drive.odometry.addVisionMeasurement(self.visionPose2D, wpilib.Timer.getFPGATimestamp())
+        self.robotPose = self.drive.odometry.getEstimatedPosition()
+        self.robotX = self.robotPose.X()
+        self.robotY = self.robotPose.Y()
+        self.robotTheta = self.robotPose.rotation().radians() 
+        self.robotPoseTable.putNumber("OdomRobotX" , self.robotX)
+        self.robotPoseTable.putNumber("OdomRobotY" , self.robotY)
+        self.robotPoseTable.putNumber("OdomRobotYaw" , self.robotTheta)
+
+        self.hal.publish(self.telemetryTable)
+        self.hal.publish(self.limelightTable)
+        self.drive.updateOdometry(self.hal)
+
+        profiler.end("robotPeriodic")
 
 
     def teleopInit(self) -> None:
@@ -189,6 +226,7 @@ class Robot(wpilib.TimedRobot):
         speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
+
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
@@ -264,6 +302,8 @@ class Robot(wpilib.TimedRobot):
         t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
         return t
 
+        
+    
     def autonomousInit(self) -> None:
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),
