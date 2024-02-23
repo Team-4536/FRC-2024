@@ -279,9 +279,23 @@ class Robot(wpilib.TimedRobot):
                flipToRed = True
             else:
                 flipToRed = False
-
+      
         b = stages.StageBuilder()
+        shootRoutine = stages.StageBuilder() \
+            .addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout") \
+            .addShooterFireStage()
+        traj = self.loadTrajectory("middle", flipToRed)
+        centerRing = stages.StageBuilder() \
+            .addShooterFireStage() \
+            .addIntakeStage().triggerAlongPath(traj, 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("patb.addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout")h failed on timeout") \
+            .addIntakeStage().setTimeout(5).addAbortLog("intake failed on time") \
+            .addStageSet(stages.StageBuilder() \
+                          .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True)) \
+            .addShooterFireStage()
+                        
         initialPose: Pose2d = Pose2d()
+        b.addStageBuiltStage(centerRing)
 
         if self.autoChooser.getSelected() == AUTO_NONE:
             pass
@@ -290,9 +304,9 @@ class Robot(wpilib.TimedRobot):
             initialPose = traj.getInitialState().getTargetHolonomicPose()
 
             b.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
-            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout")
+            
             b.addShooterFireStage()
-            b.addIntakeStage().triggerAlongPath(traj, 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().triggerAlongPath(traj, 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("patb.addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout")h failed on timeout")
             b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
@@ -353,7 +367,7 @@ class Robot(wpilib.TimedRobot):
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory('lowerBack', flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
-            b.addShooterFireStage
+            b.addShooterFireStage   
 
             assert(False)
         self.auto = auto.Auto(self.time.timeSinceInit, b.firstStage)

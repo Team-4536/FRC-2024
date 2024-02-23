@@ -1,3 +1,4 @@
+import string
 from typing import TYPE_CHECKING
 
 from auto import Stage
@@ -103,6 +104,8 @@ class StageBuilder:
             return True
         self.add(Stage(func, f"logging {s}"))
         return self
+    
+    
 
     # NOTE: when making the stage set, this iterates through the stages in the passed list
     # it goes by the nextStage of each, none of the aborts
@@ -129,6 +132,12 @@ class StageBuilder:
             return not incomplete
         self.add(Stage(func, f"set [{', '.join(s.name for s in stageList)}]"))
         return self
+    
+    def addStageBuiltStage(self, S:'StageBuilder') -> 'StageBuilder':
+        self.currentStage.nextStage = S.firstStage
+        # self.currentStage.nextStage = S.firstStage.nextStage
+        return self
+
 
     # NOTE: triggers abort when the timeout is hit, moves to nextStage and abortStage of the given stage
     # passes through aborts from the inner stage
