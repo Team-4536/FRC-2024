@@ -1,3 +1,4 @@
+#from socket import CAN_BCM_RX_DELETE
 import wpilib
 import rev
 from robotHAL import RobotHAL, RobotHALBuffer
@@ -31,6 +32,7 @@ class TestBox(wpilib.TimedRobot):
         # variables===================================================
         self.motorAccessed = 0
         self.hal = RobotHALBuffer()
+        self.hardware = RobotHAL()
 
     def robotPeriodic(self) -> None:
         self.input = TestInputs(self.mainCtrlr)
@@ -63,10 +65,12 @@ class TestBox(wpilib.TimedRobot):
 
         for i in range(len(self.motors)):
             self.motors[i].set(0)
-
+        """
         for i in range(8):
             self.hal.leds[i] = 150, 110, 0
+        """
 
+        self.hardware.ledController.setLEDs(255, 0, 0, 0, 0, 8)
 
 if __name__ == "__main__":
     wpilib.run(TestBox)
