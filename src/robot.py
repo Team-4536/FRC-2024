@@ -1,3 +1,5 @@
+from email.policy import default
+import math
 import auto
 import profiler
 import robotHAL
@@ -63,7 +65,7 @@ class RobotInputs():
 
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
        
-        self.turningPIDButton = self.driveCtrlr.getYButton()
+        self.turningPIDButton = self.driveCtrlr.getBButton()
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
@@ -71,14 +73,16 @@ class RobotInputs():
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
-
+    
         if self.driveCtrlr.getPOV() < 190 and self.driveCtrlr.getPOV() > 170:
-            targetAngle = 180
-        elif self.driveCtrlr.getPOV() < 280  and self.driveCtrlr.getPOV() > 260: #left
-            targetAngle = 90
-        elif self.driveCtrlr.getPOV() < 10 or self.driveCtrlr.getPOV() > 350:
-            targetAngle = 0
-
+            self.targetAngle = math.radians(180)
+        elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #left
+            self.targetAngle = math.radians(90)
+        elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350:
+            self.targetAngle = 0
+        elif self.driveCtrlr.getPOV() > 260 and self.driveCtrlr.getPOV() < 280:
+            self.targetAngle = math.radians(270)
+                                                #yaw not getting reset with yaw reset button
         # arm controller
         self.intake = self.armCtrlr.getAButton()
         self.intakeReverse = self.armCtrlr.getBButton()
@@ -137,7 +141,7 @@ class Robot(wpilib.TimedRobot):
 
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
-
+      
         self.intakeStateMachine = IntakeStateMachine()
         self.shooterStateMachine = StateMachine()
 
@@ -153,6 +157,9 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
+        self.turnPID = PIDController(0.3, 0, 0)
+        self.turnPID.kp = 0.3
+        self.table.putNumber("turnPID kp", self.turnPID.kp)
     def robotPeriodic(self) -> None:
         profiler.start()
 
@@ -172,6 +179,14 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
 
+        self.table.putNumber("target angle", self.input.targetAngle)
+
+        self.turnPID.kp = self.table.getNumber("turnPID kp", 0.3)
+
+        self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
+        
+
+
         profiler.end("robotPeriodic")
     
     def teleopInit(self) -> None:
@@ -181,7 +196,7 @@ class Robot(wpilib.TimedRobot):
         self.PIDspeedSetpoint = 0
 
 
-        self.turnPID = PIDController(3, 0, 0)
+        self.turnPID = PIDController(0.3, 0, 0)
 
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
@@ -204,13 +219,14 @@ class Robot(wpilib.TimedRobot):
 
 
         if self.input.turningPIDButton:
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.hal.yaw - input.targetAngle), input.targetAngle, self.time.dt) * turnScalar)
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.input.targetAngle - self.hal.yaw), self.input.targetAngle, self.time.dt))
         else:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)            
 
         self.drive.update(self.time.dt, self.hal, speed)
     
         profiler.end("drive updates")
+
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
