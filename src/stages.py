@@ -9,31 +9,6 @@ from wpimath.kinematics import ChassisSpeeds
 if TYPE_CHECKING:
     from robot import Robot
 
-# NOTE: filename is *just* the title of the file, with no extension and no path
-# filename is directly passed to pathplanner.loadPath
-def _newPathStage(fileName: str, flipped: bool) -> Stage:
-    p = PathPlannerPath.fromPathFile(fileName)
-    if flipped:
-        p = p.flipPath()
-    t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
-    def func(r: 'Robot') -> bool | None:
-        goal = t.sample(r.time.timeSinceInit - r.auto.stageStart)
-
-        table = NetworkTableInstance.getDefault().getTable("autos")
-        table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
-        table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
-        table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
-
-        table.putNumber("odomR", r.drive.odometry.getPose().rotation().radians())
-        adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getPose(), goal)
-        table.putNumber("pathVelX", adjustedSpeeds.vx)
-        table.putNumber("pathVelY", adjustedSpeeds.vy)
-        table.putNumber("pathVelR", adjustedSpeeds.omega)
-
-        r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
-        return (r.time.timeSinceInit - r.auto.stageStart) > t.getTotalTimeSeconds()
-    return Stage(func, f"path '{fileName}'")
-
 class StageBuilder:
     def __init__(self) -> None:
         self.firstStage: Stage | None = None
@@ -58,10 +33,30 @@ class StageBuilder:
             self.currentStage.abortStage = new.firstStage
         return self
 
+    def _newPathStage(self, t: PathPlannerTrajectory, trajName: str) -> Stage:
+        def func(r: 'Robot') -> bool | None:
+            goal = t.sample(r.time.timeSinceInit - r.auto.stageStart)
+
+            table = NetworkTableInstance.getDefault().getTable("autos")
+            table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
+            table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
+            table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
+
+            table.putNumber("odomR", r.drive.odometry.getPose().rotation().radians())
+            adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getPose(), goal)
+            table.putNumber("pathVelX", adjustedSpeeds.vx)
+            table.putNumber("pathVelY", adjustedSpeeds.vy)
+            table.putNumber("pathVelR", adjustedSpeeds.omega)
+
+            r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
+            return (r.time.timeSinceInit - r.auto.stageStart) > t.getTotalTimeSeconds()
+        s = Stage(func, f"path '{trajName}'")
+        return s
+
     # NOTE: filename is *just* the title of the file, with no extension and no path
     # filename is directly passed to pathplanner.loadPath
-    def addPathStage(self, fileName: str, flip: bool) -> 'StageBuilder':
-        self.add(_newPathStage(fileName, flip))
+    def addPathStage(self, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'StageBuilder':
+        self.add(self._newPathStage(t, trajName))
         return self
 
     def addWaitStage(self, t: float) -> 'StageBuilder':
@@ -79,15 +74,19 @@ class StageBuilder:
         return self
 
     # return status is dictated by the path stage, the triggered stages return is ignored (including aborts)
-    def triggerAlongPath(self, pathFileName: str, flipped: bool, percent: float) -> 'StageBuilder':
+    # starts up the triggered stage when the path has covered [percent] of its total time
+    def triggerAlongPath(self, percent: float, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'StageBuilder':
         curr = self.currentStage
-        pathStage = _newPathStage(pathFileName, flipped)
+        pathStage = self._newPathStage(t, trajName)
         def func(r: 'Robot') -> bool|None:
             isOver = pathStage.func(r)
             if ((r.time.timeSinceInit - r.auto.stageStart) > (t.getTotalTimeSeconds() * percent)):
                 curr.func(r)
             return isOver
-        self.add(Stage(func, f"path with {curr.name} trigger"))
+
+        self.currentStage.func = func
+        self.currentStage.name = f"path with {curr.name} trigger"
+        self.currentStage.abortStage = None
         return self
 
     # ends when state is on target
@@ -116,6 +115,7 @@ class StageBuilder:
     # NOTE: when making the stage set, this iterates through the stages in the passed list
     # it goes by the nextStage of each, none of the aborts
     # aborts from the inner stages are reported, but the sets abort is what get moved to
+    # Stage set executes all and then ends when all are done
     def addStageSet(self, stages: 'StageBuilder') -> 'StageBuilder':
         stageList: list[Stage] = []
         s = stages.firstStage

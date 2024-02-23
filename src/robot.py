@@ -255,6 +255,15 @@ class Robot(wpilib.TimedRobot):
         profiler.end("hardware update")
         self.table.putNumber("frame time", wpilib.getTime() - frameStart)
 
+    # NOTE: filename is *just* the title of the file, with no extension and no path
+    # filename is directly passed to pathplanner.loadPath
+    def loadTrajectory(self, fileName: str, flipped: bool) -> PathPlannerTrajectory:
+        p = PathPlannerPath.fromPathFile(fileName)
+        if flipped:
+            p = p.flipPath()
+        t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
+        return t
+
     def autonomousInit(self) -> None:
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),
@@ -292,21 +301,21 @@ class Robot(wpilib.TimedRobot):
             b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             b.addShooterFireStage()
             # CENTER RING
-            b.addIntakeStage().triggerAlongPath(traj, 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().triggerAlongPath(0.6, traj).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
             b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage()
             # UPPER RING
-            b.addIntakeStage().triggerAlongPath(self.loadTrajectory("upper", flipToRed), 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", flipToRed)).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
             b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("upperBack", flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage()
             # LOWER RING
-            b.addIntakeStage().triggerAlongPath(self.loadTrajectory("lower", flipToRed), 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("lower", flipToRed)).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
             b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("lowerBack", flipToRed)) \
