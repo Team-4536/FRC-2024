@@ -2,11 +2,37 @@ from typing import TYPE_CHECKING
 
 from auto import Stage
 from ntcore import NetworkTableInstance
-from pathplannerlib.path import PathPlannerTrajectory
+from pathplannerlib.path import PathPlannerPath, PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
+from wpimath.kinematics import ChassisSpeeds
 
 if TYPE_CHECKING:
     from robot import Robot
+
+# NOTE: filename is *just* the title of the file, with no extension and no path
+# filename is directly passed to pathplanner.loadPath
+def _newPathStage(fileName: str, flipped: bool) -> Stage:
+    p = PathPlannerPath.fromPathFile(fileName)
+    if flipped:
+        p = p.flipPath()
+    t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
+    def func(r: 'Robot') -> bool | None:
+        goal = t.sample(r.time.timeSinceInit - r.auto.stageStart)
+
+        table = NetworkTableInstance.getDefault().getTable("autos")
+        table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
+        table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
+        table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
+
+        table.putNumber("odomR", r.drive.odometry.getPose().rotation().radians())
+        adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getPose(), goal)
+        table.putNumber("pathVelX", adjustedSpeeds.vx)
+        table.putNumber("pathVelY", adjustedSpeeds.vy)
+        table.putNumber("pathVelR", adjustedSpeeds.omega)
+
+        r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
+        return (r.time.timeSinceInit - r.auto.stageStart) > t.getTotalTimeSeconds()
+    return Stage(func, f"path '{fileName}'")
 
 class StageBuilder:
     def __init__(self) -> None:
@@ -14,13 +40,12 @@ class StageBuilder:
         self.currentStage: Stage = None # type: ignore
 
     def add(self, new: Stage) -> 'StageBuilder':
-        if self.firstStage is None:
-            self.firstStage = new
-            self.currentStage = new
-
         if self.currentStage is not None:
             self.currentStage.nextStage = new
-            self.currentStage = new
+        self.currentStage = new
+
+        if self.firstStage is None:
+            self.firstStage = new
         return self
 
     def addAbortLog(self, log: str) -> 'StageBuilder':
@@ -33,26 +58,10 @@ class StageBuilder:
             self.currentStage.abortStage = new.firstStage
         return self
 
-    def addPathStage(self, t: PathPlannerTrajectory) -> 'StageBuilder':
-        def func(r: 'Robot') -> bool | None:
-            goal = t.sample(r.time.timeSinceInit - r.auto.stageStart)
-
-            table = NetworkTableInstance.getDefault().getTable("autos")
-            table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
-            table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
-            table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
-
-            table.putNumber("odomR", r.drive.odometry.getPose().rotation().radians())
-            adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getPose(), goal)
-            table.putNumber("pathVelX", adjustedSpeeds.vx)
-            table.putNumber("pathVelY", adjustedSpeeds.vy)
-            table.putNumber("pathVelR", adjustedSpeeds.omega)
-
-            r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
-            return (r.time.timeSinceInit - r.auto.stageStart) > t.getTotalTimeSeconds()
-
-        if self.currentStage is not None:
-            self.add(Stage(func, ""))
+    # NOTE: filename is *just* the title of the file, with no extension and no path
+    # filename is directly passed to pathplanner.loadPath
+    def addPathStage(self, fileName: str, flip: bool) -> 'StageBuilder':
+        self.add(_newPathStage(fileName, flip))
         return self
 
     def addWaitStage(self, t: float) -> 'StageBuilder':
@@ -70,11 +79,11 @@ class StageBuilder:
         return self
 
     # return status is dictated by the path stage, the triggered stages return is ignored (including aborts)
-    def triggerAlongPath(self, t: PathPlannerTrajectory, percent: float) -> 'StageBuilder':
+    def triggerAlongPath(self, pathFileName: str, flipped: bool, percent: float) -> 'StageBuilder':
         curr = self.currentStage
-        stagePath = StageBuilder().addPathStage(t).currentStage # TODO: this line is just awful
+        pathStage = _newPathStage(pathFileName, flipped)
         def func(r: 'Robot') -> bool|None:
-            isOver = stagePath.func(r)
+            isOver = pathStage.func(r)
             if ((r.time.timeSinceInit - r.auto.stageStart) > (t.getTotalTimeSeconds() * percent)):
                 curr.func(r)
             return isOver
@@ -112,6 +121,7 @@ class StageBuilder:
         s = stages.firstStage
         while s is not None:
             stageList.append(s)
+            s = s.nextStage
 
         def func(r: 'Robot') -> bool | None:
             aborted = False

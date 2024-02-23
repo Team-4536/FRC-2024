@@ -255,13 +255,6 @@ class Robot(wpilib.TimedRobot):
         profiler.end("hardware update")
         self.table.putNumber("frame time", wpilib.getTime() - frameStart)
 
-    def loadTrajectory(self, name: str, flipped: bool) -> PathPlannerTrajectory:
-        p = PathPlannerPath.fromPathFile(name)
-        if flipped:
-            p = p.flipPath()
-        t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
-        return t
-
     def autonomousInit(self) -> None:
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),
@@ -279,9 +272,7 @@ class Robot(wpilib.TimedRobot):
         b = stages.StageBuilder()
         initialPose: Pose2d = Pose2d()
 
-        if self.autoChooser.getSelected() == AUTO_NONE:
-            pass
-        elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
+        if False:
             traj = self.loadTrajectory("middle", flipToRed)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
 
@@ -294,7 +285,7 @@ class Robot(wpilib.TimedRobot):
                           .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage()
-        elif self.autoChooser.getSelected() == AUTO_GET_ALL:
+        elif True:
             traj = self.loadTrajectory("middle", flipToRed)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             b.addTelemetryStage(AUTO_GET_ALL)
@@ -350,11 +341,11 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal)
 
 if __name__ == "__main__":
-    wpilib.run(Robot)
+    # wpilib.run(Robot)
 
-    # r = Robot()
-    # r.robotInit()
-    # r.autonomousInit()
-    # while(True):
-    #     r.robotPeriodic()
-    #     r.autonomousPeriodic()
+    r = Robot()
+    r.robotInit()
+    r.autonomousInit()
+    while(True):
+        r.robotPeriodic()
+        r.autonomousPeriodic()
