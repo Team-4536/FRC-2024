@@ -1,5 +1,10 @@
-from typing import TYPE_CHECKING
-
+from typing import TYPE_CHECKING, Self
+import wpimath
+from wpimath import controller
+from wpimath import trajectory, geometry, controller
+from wpimath.trajectory import TrapezoidProfile, Trajectory, TrapezoidProfileRadians
+from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.controller import ProfiledPIDController, HolonomicDriveController, ProfiledPIDControllerRadians, PIDController
 import stages
 from auto import Stage
 from ntcore import NetworkTableInstance
@@ -77,7 +82,40 @@ def makeStageSet(stages: list[Stage]) -> Stage:
         return not broken
     return stage
 
-def goToAprilTag(self,tx, ty) -> Stage:
+def goToAprilTag(self,tx, ty, tr) -> Stage:
+        self.hal.yaw = 0
+        self.drive.resetOdometry(Pose2d(1.166,5.522,Rotation2d(0)), self.hal)
+        self.autoStartTime = self.time.timeSinceInit
+       
+        self.table.putNumber("path/Xp", 1)
+        
+        self.table.putNumber("path/Yp", 1)
+        RControllerP = 7
+        RControllerI = 0
+        RControllerD = 0
+        self.table.putNumber('path/Rp', 7)
+        T_PConstraintsVolocityMax = 6.28
+        T_PConstraintsRotaionAccelerationMax = 1
+        self.XController = PIDController(
+            self.table.getNumber('path/Xp'), 0, 0)
+        self.YController = PIDController(
+            self.table.getNumber('path/Yp'), 0, 0)
+        self.RotationController = ProfiledPIDController(
+            self.table.getNumber('path/Rp'), 0, 0, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
+       
+        
+        currentPose = self.drive.odometry.getPose()
+        # goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
+        goal = Trajectory.State()
+       
+        xSpeed = self.XController.calculate(currentPose.X(), tx)
+        ySpeed = self.YController.calculate(currentPose.Y(), ty)
+        rSpeed = self.RotationController.calculate(currentPose.rotation().radians(), tr)
+        
+        adjustedSpeeds = [xSpeed, ySpeed, rSpeed]
+        
+        self.drive.adjustSpeeds
+        
+        
     
-    
-    return self
+        return Self
