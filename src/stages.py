@@ -76,3 +76,8 @@ def makeStageSet(stages: list[Stage]) -> Stage:
                 broken = True
         return not broken
     return stage
+
+def goToAprilTag(self,tx, ty) -> Stage:
+    
+    
+    return self
