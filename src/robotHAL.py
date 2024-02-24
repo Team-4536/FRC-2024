@@ -30,6 +30,8 @@ class RobotHALBuffer():
         self.camSpeed: float = 0
         self.camPos: float = 0
 
+        self.climberSpeed: float = 0.0 # -1 to 1 volts, climb up is +
+
         self.lowerShooterLimitSwitch: bool = False
         self.upperShooterLimitSwitch: bool = False
 
@@ -63,6 +65,8 @@ class RobotHALBuffer():
 
         self.camSpeed = 0
 
+        self.climberSpeed = 0.0
+
     def publish(self, table: ntcore.NetworkTable) -> None:
         # swerve modules
         prefs = ["FL", "FR", "BL", "BR"]
@@ -95,6 +99,8 @@ class RobotHALBuffer():
 
         table.putNumber("camSpeed", self.camSpeed)
         table.putNumber("camPos", self.camPos)
+
+        table.putNumber("climberSpeed", self.climberSpeed)
 
         # gyro
         table.putNumber("yaw", self.yaw)
@@ -152,6 +158,8 @@ class RobotHAL():
         self.camMotor = rev.CANSparkMax(15, rev.CANSparkMax.MotorType.kBrushless)
         self.camEncoder = self.camMotor.getEncoder()
 
+        self.climbingMotor = rev.CANSparkMax(16, rev.CANSparkMax.MotorType.kBrushless)
+
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
 
@@ -206,7 +214,10 @@ class RobotHAL():
 
         self.camMotor.set(buf.camSpeed)
         buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
-        profiler.end("shooter motor encoder updates")
+
+        self.climbingMotor.set(buf.climberSpeed)
+
+        profiler.end("other motor encoder updates")
 
         profiler.start()
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
