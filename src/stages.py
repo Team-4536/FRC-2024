@@ -7,7 +7,7 @@ from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.controller import ProfiledPIDController, HolonomicDriveController, ProfiledPIDControllerRadians, PIDController
 import stages
 from auto import Stage
-from ntcore import NetworkTableInstance
+from ntcore import NetworkTable, NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
 from wpimath.kinematics import ChassisSpeeds
@@ -83,32 +83,34 @@ def makeStageSet(stages: list[Stage]) -> Stage:
         return not broken
     return stage
 
-def goToAprilTag(self, hal, tx, ty) -> Stage:
+def goToAprilTag() -> Stage:
+    limelightTable = NetworkTableInstance.getDefault().getTable("limelight-mb")
     T_PConstraintsVolocityMax = 6.28
     T_PConstraintsRotaionAccelerationMax = 1
-
-    self.XController = PIDController(
-            self.table.getNumber('path/Xp', 0), 0, 0)
+    table = NetworkTableInstance.getDefault().getTable("AprilTag")
+    XController = PIDController(
+            table.getNumber('path/Xp', 0), 0, 0)
        
-    self.RotationController = ProfiledPIDController(
-           self.table.getNumber('path/Rp', 0), 0, 0, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
+    RotationController = ProfiledPIDController(
+           table.getNumber('path/Rp', 0), 0, 0, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
     def stage(r: 'Robot') -> bool:
 
-        self.table.putNumber("path/Xp", 0)
-        self.table.putNumber('path/Rp', 0)
+        table.putNumber("path/Xp", 0)
+        table.putNumber('path/Rp', 0)
 
-        self.XController.kp = self.table.getNumber("path/Xp", 0)
-        self.RotationController.kp = self.table.getNumber("path/Rp", 0)
+        XController.setP(table.getNumber("path/Xp", 0))
+        RotationController.setP(table.getNumber("path/Rp", 0))
         # goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
         #goal = Trajectory.State()
 
 
         #goal = [txGoal, tyGoal]
-
+        tx = limelightTable.getNumber("tx", 0)
+        ty = limelightTable.getNumber('ty', 0)
        
-        movementSpeed = self.XController.calculate(ty, 0)
+        movementSpeed = XController.calculate(ty, 0)
        # ySpeed = self.YController.calculate(currentPose.Y(), tyGoal)
-        rSpeed = self.RotationController.calculate(tx, 0)
+        rSpeed = RotationController.calculate(tx, 0)
         
         r.drive.update(r.time.dt, r.hal, ChassisSpeeds(movementSpeed, 0, rSpeed))
 

@@ -25,6 +25,7 @@ class RobotInputs():
     def __init__(self) -> None:
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
+        
 
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
@@ -66,6 +67,8 @@ class RobotInputs():
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
+        self.aprilTagGo = self.driveCtrlr.getStartButtonPressed()
+
         # arm controller
         self.intake = self.armCtrlr.getAButton()
         self.intakeReverse = self.armCtrlr.getBButton()
@@ -91,6 +94,8 @@ class RobotInputs():
         if(self.armCtrlr.getYButtonPressed()):
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
+
+        #if(self.aprilTagGo.getStartButtonPressed())
         
         self.manualFeedMotor = self.armCtrlr.getRightTriggerAxis() > 0.2
         self.manualFeedReverseMotor = self.armCtrlr.getRightBumper()
@@ -204,6 +209,8 @@ class Robot(wpilib.TimedRobot):
         self.manualShooterPID = PIDController(0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
 
+        self.goToShooterAprilTag = stages.goToAprilTag()
+
 
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
@@ -215,6 +222,9 @@ class Robot(wpilib.TimedRobot):
 
         if self.input.absToggle:
             self.abs = not self.abs
+
+        if self.input.aprilTagGo:
+            self.goToShooterAprilTag(self)
 
 
         profiler.start()
