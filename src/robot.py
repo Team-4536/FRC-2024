@@ -157,6 +157,16 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
 
+        if self.hal.debugBool:
+            for i in range(8):
+                self.hal.leds[i] = 255, 255, 255
+        elif self.hal.shooterSensor:
+            for i in range(8):
+                self.hal.leds[i] = 0, 0, 255
+        elif self.hal.intakeSensor:
+            for i in range(8):
+                self.hal.leds[i] = 0, 255, 0
+
         profiler.end("robotPeriodic")
 
 

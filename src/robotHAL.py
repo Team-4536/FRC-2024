@@ -40,8 +40,9 @@ class RobotHALBuffer():
         self.shooterSensor: bool = False
 
         self.yaw: float = 0
-
         self.leds: list[tuple] = [(0, 0, 0)] * 8
+
+        self.debugBool: bool = False
 
         
 
