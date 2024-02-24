@@ -21,10 +21,10 @@ class StateMachine():
     SPEED_SMOOTH_SCALAR = 0.1
     AIM_SMOOTH_SCALAR = 0.05
 
-    # 0 is target aim, 1 is target speeds
-    ampSetpoint = (1.7, 100)
-    podiumSetpoint = (0, 0)
-    subwooferSetpoint = (0, 250)
+    # 0 is target aim, 1 is target speeds, 2 is cam
+    ampSetpoint = (1.7, 100, 0)
+    podiumSetpoint = (0, 0, 3)
+    subwooferSetpoint = (0, 250, 0)
 
     def __init__(self):
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
@@ -32,10 +32,11 @@ class StateMachine():
         self.table.putNumber("kp", 0.0008)
         self.table.putNumber("aim kp", 0.8)
         self.table.putNumber("aim kg", 0.02)
-        self.table.putNumber("cam kp", 0)
+        self.table.putNumber("cam kp", 0.06)
 
         self.table.putNumber("podiumAim", math.radians(18))
         self.table.putNumber("podiumSpeed", 250)
+        self.table.putNumber("podiumCam", 0.0)
 
         self.aimSetpoint = 0
         self.speedSetpoint = 0
@@ -89,18 +90,21 @@ class StateMachine():
         self.aimPID.kg = self.table.getNumber("aim kg", 0)
         self.camPID.kp = self.table.getNumber("cam kp", 0)
 
-        self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0))
+        self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0), self.table.getNumber("podiumCam", 0.0))
 
         if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):
                 self.aimSetpoint = self.ampSetpoint[0]
                 self.speedSetpoint = self.ampSetpoint[1]
+                self.camSetpoint = self.ampSetpoint[2]
             elif(self.inputAim == ShooterTarget.PODIUM):
                 self.aimSetpoint = self.podiumSetpoint[0]
                 self.speedSetpoint = self.podiumSetpoint[1]
+                self.camSetpoint = self.podiumSetpoint[2]
             elif(self.inputAim == ShooterTarget.SUBWOOFER):
                 self.aimSetpoint = self.subwooferSetpoint[0]
                 self.speedSetpoint = self.subwooferSetpoint[1]
+                self.camSetpoint = self.subwooferSetpoint[2]
 
         self.onTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:

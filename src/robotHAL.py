@@ -127,13 +127,13 @@ class RobotHAL():
         self.steerEncoders = [CANcoder(21), CANcoder(22), CANcoder(23), CANcoder(24)]
 
         # intake motors and encoders
-        self.intakeMotors = [rev.CANSparkMax(9, rev.CANSparkMax.MotorType.kBrushless),
-                             rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
-        self.intakeMotors[1].setInverted(True)
+        # self.intakeMotors = [rev.CANSparkMax(9, rev.CANSparkMax.MotorType.kBrushless),
+        #                      rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
+        # self.intakeMotors[1].setInverted(True)
 
-        self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
-        for k in self.intakeMotors:
-            k.setSmartCurrentLimit(30)
+        # self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
+        # for k in self.intakeMotors:
+        #     k.setSmartCurrentLimit(30)
 
         # shooter motors
         self.shooterTopMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless)
@@ -151,6 +151,7 @@ class RobotHAL():
 
         self.camMotor = rev.CANSparkMax(15, rev.CANSparkMax.MotorType.kBrushless)
         self.camEncoder = self.camMotor.getEncoder()
+        self.camEncoder.setPosition(0)
 
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
@@ -188,8 +189,8 @@ class RobotHAL():
         profiler.end("drive updates")
 
         profiler.start()
-        for m, s in zip(self.intakeMotors, buf.intakeSpeeds):
-            m.set(s)
+        # for m, s in zip(self.intakeMotors, buf.intakeSpeeds):
+        #     m.set(s)
         profiler.end("steer updates")
 
         # for i in range(0, 2):
