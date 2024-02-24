@@ -65,7 +65,9 @@ class RobotInputs():
         self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
 
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
-        self.turningPIDButton = self.driveCtrlr.getBButton()
+       
+        self.turningPIDButton = self.driveCtrlr.getLeftBumper()
+
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
@@ -73,15 +75,40 @@ class RobotInputs():
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
-        if self.driveCtrlr.getPOV() < 190 and self.driveCtrlr.getPOV() > 170:
+    
+        if self.driveCtrlr.getPOV() < 190 and self.driveCtrlr.getPOV() > 170: #down
+           # if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
+              #  self.targetAngle = math.radians(90)
+           # else:
+
             self.targetAngle = math.radians(180)
         elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #left
             self.targetAngle = math.radians(90)
-        elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350:
-            self.targetAngle = 0
-        elif self.driveCtrlr.getPOV() > 260 and self.driveCtrlr.getPOV() < 280:
-            self.targetAngle = math.radians(270)
+        elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350: #right
+            self.targetAngle = math.radians(240)
+        elif self.driveCtrlr.getPOV() > 260 and self.driveCtrlr.getPOV() < 280: #up
+            self.targetAngle = math.radians(270) #angle snapping with D-pad
                                                 #yaw not getting reset with yaw reset button
+        
+        
+        """        #angle snapping with ABXY
+        if self.driveCtrlr.getAButton():    #AMP SNAP
+            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False): 
+                self.targetAngle = math.radians(90)
+            else:
+                self.targetAngle = math.radians(-90)
+        
+        elif self.driveCtrlr.getBButton(): #SOURCE SNAP
+            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False): 
+                self.targetAngle = math.radians(60)
+            else:
+                self.targetAngle = math.radians(-60)
+        
+        elif self.driveCtrlr.getYButton: #snap to face driver station
+                self.targetAngle = 0"""
+
+       
+        
         # arm controller
         self.intake = self.armCtrlr.getAButton()
 
@@ -154,8 +181,8 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
-        self.turnPID = PIDController(0.3, 0, 0)
-        self.turnPID.kp = 0.3
+        self.turnPID = PIDController(2.4, 0, 0)
+        self.turnPID.kp = 2.4
         self.table.putNumber("turnPID kp", self.turnPID.kp)
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -176,7 +203,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
 
-        self.table.putNumber("target angle", self.input.targetAngle)
+        self.table.putNumber("target angle", math.degrees(self.input.targetAngle))
 
         self.turnPID.kp = self.table.getNumber("turnPID kp", 0.3)
 
@@ -214,7 +241,7 @@ class Robot(wpilib.TimedRobot):
 
 
         if self.input.turningPIDButton:
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.input.targetAngle - self.hal.yaw), self.input.targetAngle, self.time.dt))
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-self.input.targetAngle + (-self.hal.yaw + self.driveGyroYawOffset)), self.input.targetAngle, self.time.dt))
         else:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
 
