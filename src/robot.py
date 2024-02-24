@@ -60,7 +60,7 @@ class RobotInputs():
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
-        self.driveX, self.driveY = self.driveScalar.Scale(-self.driveCtrlr.getLeftX(), -self.driveCtrlr.getLeftY())
+        self.driveX, self.driveY = self.driveScalar.Scale(-self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX())
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
        
         self.turningPIDButton = self.driveCtrlr.getLeftBumper()
