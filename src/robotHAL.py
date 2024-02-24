@@ -14,8 +14,8 @@ class RobotHALBuffer():
         self.driveSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1 // volts to motor controller
         self.steeringSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1
         self.drivePositions: list[float] = [0, 0, 0, 0] # in meters
-        self.steeringPositions: list[float] = [0, 0, 0, 0] # in CCW rads
         self.driveSpeedMeasured: list[float] = [0, 0, 0, 0] # m/s // output from encoders
+        self.steeringPositions: list[float] = [0, 0, 0, 0] # in CCW rads
 
         self.intakeSpeeds: list[float] = [0, 0] # -1 to 1 // volts to motor controller
         # self.intakePositions: list[float] = [0, 0] # whatever encoders return
@@ -137,9 +137,9 @@ class RobotHAL():
                              rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
         self.intakeMotors[1].setInverted(True)
 
-        self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
-        for k in self.intakeMotors:
-            k.setSmartCurrentLimit(30)
+        # self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
+        # for k in self.intakeMotors:
+        #     k.setSmartCurrentLimit(30)
 
         # shooter motors
         self.shooterTopMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless)
@@ -157,6 +157,7 @@ class RobotHAL():
 
         self.camMotor = rev.CANSparkMax(15, rev.CANSparkMax.MotorType.kBrushless)
         self.camEncoder = self.camMotor.getEncoder()
+        self.camEncoder.setPosition(0)
 
         self.climbingMotor = rev.CANSparkMax(16, rev.CANSparkMax.MotorType.kBrushless)
 
@@ -193,6 +194,7 @@ class RobotHAL():
         for i in range(0, 4):
             e = self.steerEncoders[i]
             buf.steeringPositions[i] = math.radians(e.get_position().value_as_double * 360)
+
         profiler.end("drive updates")
 
         profiler.start()
