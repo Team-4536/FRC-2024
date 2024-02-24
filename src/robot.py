@@ -75,10 +75,10 @@ class RobotInputs():
 
     
         if self.driveCtrlr.getPOV() < 190 and self.driveCtrlr.getPOV() > 170: #down
-            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
+           # if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
+              #  self.targetAngle = math.radians(90)
+           # else:
                 self.targetAngle = math.radians(-90)
-            else:
-                self.targetAngle = math.radians(90)
         elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #left
             self.targetAngle = math.radians(90)
         elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350:
@@ -241,7 +241,7 @@ class Robot(wpilib.TimedRobot):
 
 
         if self.input.turningPIDButton:
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.input.targetAngle - (-self.hal.yaw + self.driveGyroYawOffset)), self.input.targetAngle, self.time.dt))
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-self.input.targetAngle + (-self.hal.yaw + self.driveGyroYawOffset)), self.input.targetAngle, self.time.dt))
         else:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)            
 
