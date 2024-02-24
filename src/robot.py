@@ -104,7 +104,6 @@ class RobotInputs():
 
         self.camTemp = -self.armCtrlr.getRightY()
 
-
         if(self.armCtrlr.getYButtonPressed()):
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
@@ -279,7 +278,11 @@ class Robot(wpilib.TimedRobot):
             self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * 0.1 + self.PIDspeedSetpoint
             self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
             if(self.input.shoot):
-                self.hal.shooterIntakeSpeed = 0.4
+                self.hal.shooterIntakeSpeed = 0.
+                
+            # camTarget = self.shooterStateMachine.table.getNumber('targetCam', 0)
+            # self.shooterStateMachine.camPID.kp = self.shooterStateMachine.table.getNumber("cam kp", 0)
+            # self.hal.camSpeed = self.shooterStateMachine.camPID.tick(camTarget, self.hal.camPos, self.time.dt)
 
         self.table.putBoolean("ShooterStateMachineOveride", self.input.overideShooterStateMachine)
         self.table.putBoolean("IntakeStateMachineOveride", self.input.overideIntakeStateMachine)
@@ -287,8 +290,6 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("AimEncoder", self.hardware.shooterAimEncoder.getPosition())
 
         profiler.end("shooter state machine")
-
-        self.hal.camSpeed = self.input.camTemp * 0.2
 
         profiler.start()
         self.hardware.update(self.hal)
