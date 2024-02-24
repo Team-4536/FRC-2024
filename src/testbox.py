@@ -3,7 +3,6 @@ import wpilib
 import rev
 from robotHAL import RobotHAL, RobotHALBuffer
 from ntcore import NetworkTableInstance
-import math
 from utils import Scalar
 
 
