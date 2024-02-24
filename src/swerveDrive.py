@@ -14,7 +14,6 @@ from wpimath.kinematics import (
 )
 
 
-
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
 class SwerveDrive():
     def __init__(self, angle: Rotation2d, pose: Pose2d, wheelStates: list[SwerveModulePosition]) -> None:
@@ -23,7 +22,7 @@ class SwerveDrive():
         self.maxSteerSpeed = 1.0 # CCW rads
         # meters, relative to robot center
         oneFtInMeters = 0.305
-        self.modulePositions = [
+        self.modulePositions: list[Translation2d] = [
             Translation2d(oneFtInMeters, oneFtInMeters),
             Translation2d(oneFtInMeters, -oneFtInMeters),
             Translation2d(-oneFtInMeters, oneFtInMeters),
@@ -42,13 +41,16 @@ class SwerveDrive():
         self.turningPIDs = [PIDController(0, 0, 0) for i in range(4)]
         self.drivePIDs = [PIDController(0, 0, 0) for i in range(4)]
 
-
+    def resetOdometry(self, pose: Pose2d, hal):
+        wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
+        self.odometry.resetPosition(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]), pose)
 
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
     def update(self, dt: float, hal: robotHAL.RobotHALBuffer, speed: ChassisSpeeds):
         steerKp = self.table.getNumber("SteeringKp", 0.0)
         driveKp = self.table.getNumber("DriveKp", 0.0)
         driveKff = self.table.getNumber("DriveKff", 0.0)
+        
         for i in range(4):
             self.turningPIDs[i].kp = steerKp
             self.drivePIDs[i].kp = driveKp
@@ -79,8 +81,6 @@ class SwerveDrive():
             steeringError = angleWrap(state.angle.radians() - wheelPositions[i].angle.radians())
             hal.steeringSpeeds[i] = self.turningPIDs[i].tickErr(steeringError, state.angle.radians(), dt)
 
-        
-
     def updateOdometry(self, hal: robotHAL.RobotHALBuffer):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         self.odometry.update(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]))
@@ -103,5 +103,3 @@ class SwerveDrive():
         output = SwerveModuleState(outputSpeed, outputAngleRot2d)
 
         return output
-
-    # TODO: reset state function
