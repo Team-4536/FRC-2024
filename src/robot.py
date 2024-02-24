@@ -4,7 +4,6 @@ import robotHAL
 import stages
 import wpilib
 from intakeStateMachine import IntakeStateMachine
-from networkx import center
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
@@ -285,9 +284,9 @@ class Robot(wpilib.TimedRobot):
                 flipToRed = False
 
         b = stages.StageBuilder()
-        shootRoutine = stages.StageBuilder() \
-            .addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout") \
-            .addShooterFireStage()
+        # shootRoutine = stages.StageBuilder() \
+        #     .addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout") \
+        #     .addShooterFireStage()
         traj = self.loadTrajectory("middle", flipToRed)
         centerRing = stages.StageBuilder() \
             .addIntakeStage().triggerAlongPath(0.6, traj).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog('center path failed on timeout') \
