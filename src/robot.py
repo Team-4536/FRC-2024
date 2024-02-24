@@ -78,14 +78,15 @@ class RobotInputs():
            # if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
               #  self.targetAngle = math.radians(90)
            # else:
-                self.targetAngle = math.radians(-90)
+            self.targetAngle = math.radians(0)
         elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #left
             self.targetAngle = math.radians(90)
-        elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350:
-            self.targetAngle = 0
-        elif self.driveCtrlr.getPOV() > 260 and self.driveCtrlr.getPOV() < 280:
+        elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350: #right
+            self.targetAngle = math.radians(240)
+        elif self.driveCtrlr.getPOV() > 260 and self.driveCtrlr.getPOV() < 280: #up
             self.targetAngle = math.radians(270) #angle snapping with D-pad
                                                 #yaw not getting reset with yaw reset button
+        
         
         """        #angle snapping with ABXY
         if self.driveCtrlr.getAButton():    #AMP SNAP
@@ -201,7 +202,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
 
-        self.table.putNumber("target angle", self.input.targetAngle)
+        self.table.putNumber("target angle", math.degrees(self.input.targetAngle))
 
         self.turnPID.kp = self.table.getNumber("turnPID kp", 0.3)
 
