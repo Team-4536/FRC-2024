@@ -54,8 +54,10 @@ class RobotInputs():
 
         self.manualAimJoystickY: float = 0
         self.aimEncoderReset: bool = False
-        self.manualFeedMotor: bool = False
+        self.manualFeed: bool = False
+        self.manualFeedReverse: bool = False
 
+        self.climb: float = 0.0 # + is trigger in, - is reverse pressed, range goes -1 to 1
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -82,9 +84,6 @@ class RobotInputs():
                                                 #yaw not getting reset with yaw reset button
         # arm controller
         self.intake = self.armCtrlr.getAButton()
-        self.intakeReverse = self.armCtrlr.getBButton()
-
-        self.shooterAimManual = -self.armCtrlr.getLeftY()
 
         #POV is also known as the Dpad, 0 is centered on top, angles go clockwise
         self.aim = ShooterTarget.NONE
@@ -98,16 +97,19 @@ class RobotInputs():
 
         self.rev = self.armCtrlr.getLeftTriggerAxis() > 0.2
         self.shoot = self.armCtrlr.getLeftBumper()
-
         self.camTemp = -self.armCtrlr.getRightY()
+
+        self.climb = self.armCtrlr.getRightTriggerAxis() - float(self.armCtrlr.getRightBumper())
+        # manual mode controls
 
         if(self.armCtrlr.getYButtonPressed()):
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
 
-        self.manualFeedMotor = self.armCtrlr.getRightTriggerAxis() > 0.2
-        self.manualFeedReverseMotor = self.armCtrlr.getRightBumper()
-        self.manualAimJoystickY = self.armCtrlr.getLeftY()
+        self.shooterAimManual = -self.armCtrlr.getLeftY()
+        self.intakeReverse = self.armCtrlr.getBButton()
+        self.manualFeed = self.intake
+        self.manualFeedReverse = self.intakeReverse
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
 
@@ -257,10 +259,10 @@ class Robot(wpilib.TimedRobot):
             if(self.input.manualAimJoystickY < -0.2):
                 self.hal.shooterAimSpeed += 0.2
 
-            if(self.input.manualFeedMotor):
+            if(self.input.manualFeed):
                 self.hal.intakeSpeeds[1] += 0.4
                 self.hal.shooterIntakeSpeed += 0.4
-            if(self.input.manualFeedReverseMotor):
+            if(self.input.manualFeedReverse):
                 self.hal.intakeSpeeds[1] -= 0.4
                 self.hal.shooterIntakeSpeed -= 0.4
 
@@ -284,6 +286,9 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("AimEncoder", self.hardware.shooterAimEncoder.getPosition())
 
         profiler.end("shooter state machine")
+
+        # self.hal.camSpeed = self.input.camTemp * 0.2
+        self.hal.climberSpeed = self.input.climb * 0.05
 
         profiler.start()
         self.hardware.update(self.hal)
