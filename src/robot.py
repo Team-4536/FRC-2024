@@ -68,7 +68,7 @@ class RobotInputs():
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
         self.aprilTagGo = self.driveCtrlr.getStartButton() #getStartButtonPressed()
-
+        self.ringGo = self.driveCtrlr.getRightBumperPressed()
         # arm controller
         self.intake = self.armCtrlr.getAButton()
         self.intakeReverse = self.armCtrlr.getBButton()
@@ -209,7 +209,8 @@ class Robot(wpilib.TimedRobot):
         self.manualShooterPID = PIDController(0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
 
-        self.goToShooterAprilTag = stages.goToAprilTag()
+        self.goToShooterAprilTag = stages.goToLimelightTarget()
+        self.goToRing = stages.goToLimelightTarget()
 
 
     def teleopPeriodic(self) -> None:
@@ -226,6 +227,9 @@ class Robot(wpilib.TimedRobot):
         if self.input.aprilTagGo:
             self.goToShooterAprilTag(self)
 
+        if self.input.ringGo:
+            stages.makeStageSet([
+                self.goToRing, stages.makeIntakeStage() ])
 
         profiler.start()
         speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)

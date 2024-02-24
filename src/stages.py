@@ -83,7 +83,7 @@ def makeStageSet(stages: list[Stage]) -> Stage:
         return not broken
     return stage
 
-def goToAprilTag() -> Stage:
+def goToLimelightTarget() -> Stage:
     limelightTable = NetworkTableInstance.getDefault().getTable("limelight-mb")
     T_PConstraintsVolocityMax = 6.28
     T_PConstraintsRotaionAccelerationMax = 1
