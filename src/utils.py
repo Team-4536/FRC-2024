@@ -26,6 +26,21 @@ class Scalar:
 
     def setExponent(self, exponent):
         self.exponent = exponent
+    
+    @deadzone.setter
+    def deadzone(self, deadZone):
+        deadZone = abs(deadZone)
+        self._deadZone = deadZone
+        self._scale = 1 - deadZone
+
+    @property
+    def exponent(self):
+        return self._exponent
+
+    @exponent.setter
+    def exponent(self, exponent):
+        self._exponent = exponent
+
 
 class CircularScalar:
     def __init__(self, deadzone: float, exponent: int):
@@ -41,17 +56,3 @@ class CircularScalar:
         stickXY = stickXY.rotateBy(Rotation2d(angle))
         
         return stickXY.x, stickXY.y
-      
-    @deadzone.setter
-    def deadzone(self, deadZone):
-        deadZone = abs(deadZone)
-        self._deadZone = deadZone
-        self._scale = 1 - deadZone
-
-    @property
-    def exponent(self):
-        return self._exponent
-
-    @exponent.setter
-    def exponent(self, exponent):
-        self._exponent = exponent
