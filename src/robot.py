@@ -52,7 +52,7 @@ class RobotInputs():
         self.overideShooterStateMachine: bool = False
         self.overideIntakeStateMachine: bool = False
 
-        self.manualAimJoystickY: float = 0
+        self.shooterAimManual: float = 0
         self.aimEncoderReset: bool = False
         self.manualFeed: bool = False
         self.manualFeedReverse: bool = False
@@ -77,19 +77,16 @@ class RobotInputs():
 
     
         if self.driveCtrlr.getPOV() < 190 and self.driveCtrlr.getPOV() > 170: #down
-           # if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
-              #  self.targetAngle = math.radians(90)
-           # else:
-
-            self.targetAngle = math.radians(180)
-        elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #left
+            # if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
+               # self.targetAngle = math.radians(90)
+            # else:
+            self.targetAngle = math.radians(0)
+        elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #right
+            self.targetAngle = math.radians(-90)
+        elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350: #up
+            self.targetAngle = math.radians(60)
+        elif self.driveCtrlr.getPOV() > 260 and self.driveCtrlr.getPOV() < 280: #left
             self.targetAngle = math.radians(90)
-        elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350: #right
-            self.targetAngle = math.radians(240)
-        elif self.driveCtrlr.getPOV() > 260 and self.driveCtrlr.getPOV() < 280: #up
-            self.targetAngle = math.radians(270) #angle snapping with D-pad
-                                                #yaw not getting reset with yaw reset button
-        
         
         """        #angle snapping with ABXY
         if self.driveCtrlr.getAButton():    #AMP SNAP
@@ -106,8 +103,6 @@ class RobotInputs():
         
         elif self.driveCtrlr.getYButton: #snap to face driver station
                 self.targetAngle = 0"""
-
-       
         
         # arm controller
         self.intake = self.armCtrlr.getAButton()
@@ -202,6 +197,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
+        self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
 
         self.table.putNumber("target angle", math.degrees(self.input.targetAngle))
 
@@ -281,10 +277,10 @@ class Robot(wpilib.TimedRobot):
             self.shooterStateMachine.state = 0
             self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
 
-            if(self.input.manualAimJoystickY > 0.2):
-                self.hal.shooterAimSpeed += -0.2
-            if(self.input.manualAimJoystickY < -0.2):
-                self.hal.shooterAimSpeed += 0.2
+            if(self.input.shooterAimManual > 0.2):
+                self.hal.shooterAimSpeed += -0.1
+            if(self.input.shooterAimManual < -0.2):
+                self.hal.shooterAimSpeed += 0.1
 
             if(self.input.manualFeed):
                 self.hal.intakeSpeeds[1] += 0.4
@@ -309,8 +305,7 @@ class Robot(wpilib.TimedRobot):
 
         self.table.putBoolean("ShooterStateMachineOveride", self.input.overideShooterStateMachine)
         self.table.putBoolean("IntakeStateMachineOveride", self.input.overideIntakeStateMachine)
-        self.table.putNumber("LeftStickY", self.input.manualAimJoystickY)
-        self.table.putNumber("AimEncoder", self.hardware.shooterAimEncoder.getPosition())
+        self.table.putNumber("ShooterAimManual", self.input.shooterAimManual)
 
         profiler.end("shooter state machine")
 
