@@ -352,11 +352,4 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal)
 
 if __name__ == "__main__":
-    # wpilib.run(Robot)
-
-    r = Robot()
-    r.robotInit()
-    r.autonomousInit()
-    while(True):
-        r.robotPeriodic()
-        r.autonomousPeriodic()
+    wpilib.run(Robot)
