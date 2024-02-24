@@ -222,8 +222,10 @@ class RobotHAL():
         buf.yaw = math.radians(-self.gyro.getAngle())
         profiler.end("gyro updates")
         """
+
         for i, led in enumerate(buf.leds):
             self.ledController.setLEDs(led[0], led[1], led[2], 0, i, 1)
+
         """
         profiler.start()
         buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
