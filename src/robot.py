@@ -138,7 +138,6 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
-
     def robotPeriodic(self) -> None:
         profiler.start()
 

@@ -11,6 +11,7 @@ from phoenix6 import StatusCode
 import math
 from phoenix5.led import CANdle
 
+
 class RobotHALBuffer():
     def __init__(self) -> None:
         self.driveSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1 // volts to motor controller
@@ -217,6 +218,7 @@ class RobotHAL():
         profiler.end("shooter motor encoder updates")
 
         profiler.start()
+
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
         buf.yaw = math.radians(-self.gyro.getAngle())
@@ -229,7 +231,7 @@ class RobotHAL():
         buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
         buf.upperShooterLimitSwitch = self.upperShooterLimitSwitch.get()
         profiler.end("switch updates")
-        
+
         profiler.start()
 
         # ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
@@ -241,4 +243,3 @@ class RobotHAL():
         buf.intakeSensor = self.intakeSensor.get()
         buf.shooterSensor = self.shooterSensor.get()
         profiler.end("sensor updates")
-
