@@ -3,8 +3,9 @@ from typing import TYPE_CHECKING
 
 from auto import Stage
 from ntcore import NetworkTableInstance
-from pathplannerlib.path import PathPlannerTrajectory
+from pathplannerlib.path import PathPlannerPath, PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
+from wpimath.kinematics import ChassisSpeeds
 
 if TYPE_CHECKING:
     from robot import Robot
@@ -15,13 +16,12 @@ class StageBuilder:
         self.currentStage: Stage = None # type: ignore
 
     def add(self, new: Stage) -> 'StageBuilder':
-        if self.firstStage is None:
-            self.firstStage = new
-            self.currentStage = new
-
         if self.currentStage is not None:
             self.currentStage.nextStage = new
-            self.currentStage = new
+        self.currentStage = new
+
+        if self.firstStage is None:
+            self.firstStage = new
         return self
 
     def addAbortLog(self, log: str) -> 'StageBuilder':
@@ -34,7 +34,7 @@ class StageBuilder:
             self.currentStage.abortStage = new.firstStage
         return self
 
-    def addPathStage(self, t: PathPlannerTrajectory) -> 'StageBuilder':
+    def _newPathStage(self, t: PathPlannerTrajectory, trajName: str) -> Stage:
         def func(r: 'Robot') -> bool | None:
             goal = t.sample(r.time.timeSinceInit - r.auto.stageStart)
 
@@ -51,9 +51,13 @@ class StageBuilder:
 
             r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
             return (r.time.timeSinceInit - r.auto.stageStart) > t.getTotalTimeSeconds()
+        s = Stage(func, f"path '{trajName}'")
+        return s
 
-        if self.currentStage is not None:
-            self.add(Stage(func, ""))
+    # NOTE: filename is *just* the title of the file, with no extension and no path
+    # filename is directly passed to pathplanner.loadPath
+    def addPathStage(self, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'StageBuilder':
+        self.add(self._newPathStage(t, trajName))
         return self
 
     def addWaitStage(self, t: float) -> 'StageBuilder':
@@ -71,15 +75,19 @@ class StageBuilder:
         return self
 
     # return status is dictated by the path stage, the triggered stages return is ignored (including aborts)
-    def triggerAlongPath(self, t: PathPlannerTrajectory, percent: float) -> 'StageBuilder':
+    # starts up the triggered stage when the path has covered [percent] of its total time
+    def triggerAlongPath(self, percent: float, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'StageBuilder':
         curr = self.currentStage
-        stagePath = StageBuilder().addPathStage(t).currentStage # TODO: this line is just awful
+        pathStage = self._newPathStage(t, trajName)
         def func(r: 'Robot') -> bool|None:
-            isOver = stagePath.func(r)
+            isOver = pathStage.func(r)
             if ((r.time.timeSinceInit - r.auto.stageStart) > (t.getTotalTimeSeconds() * percent)):
                 curr.func(r)
             return isOver
-        self.add(Stage(func, f"path with {curr.name} trigger"))
+
+        self.currentStage.func = func
+        self.currentStage.name = f"path with {curr.name} trigger"
+        self.currentStage.abortStage = None
         return self
 
     # ends when state is on target
@@ -104,17 +112,18 @@ class StageBuilder:
             return True
         self.add(Stage(func, f"logging {s}"))
         return self
-    
-    
 
     # NOTE: when making the stage set, this iterates through the stages in the passed list
     # it goes by the nextStage of each, none of the aborts
     # aborts from the inner stages are reported, but the sets abort is what get moved to
+
+    # Stage set executes all and then ends when all are done
     def addStageSet(self, stages: 'StageBuilder') -> 'StageBuilder':
         stageList: list[Stage] = []
         s = stages.firstStage
         while s is not None:
             stageList.append(s)
+            s = s.nextStage
 
         def func(r: 'Robot') -> bool | None:
             aborted = False
@@ -132,12 +141,12 @@ class StageBuilder:
             return not incomplete
         self.add(Stage(func, f"set [{', '.join(s.name for s in stageList)}]"))
         return self
-    
-    def addStageBuiltStage(self, S:'StageBuilder') -> 'StageBuilder':
-        self.currentStage.nextStage = S.firstStage
+
+    # NOTE: doesn't make a copy of the new stages - so watch out
+    def addStageBuiltStage(self, s: 'StageBuilder') -> 'StageBuilder':
+        self.currentStage.nextStage = s.firstStage
         # self.currentStage.nextStage = S.firstStage.nextStage
         return self
-
 
     # NOTE: triggers abort when the timeout is hit, moves to nextStage and abortStage of the given stage
     # passes through aborts from the inner stage
@@ -151,5 +160,8 @@ class StageBuilder:
                 return None
             else:
                 return status
-        self.currentStage = Stage(func, f"{curr.name} with timeout")
+
+        self.currentStage.name = f"{curr.name} with timeout"
+        self.currentStage.func = func
+        self.currentStage.abortStage = None
         return self

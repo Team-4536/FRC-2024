@@ -259,8 +259,10 @@ class Robot(wpilib.TimedRobot):
         profiler.end("hardware update")
         self.table.putNumber("frame time", wpilib.getTime() - frameStart)
 
-    def loadTrajectory(self, name: str, flipped: bool) -> PathPlannerTrajectory:
-        p = PathPlannerPath.fromPathFile(name)
+    # NOTE: filename is *just* the title of the file, with no extension and no path
+    # filename is directly passed to pathplanner.loadPath
+    def loadTrajectory(self, fileName: str, flipped: bool) -> PathPlannerTrajectory:
+        p = PathPlannerPath.fromPathFile(fileName)
         if flipped:
             p = p.flipPath()
         t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
@@ -279,7 +281,7 @@ class Robot(wpilib.TimedRobot):
                flipToRed = True
             else:
                 flipToRed = False
-      
+                
         b = stages.StageBuilder()
         shootRoutine = stages.StageBuilder() \
             .addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout") \
@@ -293,7 +295,7 @@ class Robot(wpilib.TimedRobot):
                           .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True)) \
             .addShooterFireStage()
-                        
+        
         initialPose: Pose2d = Pose2d()
         b.addStageBuiltStage(centerRing)
 
@@ -305,8 +307,9 @@ class Robot(wpilib.TimedRobot):
 
             b.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
             
+            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout")
             b.addShooterFireStage()
-            b.addIntakeStage().triggerAlongPath(traj, 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("patb.addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout")h failed on timeout")
+            b.addIntakeStage().triggerAlongPath(0.6, traj).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
             b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
@@ -319,21 +322,21 @@ class Robot(wpilib.TimedRobot):
             b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             b.addShooterFireStage()
             # CENTER RING
-            b.addIntakeStage().triggerAlongPath(traj, 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().triggerAlongPath(0.6, traj).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
             b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage()
             # UPPER RING
-            b.addIntakeStage().triggerAlongPath(self.loadTrajectory("upper", flipToRed), 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", flipToRed)).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
             b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("upperBack", flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage()
             # LOWER RING
-            b.addIntakeStage().triggerAlongPath(self.loadTrajectory("lower", flipToRed), 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("lower", flipToRed)).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
             b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("lowerBack", flipToRed)) \
@@ -368,7 +371,7 @@ class Robot(wpilib.TimedRobot):
                           .addPathStage(self.loadTrajectory('lowerBack', flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage   
-
+        else:
             assert(False)
         self.auto = auto.Auto(self.time.timeSinceInit, b.firstStage)
 
