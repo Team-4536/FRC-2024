@@ -15,6 +15,7 @@ robotpy_extras = [
    "navx",
    "ntcore",
    "rev",
+   "phoenix5",
    "phoenix6",
    "pathplannerlib",
 ]

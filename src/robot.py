@@ -16,7 +16,7 @@ from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-
+from lightControl import setLights
 
 class RobotInputs():
     def __init__(self) -> None:

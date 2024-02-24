@@ -7,6 +7,9 @@ import profiler
 import rev
 import wpilib
 from phoenix6.hardware import CANcoder
+from phoenix6 import StatusCode
+import math
+from phoenix5.led import CANdle
 
 
 class RobotHALBuffer():
@@ -37,6 +40,10 @@ class RobotHALBuffer():
         self.shooterSensor: bool = False
 
         self.yaw: float = 0
+
+        self.leds: list[tuple] = [(0, 0, 0)] * 8
+
+        
 
     def resetEncoders(self) -> None:
         # swerve encoders
@@ -166,6 +173,8 @@ class RobotHAL():
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
 
+        self.ledController: CANdle = CANdle(20)
+
     def update(self, buf: RobotHALBuffer) -> None:
         prev = self.prev
         self.prev = copy.deepcopy(buf)
@@ -209,10 +218,14 @@ class RobotHAL():
         profiler.end("shooter motor encoder updates")
 
         profiler.start()
+
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
         buf.yaw = math.radians(-self.gyro.getAngle())
         profiler.end("gyro updates")
+        
+        for i, led in enumerate(buf.leds):
+            self.ledController.setLEDs(led[0], led[1], led[2], 0, i, 1)
 
         profiler.start()
         buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
