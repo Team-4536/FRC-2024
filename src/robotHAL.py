@@ -1,5 +1,6 @@
 import copy
 import math
+from pickle import FALSE
 
 import navx
 import ntcore
@@ -17,6 +18,7 @@ class RobotHALBuffer():
         self.drivePositions: list[float] = [0, 0, 0, 0] # in meters
         self.driveSpeedMeasured: list[float] = [0, 0, 0, 0] # m/s // output from encoders
         self.steeringPositions: list[float] = [0, 0, 0, 0] # in CCW rads
+        self.driveCurrentMeasured: list[float] = [0, 0, 0, 0]
 
         self.intakeSpeeds: list[float] = [0, 0] # -1 to 1 // volts to motor controller
         # self.intakePositions: list[float] = [0, 0] # whatever encoders return
@@ -45,6 +47,7 @@ class RobotHALBuffer():
         self.shooterSensor: bool = False
 
         self.yaw: float = 0
+        self.bump = False
 
     def resetEncoders(self) -> None:
         # swerve encoders
@@ -82,6 +85,9 @@ class RobotHALBuffer():
             table.putNumber(prefs[i] + "DrivePos", self.drivePositions[i])
             table.putNumber(prefs[i] + "SteerPos", self.steeringPositions[i])
             table.putNumber(prefs[i] + "DriveSpeedMeasured", self.driveSpeedMeasured[i])
+            table.putNumber(prefs[i] + "DriveCurrentMeasured", self.driveCurrentMeasured[i])
+            
+            
 
         table.putNumber("GreenIntakeSpeed", self.intakeSpeeds[0])
         table.putNumber("BlueIntakeSpeed", self.intakeSpeeds[1])
@@ -116,6 +122,10 @@ class RobotHALBuffer():
         # gyro
         table.putNumber("yaw", self.yaw)
 
+        #bump detection
+        table.putBoolean("bumpDetected", self.bump)
+
+
 class RobotHAL():
     def __init__(self) -> None:
         self.prev = RobotHALBuffer()
@@ -130,6 +140,7 @@ class RobotHAL():
         self.driveMotors[3].setInverted(True)
         for d in self.driveMotors:
             d.setSmartCurrentLimit(40)
+            
 
         self.steerMotors = [rev.CANSparkMax(1, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(3, rev.CANSparkMax.MotorType.kBrushless),
@@ -189,6 +200,13 @@ class RobotHAL():
 
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
+        self.lenghtOfList = 400
+        self.currentBuf = [0 for i in range(self.lenghtOfList)]
+        self.currentIndex = 0
+        self.diffIndex = 0
+        self.diff = 0
+        
+
 
     # angle expected in CCW rads
     def resetGyroToAngle(self, ang: float) -> None:
@@ -211,8 +229,10 @@ class RobotHAL():
 
         for i in range(0, 4):
             e = self.driveEncoders[i]
+            d = self.driveMotors[i]
             buf.drivePositions[i] = math.radians((e.getPosition() / self.driveGearing) * 360) * self.wheelRadius
             buf.driveSpeedMeasured[i] = math.radians((e.getVelocity() / self.driveGearing) * 360) * self.wheelRadius / 60
+            buf.driveCurrentMeasured[i] = d.getOutputCurrent()
 
         for m, s in zip(self.steerMotors, buf.steeringSpeeds):
             m.set(s)
@@ -274,3 +294,17 @@ class RobotHAL():
         buf.intakeSensor = self.intakeSensor.get()
         buf.shooterSensor = self.shooterSensor.get()
         profiler.end("sensor updates")
+        
+        #bump detection
+        buf.bump = False
+        for i in range(4):
+            self.currentBuf[self.currentIndex] = buf.driveCurrentMeasured[i] - buf.driveSpeedMeasured[i] #drive current measured might not work
+            self.diffIndex = self.currentIndex + 4
+            if(self.diffIndex >= self.lenghtOfList):
+                self.diffIndex = self.diffIndex - self.lenghtOfList
+            self.diff = abs(self.currentBuf[self.currentIndex] - self.currentBuf[self.diffIndex])
+            if(self.diff > 10): # change value to tune bump detection, smaller = more sensetive and vice versa
+                buf.bump = True
+            self.currentIndex = self.currentIndex + 1
+            if(self.currentIndex >= self.lenghtOfList):
+                self.currentIndex = 0
