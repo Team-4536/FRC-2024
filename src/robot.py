@@ -281,20 +281,22 @@ class Robot(wpilib.TimedRobot):
         b = stages.StageBuilder()
         initialPose: Pose2d = Pose2d()
 
-        if False:
+        if self.autoChooser.getSelected() == AUTO_NONE:
+            pass
+        elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
             traj = self.loadTrajectory("middle", flipToRed)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
 
             b.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
             b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout")
             b.addShooterFireStage()
-            b.addIntakeStage().triggerAlongPath(traj, 0.6).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
+            b.addIntakeStage().triggerAlongPath(0.6, traj).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
             b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage()
-        elif True:
+        elif self.autoChooser.getSelected() == AUTO_EXIT:
             traj = self.loadTrajectory("middle", flipToRed)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             b.addTelemetryStage(AUTO_GET_ALL)

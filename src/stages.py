@@ -152,5 +152,8 @@ class StageBuilder:
                 return None
             else:
                 return status
-        self.currentStage = Stage(func, f"{curr.name} with timeout")
+
+        self.currentStage.name = f"{curr.name} with timeout"
+        self.currentStage.func = func
+        self.currentStage.abortStage = None
         return self
