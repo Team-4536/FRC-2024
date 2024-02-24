@@ -1,5 +1,5 @@
-from email.policy import default
 import math
+
 import auto
 import profiler
 import robotHAL
@@ -11,21 +11,20 @@ from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
 from PIDController import PIDController, PIDControllerForArm
-from real import lerp
+from real import angleWrap, lerp
 from shooterStateMachine import ShooterTarget, StateMachine
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from PIDController import PIDController
-from real import angleWrap
+
 
 class RobotInputs():
     def __init__(self) -> None:
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
-        self.buttonPanel = wpilib.Joystick(4) 
+        self.buttonPanel = wpilib.Joystick(4)
 
         self.xScalar = Scalar(deadZone = .1, exponent = 1)
         self.yScalar = Scalar(deadZone = .1, exponent = 1)
@@ -64,7 +63,6 @@ class RobotInputs():
         self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
 
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
-       
         self.turningPIDButton = self.driveCtrlr.getBButton()
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
@@ -73,7 +71,6 @@ class RobotInputs():
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
-    
         if self.driveCtrlr.getPOV() < 190 and self.driveCtrlr.getPOV() > 170:
             self.targetAngle = math.radians(180)
         elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #left
@@ -107,14 +104,13 @@ class RobotInputs():
         if(self.armCtrlr.getYButtonPressed()):
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
-        
+
         self.manualFeedMotor = self.armCtrlr.getRightTriggerAxis() > 0.2
         self.manualFeedReverseMotor = self.armCtrlr.getRightBumper()
         self.manualAimJoystickY = self.armCtrlr.getLeftY()
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
-        
-        
+
 AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
 AUTO_SIDE_FMS = "FMS side"
@@ -183,11 +179,9 @@ class Robot(wpilib.TimedRobot):
         self.turnPID.kp = self.table.getNumber("turnPID kp", 0.3)
 
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
-        
-
 
         profiler.end("robotPeriodic")
-    
+
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
         self.manualAimPID = PIDControllerForArm(0, 0, 0, 0, 0.04, 0)
@@ -220,10 +214,9 @@ class Robot(wpilib.TimedRobot):
         if self.input.turningPIDButton:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.input.targetAngle - self.hal.yaw), self.input.targetAngle, self.time.dt))
         else:
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)            
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
 
         self.drive.update(self.time.dt, self.hal, speed)
-    
         profiler.end("drive updates")
 
 
@@ -279,7 +272,8 @@ class Robot(wpilib.TimedRobot):
             self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
             if(self.input.shoot):
                 self.hal.shooterIntakeSpeed = 0.
-                
+
+            # TODO: manual cam drive
             # camTarget = self.shooterStateMachine.table.getNumber('targetCam', 0)
             # self.shooterStateMachine.camPID.kp = self.shooterStateMachine.table.getNumber("cam kp", 0)
             # self.hal.camSpeed = self.shooterStateMachine.camPID.tick(camTarget, self.hal.camPos, self.time.dt)
