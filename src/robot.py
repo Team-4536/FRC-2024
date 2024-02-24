@@ -67,7 +67,7 @@ class RobotInputs():
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
-        self.aprilTagGo = self.driveCtrlr.getStartButtonPressed()
+        self.aprilTagGo = self.driveCtrlr.getStartButton() #getStartButtonPressed()
 
         # arm controller
         self.intake = self.armCtrlr.getAButton()
