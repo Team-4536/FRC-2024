@@ -228,8 +228,8 @@ class Robot(wpilib.TimedRobot):
             self.goToShooterAprilTag(self)
 
         if self.input.ringGo:
-            stages.makeStageSet([
-                self.goToRing, stages.makeIntakeStage() ])
+            f = stages.makeStageSet([self.goToRing, stages.makeIntakeStage()])
+            f(self)
 
         profiler.start()
         speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
