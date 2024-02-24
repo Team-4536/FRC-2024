@@ -56,8 +56,7 @@ class Robot(wpilib.TimedRobot):
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
         self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight")
-        self.tx = self.limelightTable.putNumber("tx", 50)
-        self.ty = self.limelightTable.putNumber("ty", 50)
+        
         self.input = RobotInputs()
         self.minimumLimelightYValue = -300
 
@@ -99,7 +98,7 @@ class Robot(wpilib.TimedRobot):
             self.tx = self.limelightTable.putNumber("tx", self.tx - 1)
         elif(self.tx<0):
             self.tx = self.limelightTable.putNumber("tx", self.tx + 1)
-        #we need this    
+        #we need this
         if self.tx == 0:
             self.drive.update(self.time.dt, self.hal, ChassisSpeeds(self.limelightYError, 0, 0))
         #this is manually modifying the ty which should be done by the limelight on the robot
