@@ -10,6 +10,7 @@ from auto import Stage
 from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
+from wpimath.kinematics import ChassisSpeeds
 
 if TYPE_CHECKING:
     from robot import Robot
@@ -82,40 +83,40 @@ def makeStageSet(stages: list[Stage]) -> Stage:
         return not broken
     return stage
 
-def goToAprilTag(self,tx, ty, tr) -> Stage:
-        self.hal.yaw = 0
-        self.drive.resetOdometry(Pose2d(1.166,5.522,Rotation2d(0)), self.hal)
-        self.autoStartTime = self.time.timeSinceInit
+def goToAprilTag(self, hal, tx, ty) -> Stage:
+    T_PConstraintsVolocityMax = 6.28
+    T_PConstraintsRotaionAccelerationMax = 1
+
+    self.XController = PIDController(
+            self.table.getNumber('path/Xp', 0), 0, 0)
        
-        self.table.putNumber("path/Xp", 1)
-        
-        self.table.putNumber("path/Yp", 1)
-        RControllerP = 7
-        RControllerI = 0
-        RControllerD = 0
-        self.table.putNumber('path/Rp', 7)
-        T_PConstraintsVolocityMax = 6.28
-        T_PConstraintsRotaionAccelerationMax = 1
-        self.XController = PIDController(
-            self.table.getNumber('path/Xp'), 0, 0)
-        self.YController = PIDController(
-            self.table.getNumber('path/Yp'), 0, 0)
-        self.RotationController = ProfiledPIDController(
-            self.table.getNumber('path/Rp'), 0, 0, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
-       
-        
-        currentPose = self.drive.odometry.getPose()
+    self.RotationController = ProfiledPIDController(
+           self.table.getNumber('path/Rp', 0), 0, 0, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
+    def stage(r: 'Robot') -> bool:
+
+        self.table.putNumber("path/Xp", 0)
+        self.table.putNumber('path/Rp', 0)
+
+        self.XController.kp = self.table.getNumber("path/Xp", 0)
+        self.RotationController.kp = self.table.getNumber("path/Rp", 0)
         # goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
-        goal = Trajectory.State()
+        #goal = Trajectory.State()
+
+
+        #goal = [txGoal, tyGoal]
+
        
-        xSpeed = self.XController.calculate(currentPose.X(), tx)
-        ySpeed = self.YController.calculate(currentPose.Y(), ty)
-        rSpeed = self.RotationController.calculate(currentPose.rotation().radians(), tr)
+        movementSpeed = self.XController.calculate(ty, 0)
+       # ySpeed = self.YController.calculate(currentPose.Y(), tyGoal)
+        rSpeed = self.RotationController.calculate(tx, 0)
         
-        adjustedSpeeds = [xSpeed, ySpeed, rSpeed]
+        r.drive.update(r.time.dt, r.hal, ChassisSpeeds(movementSpeed, 0, rSpeed))
+
+        #adjustedSpeeds = [movementSpeed, rSpeed]
         
-        self.drive.adjustSpeeds
-        
-        
-    
-        return Self
+        #self.drive.adjustSpeeds
+
+        if 0.3>tx>-0.3  and 0.3>ty>-0.03:
+            return True
+        return False
+    return stage
