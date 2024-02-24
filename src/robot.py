@@ -78,7 +78,7 @@ class RobotInputs():
            # if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
               #  self.targetAngle = math.radians(90)
            # else:
-            self.targetAngle = math.radians(0)
+            self.targetAngle = math.radians(180)
         elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #left
             self.targetAngle = math.radians(90)
         elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350: #right
