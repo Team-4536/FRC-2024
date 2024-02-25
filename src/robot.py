@@ -11,6 +11,7 @@ from pathplannerlib.trajectory import PathPlannerTrajectory
 from PIDController import PIDController, PIDControllerForArm
 from real import lerp
 from shooterStateMachine import ShooterTarget, StateMachine
+from simHAL import RobotSimHAL
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from utils import Scalar
@@ -109,8 +110,13 @@ AUTO_GET_ALL = "grab all"
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.hal = robotHAL.RobotHALBuffer()
-        self.hardware = robotHAL.RobotHAL()
-        self.hardware.update(self.hal)
+
+        self.hardware: robotHAL.RobotHAL | RobotSimHAL
+        if self.isSimulation():
+            self.hardware = RobotSimHAL()
+        else:
+            self.hardware = robotHAL.RobotHAL()
+        self.hardware.update(self.hal, 0)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
 
@@ -138,6 +144,9 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
+        self.f = wpilib.Field2d()
+        wpilib.SmartDashboard.putData("odom", self.f)
+
     def robotPeriodic(self) -> None:
         profiler.start()
 
@@ -151,6 +160,13 @@ class Robot(wpilib.TimedRobot):
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
+
+        self.f.setRobotPose(pose)
+        # t = NetworkTableInstance.getDefault().getTable("autos")
+        # o.setPose(
+        #     Pose2d(
+        #         Translation2d(t.getNumber("pathGoalX", 0.0), t.getNumber("pathGoalY", 0.0)),
+        #         Rotation2d(t.getNumber("pathGoalR", 0.0))))
 
         self.table.putBoolean("ctrl/absOn", self.abs)
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
@@ -208,10 +224,10 @@ class Robot(wpilib.TimedRobot):
         profiler.start()
 
         if(self.input.aimEncoderReset):
-            self.hardware.shooterAimEncoder.setPosition(0)
+            self.hardware.resetAimEncoderPos(0)
 
         if(self.input.camEncoderReset):
-            self.hardware.camEncoder.setPosition(0)
+            self.hardware.resetCamEncoderPos(0)
 
         if(not self.input.overideShooterStateMachine):
             self.shooterStateMachine.aim(self.input.aim)
@@ -246,14 +262,13 @@ class Robot(wpilib.TimedRobot):
         self.table.putBoolean("ShooterStateMachineOveride", self.input.overideShooterStateMachine)
         self.table.putBoolean("IntakeStateMachineOveride", self.input.overideIntakeStateMachine)
         self.table.putNumber("LeftStickY", self.input.manualAimJoystickY)
-        self.table.putNumber("AimEncoder", self.hardware.shooterAimEncoder.getPosition())
 
         profiler.end("shooter state machine")
 
         self.hal.camSpeed = self.input.camTemp * 0.2
 
         profiler.start()
-        self.hardware.update(self.hal)
+        self.hardware.update(self.hal, self.time.dt)
         profiler.end("hardware update")
         self.table.putNumber("frame time", wpilib.getTime() - frameStart)
 
@@ -345,23 +360,22 @@ class Robot(wpilib.TimedRobot):
         self.auto = auto.Auto(stageList, self.time.timeSinceInit)
 
         self.driveGyroYawOffset = initialPose.rotation().radians()
-        self.hardware.gyro.reset()
-        self.hardware.gyro.setAngleAdjustment(-initialPose.rotation().degrees())
-        self.hardware.update(self.hal)
+        self.hardware.resetGyroToAngle(initialPose.rotation().radians())
+        self.hardware.update(self.hal, self.time.dt)
         self.drive.resetOdometry(initialPose, self.hal)
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
         self.auto.update(self)
         self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
-        self.hardware.update(self.hal)
+        self.hardware.update(self.hal, self.time.dt)
 
     def disabledInit(self) -> None:
         self.disabledPeriodic()
 
     def disabledPeriodic(self) -> None:
         self.hal.stopMotors()
-        self.hardware.update(self.hal)
+        self.hardware.update(self.hal, self.time.dt)
 
 if __name__ == "__main__":
     wpilib.run(Robot)

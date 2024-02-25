@@ -166,7 +166,18 @@ class RobotHAL():
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
 
-    def update(self, buf: RobotHALBuffer) -> None:
+    # angle expected in CCW rads
+    def resetGyroToAngle(self, ang: float) -> None:
+        self.gyro.reset()
+        self.gyro.setAngleAdjustment(-math.degrees(ang))
+
+    def resetCamEncoderPos(self, nPos: float) -> None:
+        self.camEncoder.setPosition(nPos)
+
+    def resetAimEncoderPos(self, nPos: float) -> None:
+        self.shooterAimEncoder.setPosition(nPos)
+
+    def update(self, buf: RobotHALBuffer, dt: float) -> None:
         prev = self.prev
         self.prev = copy.deepcopy(buf)
 
