@@ -7,6 +7,7 @@ import profiler
 import rev
 import wpilib
 from phoenix6.hardware import CANcoder
+from timing import TimeData
 
 
 class RobotHALBuffer():
@@ -177,7 +178,7 @@ class RobotHAL():
     def resetAimEncoderPos(self, nPos: float) -> None:
         self.shooterAimEncoder.setPosition(nPos)
 
-    def update(self, buf: RobotHALBuffer, dt: float) -> None:
+    def update(self, buf: RobotHALBuffer, time: TimeData) -> None:
         prev = self.prev
         self.prev = copy.deepcopy(buf)
 

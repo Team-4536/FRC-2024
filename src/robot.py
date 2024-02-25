@@ -109,6 +109,7 @@ AUTO_GET_ALL = "grab all"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
+        self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
 
         self.hardware: robotHAL.RobotHAL | RobotSimHAL
@@ -116,7 +117,7 @@ class Robot(wpilib.TimedRobot):
             self.hardware = RobotSimHAL()
         else:
             self.hardware = robotHAL.RobotHAL()
-        self.hardware.update(self.hal, 0)
+        self.hardware.update(self.hal, self.time)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
 
@@ -124,7 +125,6 @@ class Robot(wpilib.TimedRobot):
 
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
-        self.time = TimeData(None)
 
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
@@ -262,7 +262,7 @@ class Robot(wpilib.TimedRobot):
         self.hal.camSpeed = self.input.camTemp * 0.2
 
         profiler.start()
-        self.hardware.update(self.hal, self.time.dt)
+        self.hardware.update(self.hal, self.time)
         profiler.end("hardware update")
         self.table.putNumber("frame time", wpilib.getTime() - frameStart)
 
@@ -274,6 +274,11 @@ class Robot(wpilib.TimedRobot):
         return t
 
     def autonomousInit(self) -> None:
+        # when simulating, initalize sim to have a preloaded ring
+        if isinstance(self.hardware, RobotSimHAL):
+            self.hardware.ringPos = 1
+            self.hardware.ringTransitionStart = -1
+
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),
             PIDConstants(3, 0, 0),
@@ -320,7 +325,7 @@ class Robot(wpilib.TimedRobot):
                 stages.makeIntakeStage(),
                 stages.makeStageSet([
                     stages.makePathStage(self.loadTrajectory("middleBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
+                    stages.makeShooterPrepStage(ShooterTarget.AMP, True),
                 ]),
                 stages.makeShooterFireStage(),
 
@@ -355,21 +360,21 @@ class Robot(wpilib.TimedRobot):
 
         self.driveGyroYawOffset = initialPose.rotation().radians()
         self.hardware.resetGyroToAngle(initialPose.rotation().radians())
-        self.hardware.update(self.hal, self.time.dt)
+        self.hardware.update(self.hal, self.time)
         self.drive.resetOdometry(initialPose, self.hal)
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
         self.auto.update(self)
         self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
-        self.hardware.update(self.hal, self.time.dt)
+        self.hardware.update(self.hal, self.time)
 
     def disabledInit(self) -> None:
         self.disabledPeriodic()
 
     def disabledPeriodic(self) -> None:
         self.hal.stopMotors()
-        self.hardware.update(self.hal, self.time.dt)
+        self.hardware.update(self.hal, self.time)
 
 if __name__ == "__main__":
     wpilib.run(Robot)
