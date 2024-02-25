@@ -1,80 +1,169 @@
 import math
+import string
 from typing import TYPE_CHECKING
 
-import stages
 from auto import Stage
 from ntcore import NetworkTableInstance
-from pathplannerlib.path import PathPlannerTrajectory
+from pathplannerlib.path import PathPlannerPath, PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
 from wpimath.geometry import Pose2d
+from wpimath.kinematics import ChassisSpeeds
 
 if TYPE_CHECKING:
     from robot import Robot
 
-def makePathStage(t: PathPlannerTrajectory) -> Stage:
-    def stage(r: 'Robot') -> bool:
-        goal = t.sample(r.time.timeSinceInit - r.auto.stagestart)
+class StageBuilder:
+    def __init__(self) -> None:
+        self.firstStage: Stage | None = None
+        self.currentStage: Stage = None # type: ignore
 
-        table = NetworkTableInstance.getDefault().getTable("autos")
-        table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
-        table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
-        table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
+    def add(self, new: Stage) -> 'StageBuilder':
+        if self.currentStage is not None:
+            self.currentStage.nextStage = new
+        self.currentStage = new
 
-        table.putNumber("odomR", r.drive.odometry.getPose().rotation().radians())
-        adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getPose(), goal)
-        table.putNumber("pathVelX", adjustedSpeeds.vx)
-        table.putNumber("pathVelY", adjustedSpeeds.vy)
-        table.putNumber("pathVelR", adjustedSpeeds.omega)
+        if self.firstStage is None:
+            self.firstStage = new
+        return self
 
-        r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
-        return (r.time.timeSinceInit - r.auto.stagestart) > t.getTotalTimeSeconds()
-    return stage
+    def addAbortLog(self, log: str) -> 'StageBuilder':
+        if self.currentStage is not None:
+            self.currentStage.abortStage = StageBuilder().addTelemetryStage(log).currentStage
+        return self
 
-def makeWaitStage(t: float) -> Stage:
-    def stage(r : 'Robot'):
-        return (r.time.timeSinceInit - r.auto.stagestart) > t
-    return stage
+    def addAbort(self, new: 'StageBuilder') -> 'StageBuilder':
+        if self.currentStage is not None:
+            self.currentStage.abortStage = new.firstStage
+        return self
 
-def makeIntakeStage() -> Stage:
-    def stage(r: 'Robot') -> bool:
-        r.intakeStateMachine.update(r.hal, True)
-        return r.intakeStateMachine.state == r.intakeStateMachine.STORING
-    return stage
+    def _newPathStage(self, t: PathPlannerTrajectory, trajName: str) -> Stage:
+        def func(r: 'Robot') -> bool | None:
+            goal = t.sample(r.time.timeSinceInit - r.auto.stageStart)
 
-def makePathStageWithTriggerAtPercent(t: PathPlannerTrajectory, percent: float, triggered: Stage):
-    stagePath = stages.makePathStage(t)
-    def stage(r: 'Robot') -> bool:
-        isOver = stagePath(r)
-        if ((r.time.timeSinceInit - r.auto.stagestart) > (t.getTotalTimeSeconds() * percent)):
-            triggered(r)
-        return isOver
-    return stage
+            table = NetworkTableInstance.getDefault().getTable("autos")
+            table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
+            table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
+            table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
 
-# ends when state is on target
-def makeShooterPrepStage(target: ShooterTarget, rev: bool) -> Stage:
-    def stage(r: 'Robot') -> bool:
-        r.shooterStateMachine.aim(target)
-        r.shooterStateMachine.rev(rev)
-        return r.shooterStateMachine.onTarget
-    return stage
+            table.putNumber("odomR", r.drive.odometry.getPose().rotation().radians())
+            adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getPose(), goal)
+            table.putNumber("pathVelX", adjustedSpeeds.vx)
+            table.putNumber("pathVelY", adjustedSpeeds.vy)
+            table.putNumber("pathVelR", adjustedSpeeds.omega)
 
-def makeShooterFireStage() -> Stage:
-    def stage(r: 'Robot') -> bool:
-        r.shooterStateMachine.shoot(True)
-        return r.shooterStateMachine.state == r.shooterStateMachine.READY_FOR_RING
-    return stage
+            r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
+            return (r.time.timeSinceInit - r.auto.stageStart) > t.getTotalTimeSeconds()
+        s = Stage(func, f"path '{trajName}'")
+        return s
 
-def makeTelemetryStage(s: str) -> Stage:
-    def log(r: 'Robot') -> bool:
-        NetworkTableInstance.getDefault().getTable("autos").putString("telemStageLog", s)
-        return True
-    return log
+    # NOTE: filename is *just* the title of the file, with no extension and no path
+    # filename is directly passed to pathplanner.loadPath
+    def addPathStage(self, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'StageBuilder':
+        self.add(self._newPathStage(t, trajName))
+        return self
 
-def makeStageSet(stages: list[Stage]) -> Stage:
-    def stage(r: 'Robot') -> bool:
-        broken: bool = False
-        for s in stages:
-            if not s(r):
-                broken = True
-        return not broken
-    return stage
+    def addWaitStage(self, t: float) -> 'StageBuilder':
+        def func(r : 'Robot') -> bool | None:
+            return (r.time.timeSinceInit - r.auto.stageStart) > t
+
+        self.add(Stage(func, f"wait for {t}s"))
+        return self
+
+    def addIntakeStage(self) -> 'StageBuilder':
+        def func(r: 'Robot') -> bool | None:
+            r.intakeStateMachine.update(r.hal, True)
+            return (r.intakeStateMachine.state == r.intakeStateMachine.STORING)
+        self.add(Stage(func, "intake ring"))
+        return self
+
+    # return status is dictated by the path stage, the triggered stages return is ignored (including aborts)
+    # starts up the triggered stage when the path has covered [percent] of its total time
+    def triggerAlongPath(self, percent: float, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'StageBuilder':
+        curr = self.currentStage
+        pathStage = self._newPathStage(t, trajName)
+        def func(r: 'Robot') -> bool|None:
+            isOver = pathStage.func(r)
+            if ((r.time.timeSinceInit - r.auto.stageStart) > (t.getTotalTimeSeconds() * percent)):
+                curr.func(r)
+            return isOver
+
+        self.currentStage.func = func
+        self.currentStage.name = f"path with {curr.name} trigger"
+        self.currentStage.abortStage = None
+        return self
+
+    # ends when state is on target
+    def addShooterPrepStage(self, target: ShooterTarget, rev: bool) -> 'StageBuilder':
+        def func(r: 'Robot') -> bool | None:
+            r.shooterStateMachine.aim(target)
+            r.shooterStateMachine.rev(rev)
+            return r.shooterStateMachine.onTarget
+        self.add(Stage(func, f"shooter aim at {target.name}, revved: {rev}"))
+        return self
+
+    def addShooterFireStage(self) -> 'StageBuilder':
+        def func(r: 'Robot') -> bool | None:
+            r.shooterStateMachine.shoot(True)
+            return r.shooterStateMachine.state == r.shooterStateMachine.READY_FOR_RING
+        self.add(Stage(func, "fire shooter"))
+        return self
+
+    def addTelemetryStage(self, s: str) -> 'StageBuilder':
+        def func(r: 'Robot') -> bool | None:
+            NetworkTableInstance.getDefault().getTable("autos").putString("telemStageLog", s)
+            return True
+        self.add(Stage(func, f"logging {s}"))
+        return self
+
+    # NOTE: when making the stage set, this iterates through the stages in the passed list
+    # it goes by the nextStage of each, none of the aborts
+    # aborts from the inner stages are reported, but the sets abort is what get moved to
+
+    # Stage set executes all and then ends when all are done
+    def addStageSet(self, stages: 'StageBuilder') -> 'StageBuilder':
+        stageList: list[Stage] = []
+        s = stages.firstStage
+        while s is not None:
+            stageList.append(s)
+            s = s.nextStage
+
+        def func(r: 'Robot') -> bool | None:
+            aborted = False
+            incomplete = False
+            for s in stageList:
+                status = s.func(r)
+                if status is False:
+                    incomplete = True
+                elif status is None:
+                    aborted = True
+                s = s.nextStage
+
+            if aborted:
+                return None
+            return not incomplete
+        self.add(Stage(func, f"set [{', '.join(s.name for s in stageList)}]"))
+        return self
+
+    # NOTE: doesn't make a copy of the new stages - so watch out
+    def addStageBuiltStage(self, s: 'StageBuilder') -> 'StageBuilder':
+        self.currentStage.nextStage = s.firstStage
+        # self.currentStage.nextStage = S.firstStage.nextStage
+        return self
+
+    # NOTE: triggers abort when the timeout is hit, moves to nextStage and abortStage of the given stage
+    # passes through aborts from the inner stage
+    def setTimeout(self, duration: float) -> 'StageBuilder':
+        curr = self.currentStage
+        def func(r: 'Robot') -> bool | None:
+            status = curr.func(r)
+            if status is None:
+                return None
+            elif (r.time.timeSinceInit - r.auto.stageStart) > duration:
+                return None
+            else:
+                return status
+
+        self.currentStage.name = f"{curr.name} with timeout"
+        self.currentStage.func = func
+        self.currentStage.abortStage = None
+        return self
