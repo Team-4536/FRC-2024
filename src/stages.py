@@ -1,3 +1,4 @@
+import math
 import string
 from typing import TYPE_CHECKING
 
@@ -5,6 +6,7 @@ from auto import Stage
 from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerPath, PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
+from wpimath.geometry import Pose2d
 from wpimath.kinematics import ChassisSpeeds
 
 if TYPE_CHECKING:

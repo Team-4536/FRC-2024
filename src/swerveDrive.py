@@ -16,18 +16,19 @@ from wpimath.kinematics import (
 
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
 class SwerveDrive():
+    # meters, relative to robot center
+    oneFtInMeters = 0.305
+    modulePositions: list[Translation2d] = [
+        Translation2d(oneFtInMeters, oneFtInMeters),
+        Translation2d(oneFtInMeters, -oneFtInMeters),
+        Translation2d(-oneFtInMeters, oneFtInMeters),
+        Translation2d(-oneFtInMeters, -oneFtInMeters)
+        ]
+
     def __init__(self, angle: Rotation2d, pose: Pose2d, wheelStates: list[SwerveModulePosition]) -> None:
 
         self.maxSpeed = 5.0 # meters per sec // we measured this its not BS
         self.maxSteerSpeed = 1.0 # CCW rads
-        # meters, relative to robot center
-        oneFtInMeters = 0.305
-        self.modulePositions: list[Translation2d] = [
-            Translation2d(oneFtInMeters, oneFtInMeters),
-            Translation2d(oneFtInMeters, -oneFtInMeters),
-            Translation2d(-oneFtInMeters, oneFtInMeters),
-            Translation2d(-oneFtInMeters, -oneFtInMeters)
-            ]
 
         self.table = NetworkTableInstance.getDefault().getTable("Swerve settings")
         self.table.putNumber("SteeringKp", .3)
@@ -83,7 +84,6 @@ class SwerveDrive():
     def updateOdometry(self, hal: robotHAL.RobotHALBuffer):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         self.odometry.update(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]))
-
 
     def optimizeTarget(self, target: SwerveModuleState, moduleAngle: Rotation2d) -> SwerveModuleState:
 
