@@ -4,7 +4,9 @@ from typing import TYPE_CHECKING
 from auto import Stage
 from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
+from real import angleWrap
 from shooterStateMachine import ShooterTarget
+from wpimath import angleModulus
 
 if TYPE_CHECKING:
     from robot import Robot

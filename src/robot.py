@@ -351,7 +351,7 @@ class Robot(wpilib.TimedRobot):
 
         elif self.autoChooser.getSelected() == AUTO_EXIT:
             traj = self.loadTrajectory("exit", flipToRed)
-            initialPose = traj.getInitialTargetHolonomicPose()
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
             b.addTelemetryStage(AUTO_EXIT)
             b.addPathStage(traj)
 
@@ -376,7 +376,7 @@ class Robot(wpilib.TimedRobot):
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
             traj = self.loadTrajectory('side-lower', flipToRed)
-            initialPose = traj.getInitialTargetHolonomicPose()
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
             b.addTelemetryStage(AUTO_SIDE_LOWER)
             b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             b.addShooterFireStage()
@@ -395,6 +395,7 @@ class Robot(wpilib.TimedRobot):
         self.hardware.resetGyroToAngle(initialPose.rotation().radians())
         self.hardware.update(self.hal, self.time)
         self.drive.resetOdometry(initialPose, self.hal)
+        self.holonomicController.reset(initialPose, ChassisSpeeds())
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
