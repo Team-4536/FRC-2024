@@ -325,7 +325,7 @@ class Robot(wpilib.TimedRobot):
                 stages.makeIntakeStage(),
                 stages.makeStageSet([
                     stages.makePathStage(self.loadTrajectory("middleBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.AMP, True),
+                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
                 ]),
                 stages.makeShooterFireStage(),
 
