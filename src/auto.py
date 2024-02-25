@@ -1,7 +1,6 @@
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING
-from pathplannerlib.path import PathPlannerTrajectory
 
 from ntcore import NetworkTableInstance
 
@@ -32,8 +31,8 @@ class Auto():
             self.table.putString("stage", f"{self.currentStage.name}")
             done = self.currentStage.func(r)
             if done is True:
-                self.stagestart = self.currentStage.nextStage
-                self.stagestart = r.time.timeSinceInit
+                self.currentStage = self.currentStage.nextStage
+                self.stageStart = r.time.timeSinceInit
             elif done is None:
-                self.stagestart = self.currentStage.abortStage
-                self.stagestart = r.time.timeSinceInit
+                self.currentStage = self.currentStage.abortStage
+                self.stageStart = r.time.timeSinceInit
