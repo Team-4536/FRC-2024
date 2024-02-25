@@ -43,12 +43,8 @@ class RobotSimHAL():
             new += SwerveDrive.modulePositions[i]
             old = SwerveDrive.modulePositions[i]
             delta = angleWrap(math.atan2(new.y, new.x) - math.atan2(old.y, old.x))
-            self.table.putNumber(prefs[i] + "NAngle", -math.degrees(math.atan2(new.y, new.x)))
-            self.table.putNumber(prefs[i] + "OAngle", -math.degrees(math.atan2(old.y, old.x)))
-            self.table.putNumber(prefs[i] + "AngleDelta", -math.degrees(delta))
             angleDeltaSum += delta
 
-        self.table.putNumber("angleDeltaAvg", angleDeltaSum / 4)
         self.yaw += angleDeltaSum / 4
         buf.yaw = self.yaw
 

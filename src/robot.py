@@ -144,8 +144,8 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
-        self.f = wpilib.Field2d()
-        wpilib.SmartDashboard.putData("odom", self.f)
+        self.odomField = wpilib.Field2d()
+        wpilib.SmartDashboard.putData("odom", self.odomField)
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -160,13 +160,7 @@ class Robot(wpilib.TimedRobot):
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
-
-        self.f.setRobotPose(pose)
-        # t = NetworkTableInstance.getDefault().getTable("autos")
-        # o.setPose(
-        #     Pose2d(
-        #         Translation2d(t.getNumber("pathGoalX", 0.0), t.getNumber("pathGoalY", 0.0)),
-        #         Rotation2d(t.getNumber("pathGoalR", 0.0))))
+        self.odomField.setRobotPose(pose)
 
         self.table.putBoolean("ctrl/absOn", self.abs)
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
