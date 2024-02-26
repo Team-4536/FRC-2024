@@ -46,6 +46,8 @@ class RobotInputs():
         self.rev: bool = False
         self.shoot: bool = False
 
+        self.feed: bool = False
+
         self.camTemp: float = 0.0
 
         self.overideShooterStateMachine: bool = False
@@ -210,7 +212,6 @@ class Robot(wpilib.TimedRobot):
         self.manualShooterPID = PIDController(0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
 
-
         self.turnPID = PIDController(0.3, 0, 0)
 
     def teleopPeriodic(self) -> None:
@@ -266,6 +267,7 @@ class Robot(wpilib.TimedRobot):
             self.hardware.camEncoder.setPosition(0)
 
         if(not self.input.overideShooterStateMachine):
+            self.shooterStateMachine.feed(self.input.feed) #untested
             self.shooterStateMachine.aim(self.input.aim)
             self.shooterStateMachine.rev(self.input.rev)
             self.shooterStateMachine.shoot(self.input.shoot)

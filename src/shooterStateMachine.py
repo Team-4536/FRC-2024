@@ -57,6 +57,8 @@ class StateMachine():
         self.inputRev: bool = False
         self.inputShoot: bool = False
 
+        self.inputFeed: bool = False
+
     # none will not change currently targeted pos
     def aim(self, target: ShooterTarget):
         self.table.putNumber("aimed", target.value)
@@ -67,6 +69,9 @@ class StateMachine():
     def shoot(self, shoot: bool):
         self.table.putBoolean("shooting", shoot)
         self.inputShoot = shoot
+    def feed(self, feed: bool):
+        self.table.putBoolean("feeding (shooter)", feed) #untested
+        self.inputFeed = feed
 
     def publishInfo(self):
         self.table.putNumber("state", self.state)
@@ -114,7 +119,7 @@ class StateMachine():
             aimTarget = 0
             speedTarget = 0
             camTarget = self.camSetpoint
-            if(self.inputAim != ShooterTarget.NONE):
+            if(self.inputFeed):
                 self.state = self.FEEDING
 
         elif(self.state == self.FEEDING):
@@ -123,7 +128,7 @@ class StateMachine():
             camTarget = 0
             hal.shooterIntakeSpeed = 0.1
             hal.intakeSpeeds[1] = 0.1
-            if hal.shooterSensor:
+            if (hal.shooterSensor and self.inputAim != ShooterTarget.NONE):
                 self.state = self.AIMING
 
         elif(self.state == self.AIMING):
