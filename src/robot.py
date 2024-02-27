@@ -57,7 +57,7 @@ class RobotInputs():
         self.manualFeed: bool = False
         self.manualFeedReverse: bool = False
 
-        self.climb: float = 0.0 # + is trigger in, - is reverse pressed, range goes -1 to 1
+        self.climb: float = 0.0 # - is trigger in, + is reverse pressed, range goes -1 to 1
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -119,7 +119,7 @@ class RobotInputs():
         self.shoot = self.armCtrlr.getLeftBumper()
         self.camTemp = -self.armCtrlr.getRightY()
 
-        self.climb = self.armCtrlr.getRightTriggerAxis() - float(self.armCtrlr.getRightBumper())
+        self.climb = float(self.armCtrlr.getRightBumper()) - self.armCtrlr.getRightTriggerAxis()
         # manual mode controls
 
         if(self.armCtrlr.getYButtonPressed()):
@@ -325,7 +325,7 @@ class Robot(wpilib.TimedRobot):
         profiler.end("shooter state machine")
 
         # self.hal.camSpeed = self.input.camTemp * 0.2
-        self.hal.climberSpeed = self.input.climb * 0.05
+        self.hal.climberSpeed = self.input.climb * 0.2
 
         profiler.start()
         self.hardware.update(self.hal, self.time)
@@ -374,8 +374,6 @@ class Robot(wpilib.TimedRobot):
             .addShooterFireStage()
 
         initialPose: Pose2d = Pose2d()
-        b.addStageBuiltStage(centerRing)
-
 
         if self.autoChooser.getSelected() == AUTO_NONE:
             pass
