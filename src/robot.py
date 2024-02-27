@@ -119,6 +119,7 @@ class RobotInputs():
         self.rev = self.armCtrlr.getLeftTriggerAxis() > 0.2
         self.shoot = self.armCtrlr.getLeftBumper()
         self.camTemp = -self.armCtrlr.getRightY()
+        self.feed = self.intake
 
         self.climb = self.armCtrlr.getRightTriggerAxis() - float(self.armCtrlr.getRightBumper())
         # manual mode controls
