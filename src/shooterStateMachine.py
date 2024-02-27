@@ -149,7 +149,7 @@ class StateMachine():
             hal.shooterIntakeSpeed = 0.4
             hal.intakeSpeeds[1] = 0.4
             if(time - self.time > 1.0):
-               self.state = self.READY_FOR_RING
+                self.state = self.READY_FOR_RING
 
         else:
             aimTarget = 0

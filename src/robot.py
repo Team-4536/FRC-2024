@@ -160,7 +160,7 @@ class Robot(wpilib.TimedRobot):
 
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
-      
+
         self.intakeStateMachine = IntakeStateMachine()
         self.shooterStateMachine = StateMachine()
 
@@ -334,7 +334,7 @@ class Robot(wpilib.TimedRobot):
         flipToRed = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
             if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
-               flipToRed = True
+                flipToRed = True
             else:
                 flipToRed = False
 

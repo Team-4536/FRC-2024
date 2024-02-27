@@ -113,7 +113,7 @@ class RobotHAL():
                             rev.CANSparkMax(4, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(6, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(8, rev.CANSparkMax.MotorType.kBrushless)
-                           ]
+                            ]
         self.driveEncoders = [x.getEncoder() for x in self.driveMotors]
         self.driveMotors[1].setInverted(True)
         self.driveMotors[3].setInverted(True)
@@ -124,7 +124,7 @@ class RobotHAL():
                             rev.CANSparkMax(3, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(5, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(7, rev.CANSparkMax.MotorType.kBrushless)
-                           ]
+                            ]
         for m in self.steerMotors:
             m.setInverted(True)
             m.setOpenLoopRampRate(50)
@@ -134,7 +134,7 @@ class RobotHAL():
 
         # intake motors and encoders
         self.intakeMotors = [rev.CANSparkMax(9, rev.CANSparkMax.MotorType.kBrushless),
-                             rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
+                            rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
         self.intakeMotors[1].setInverted(True)
 
         # self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
