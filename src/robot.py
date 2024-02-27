@@ -176,7 +176,6 @@ class Robot(wpilib.TimedRobot):
         profiler.end("robotPeriodic")
 
 
-
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
         self.manualAimPID = PIDControllerForArm(0, 0, 0, 0, 0.04, 0)
