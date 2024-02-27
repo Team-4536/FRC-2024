@@ -1,9 +1,12 @@
+from copy import copy, deepcopy
 import math
 import string
 from typing import TYPE_CHECKING
 
 from auto import Stage
 from ntcore import NetworkTableInstance
+from real import angleWrap
+from wpimath import angleModulus
 from pathplannerlib.path import PathPlannerPath, PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
 from wpimath.geometry import Pose2d
@@ -17,7 +20,10 @@ class StageBuilder:
         self.firstStage: Stage | None = None
         self.currentStage: Stage = None # type: ignore
 
-    def add(self, new: Stage) -> 'StageBuilder':
+    def add(self, new: Stage | None) -> 'StageBuilder':
+        if new is None:
+            return self
+
         if self.currentStage is not None:
             self.currentStage.nextStage = new
         self.currentStage = new
@@ -79,16 +85,16 @@ class StageBuilder:
     # return status is dictated by the path stage, the triggered stages return is ignored (including aborts)
     # starts up the triggered stage when the path has covered [percent] of its total time
     def triggerAlongPath(self, percent: float, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'StageBuilder':
-        curr = self.currentStage
+        stg = copy(self.currentStage)
         pathStage = self._newPathStage(t, trajName)
         def func(r: 'Robot') -> bool|None:
             isOver = pathStage.func(r)
             if ((r.time.timeSinceInit - r.auto.stageStart) > (t.getTotalTimeSeconds() * percent)):
-                curr.func(r)
+                stg.func(r)
             return isOver
 
         self.currentStage.func = func
-        self.currentStage.name = f"path with {curr.name} trigger"
+        self.currentStage.name = f"path with {stg.name} trigger"
         self.currentStage.abortStage = None
         return self
 
@@ -146,24 +152,25 @@ class StageBuilder:
 
     # NOTE: doesn't make a copy of the new stages - so watch out
     def addStageBuiltStage(self, s: 'StageBuilder') -> 'StageBuilder':
-        self.currentStage.nextStage = s.firstStage
-        # self.currentStage.nextStage = S.firstStage.nextStage
+        self.add(s.firstStage)
+        while self.currentStage.nextStage is not None:
+            self.currentStage = self.currentStage.nextStage
         return self
 
     # NOTE: triggers abort when the timeout is hit, moves to nextStage and abortStage of the given stage
     # passes through aborts from the inner stage
     def setTimeout(self, duration: float) -> 'StageBuilder':
-        curr = self.currentStage
+        stg = copy(self.currentStage)
         def func(r: 'Robot') -> bool | None:
-            status = curr.func(r)
+            status = stg.func(r)
             if status is None:
                 return None
             elif (r.time.timeSinceInit - r.auto.stageStart) > duration:
                 return None
             else:
                 return status
-
-        self.currentStage.name = f"{curr.name} with timeout"
+ 
+        self.currentStage.name = f"{stg.name} with timeout"
         self.currentStage.func = func
         self.currentStage.abortStage = None
         return self

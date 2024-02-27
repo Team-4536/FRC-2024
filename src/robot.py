@@ -126,7 +126,6 @@ class RobotInputs():
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
 
-
         self.shooterAimManual = -self.armCtrlr.getLeftY()
         self.intakeReverse = self.armCtrlr.getBButton()
         self.manualFeed = self.intake
@@ -183,6 +182,8 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         self.autoChooser.addOption(AUTO_SIDE_UPPER, AUTO_SIDE_UPPER)
         self.autoChooser.addOption(AUTO_SIDE_LOWER, AUTO_SIDE_LOWER)
+        self.autoChooser.addOption(AUTO_SHOOT_PRELOADED, AUTO_SHOOT_PRELOADED)
+
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
         self.odomField = wpilib.Field2d()
@@ -212,8 +213,8 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
-
-        self.table.putNumber("target angle", math.degrees(self.input.targetAngle))
+        self.table.putNumber("timesinceinit", self.time.timeSinceInit)
+        self.table.putNumber("ctrl/targetAngle", math.degrees(self.input.targetAngle))
 
         self.turnPID.kp = self.table.getNumber("turnPID kp", 0.3)
 
@@ -365,8 +366,8 @@ class Robot(wpilib.TimedRobot):
         #     .addShooterFireStage()
         traj = self.loadTrajectory("middle", flipToRed)
         centerRing = stages.StageBuilder() \
-            .addIntakeStage().triggerAlongPath(0.6, traj).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog('center path failed on timeout') \
-            .addIntakeStage().setTimeout(5).addAbortLog("intake failed on time") \
+            .addIntakeStage().triggerAlongPath(0.6, traj) \
+            .addIntakeStage() \
             .addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True)) \
@@ -382,7 +383,7 @@ class Robot(wpilib.TimedRobot):
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             b.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
-            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout")
+            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             b.addShooterFireStage()
             b.addStageBuiltStage(centerRing)
 
@@ -395,16 +396,16 @@ class Robot(wpilib.TimedRobot):
             b.addStageBuiltStage(centerRing)
 
             # UPPER RING
-            b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", flipToRed)).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
-            b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
+            b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", flipToRed))
+            b.addIntakeStage()
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("upperBack", flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage()
 
             # LOWER RING
-            b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("lower", flipToRed)).setTimeout(traj.getTotalTimeSeconds() + 3).addAbortLog("path failed on timeout")
-            b.addIntakeStage().setTimeout(5).addAbortLog("intake failed on time")
+            b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("lower", flipToRed))
+            b.addIntakeStage()
             b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory("lowerBack", flipToRed)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
@@ -412,7 +413,7 @@ class Robot(wpilib.TimedRobot):
 
         elif self.autoChooser.getSelected() == AUTO_EXIT:
             traj = self.loadTrajectory("exit", flipToRed)
-            initialPose = traj.getInitialTargetHolonomicPose()
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
             b.addTelemetryStage(AUTO_EXIT)
             b.addPathStage(traj)
 
@@ -437,7 +438,7 @@ class Robot(wpilib.TimedRobot):
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
             traj = self.loadTrajectory('side-lower', flipToRed)
-            initialPose = traj.getInitialTargetHolonomicPose()
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
             b.addTelemetryStage(AUTO_SIDE_LOWER)
             b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             b.addShooterFireStage()
@@ -456,6 +457,7 @@ class Robot(wpilib.TimedRobot):
         self.hardware.resetGyroToAngle(initialPose.rotation().radians())
         self.hardware.update(self.hal, self.time)
         self.drive.resetOdometry(initialPose, self.hal)
+        self.holonomicController.reset(initialPose, ChassisSpeeds())
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
