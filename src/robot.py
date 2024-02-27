@@ -64,7 +64,7 @@ class RobotInputs():
         ##flipped x and y inputs so they are relative to bot
         self.driveX, self.driveY = self.driveScalar.Scale(-self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX())
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
-       
+        
         self.turningPIDButton = self.driveCtrlr.getLeftBumper()
 
 
@@ -77,7 +77,7 @@ class RobotInputs():
     
         if self.driveCtrlr.getPOV() < 190 and self.driveCtrlr.getPOV() > 170: #down
             # if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
-               # self.targetAngle = math.radians(90)
+                # self.targetAngle = math.radians(90)
             # else:
             self.targetAngle = math.radians(0)
         elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #right
