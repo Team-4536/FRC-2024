@@ -7,6 +7,7 @@ import profiler
 import rev
 import wpilib
 from phoenix6.hardware import CANcoder
+from timing import TimeData
 
 
 class RobotHALBuffer():
@@ -14,8 +15,8 @@ class RobotHALBuffer():
         self.driveSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1 // volts to motor controller
         self.steeringSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1
         self.drivePositions: list[float] = [0, 0, 0, 0] # in meters
-        self.steeringPositions: list[float] = [0, 0, 0, 0] # in CCW rads
         self.driveSpeedMeasured: list[float] = [0, 0, 0, 0] # m/s // output from encoders
+        self.steeringPositions: list[float] = [0, 0, 0, 0] # in CCW rads
 
         self.intakeSpeeds: list[float] = [0, 0] # -1 to 1 // volts to motor controller
         # self.intakePositions: list[float] = [0, 0] # whatever encoders return
@@ -29,6 +30,11 @@ class RobotHALBuffer():
 
         self.camSpeed: float = 0
         self.camPos: float = 0
+
+        self.climberSpeed: float = 0.0 # -1 to 1 volts, climbing up is -
+        self.climberLimitPressed: bool = False
+        self.climbCurrent = 0.0
+        self.climbTemp = 0.0
 
         self.lowerShooterLimitSwitch: bool = False
         self.upperShooterLimitSwitch: bool = False
@@ -63,6 +69,8 @@ class RobotHALBuffer():
 
         self.camSpeed = 0
 
+        self.climberSpeed = 0.0
+
     def publish(self, table: ntcore.NetworkTable) -> None:
         # swerve modules
         prefs = ["FL", "FR", "BL", "BR"]
@@ -95,6 +103,11 @@ class RobotHALBuffer():
 
         table.putNumber("camSpeed", self.camSpeed)
         table.putNumber("camPos", self.camPos)
+
+        table.putNumber("climberSpeed", self.climberSpeed)
+        table.putBoolean("climberLimit", self.climberLimitPressed)
+        table.putNumber("climberCurrent", self.climbCurrent)
+        table.putNumber("climberTemp", self.climbTemp)
 
         # gyro
         table.putNumber("yaw", self.yaw)
@@ -131,9 +144,9 @@ class RobotHAL():
                              rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
         self.intakeMotors[1].setInverted(True)
 
-        self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
-        for k in self.intakeMotors:
-            k.setSmartCurrentLimit(30)
+        # self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
+        # for k in self.intakeMotors:
+        #     k.setSmartCurrentLimit(30)
 
         # shooter motors
         self.shooterTopMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless)
@@ -151,6 +164,11 @@ class RobotHAL():
 
         self.camMotor = rev.CANSparkMax(15, rev.CANSparkMax.MotorType.kBrushless)
         self.camEncoder = self.camMotor.getEncoder()
+        self.camEncoder.setPosition(0)
+
+        self.climbingMotor = rev.CANSparkMax(16, rev.CANSparkMax.MotorType.kBrushless)
+        self.climbingMotor.setInverted(False)
+        self.climbSensor = self.climbingMotor.getReverseLimitSwitch(rev.SparkLimitSwitch.Type.kNormallyOpen)
 
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
@@ -166,7 +184,18 @@ class RobotHAL():
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
 
-    def update(self, buf: RobotHALBuffer) -> None:
+    # angle expected in CCW rads
+    def resetGyroToAngle(self, ang: float) -> None:
+        self.gyro.reset()
+        self.gyro.setAngleAdjustment(-math.degrees(ang))
+
+    def resetCamEncoderPos(self, nPos: float) -> None:
+        self.camEncoder.setPosition(nPos)
+
+    def resetAimEncoderPos(self, nPos: float) -> None:
+        self.shooterAimEncoder.setPosition(nPos)
+
+    def update(self, buf: RobotHALBuffer, time: TimeData) -> None:
         prev = self.prev
         self.prev = copy.deepcopy(buf)
 
@@ -185,6 +214,7 @@ class RobotHAL():
         for i in range(0, 4):
             e = self.steerEncoders[i]
             buf.steeringPositions[i] = math.radians(e.get_position().value_as_double * 360)
+
         profiler.end("drive updates")
 
         profiler.start()
@@ -206,7 +236,13 @@ class RobotHAL():
 
         self.camMotor.set(buf.camSpeed)
         buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
-        profiler.end("shooter motor encoder updates")
+
+        self.climbingMotor.set(buf.climberSpeed)
+        buf.climberLimitPressed = self.climbSensor.get()
+        buf.climbCurrent = self.climbingMotor.getOutputCurrent()
+        buf.climbTemp = self.climbingMotor.getMotorTemperature()
+
+        profiler.end("other motor encoder updates")
 
         profiler.start()
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
