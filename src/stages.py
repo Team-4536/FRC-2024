@@ -1,16 +1,10 @@
-from copy import copy, deepcopy
-import math
-import string
+from copy import copy
 from typing import TYPE_CHECKING
 
 from auto import Stage
 from ntcore import NetworkTableInstance
-from real import angleWrap
-from wpimath import angleModulus
-from pathplannerlib.path import PathPlannerPath, PathPlannerTrajectory
+from pathplannerlib.path import PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
-from wpimath.geometry import Pose2d
-from wpimath.kinematics import ChassisSpeeds
 
 if TYPE_CHECKING:
     from robot import Robot
@@ -169,7 +163,7 @@ class StageBuilder:
                 return None
             else:
                 return status
- 
+
         self.currentStage.name = f"{stg.name} with timeout"
         self.currentStage.func = func
         self.currentStage.abortStage = None

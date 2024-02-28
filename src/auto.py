@@ -1,7 +1,6 @@
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING
-from pathplannerlib.path import PathPlannerTrajectory
 
 from ntcore import NetworkTableInstance
 

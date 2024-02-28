@@ -16,14 +16,7 @@ class PIDController:
     # function returns the recommended force towards the target
     def tick(self, target: float, position: float, dt: float) -> float:
         error = target - position
-
-        derivative = (error - self.prevErr) * dt
-        self.integral += error * dt
-
-        out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target)
-        self.prevErr = error
-
-        return out
+        return self.tickErr(error, target, dt)
 
     # output will be the same sign as the input error
     def tickErr(self, error: float, target: float, dt: float) -> float:
@@ -35,7 +28,6 @@ class PIDController:
         self.prevErr = error
 
         return out
-
 
     def reset(self) -> None:
         self.integral = 0
