@@ -33,6 +33,19 @@ class PIDController:
         self.integral = 0
         self.prevErr = 0
 
+    def _publish(self) -> None:
+        t = pidTable.getSubTable(self.name)
+        if t.getNumber("Kp", None) is None:
+            t.putNumber("Kp", self.kp)
+            t.putNumber("Ki", self.ki)
+            t.putNumber("Kd", self.kd)
+            t.putNumber("Kff", self.kff)
+        else:
+            self.kp = t.getNumber("Kp", 0)
+            self.ki = t.getNumber("Ki", 0)
+            self.kd = t.getNumber("Kd", 0)
+            self.kff = t.getNumber("Kff", 0)
+
 class PIDControllerForArm(PIDController):
     def __init__(self, name: str, kp: float = 0, ki: float = 0, kd: float = 0, kff: float = 0, kg: float = 0, balanceAngle: float = 0.1) -> None:
         super().__init__(name = name, kp = kp, ki = ki, kd = kd, kff = kff)
@@ -44,16 +57,14 @@ class PIDControllerForArm(PIDController):
         out += self.kg * math.cos(position + self.balanceAngle)
         return out
 
+    def _publish(self) -> None:
+        t = pidTable.getSubTable(self.name)
+        if t.getNumber("Kp", None) is None:
+            t.putNumber("Kg", self.kg)
+        else:
+            self.kg = t.getNumber("Kg", 0)
+        super()._publish()
+
 def updatePIDsInNT():
     for c in createdControllers:
-        t = pidTable.getSubTable(c.name)
-        if t.getNumber("Kp", None) is None:
-            t.putNumber("Kp", c.kp)
-            t.putNumber("Ki", c.ki)
-            t.putNumber("Kd", c.kd)
-            t.putNumber("Kff", c.kff)
-        else:
-            c.kp = t.getNumber("Kp", 0)
-            c.ki = t.getNumber("Ki", 0)
-            c.kd = t.getNumber("Kd", 0)
-            c.kff = t.getNumber("Kff", 0)
+        c._publish()
