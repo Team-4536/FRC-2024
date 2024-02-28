@@ -125,10 +125,9 @@ class StateMachine():
         elif(self.state == self.FEEDING):
             aimTarget = 0
             speedTarget = 0
-            camTarget = 0
             hal.shooterIntakeSpeed = 0.1
             hal.intakeSpeeds[1] = 0.1
-            if (hal.shooterSensor and self.inputAim != ShooterTarget.NONE):
+            if hal.shooterSensor and (self.inputAim != ShooterTarget.NONE):
                 self.state = self.AIMING
 
         elif(self.state == self.AIMING):

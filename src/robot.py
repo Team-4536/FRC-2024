@@ -381,8 +381,8 @@ class Robot(wpilib.TimedRobot):
             .addIntakeStage().triggerAlongPath(0.6, traj) \
             .addIntakeStage() \
             .addStageSet(stages.StageBuilder() \
-                          .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
-                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True)) \
+                        .addPathStage(self.loadTrajectory("middleBack", flipToRed)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True)) \
             .addShooterFireStage()
 
         initialPose: Pose2d = Pose2d()
@@ -409,16 +409,16 @@ class Robot(wpilib.TimedRobot):
             b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", flipToRed))
             b.addIntakeStage()
             b.addStageSet(stages.StageBuilder() \
-                          .addPathStage(self.loadTrajectory("upperBack", flipToRed)) \
-                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+                        .addPathStage(self.loadTrajectory("upperBack", flipToRed)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage()
 
             # LOWER RING
             b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("lower", flipToRed))
             b.addIntakeStage()
             b.addStageSet(stages.StageBuilder() \
-                          .addPathStage(self.loadTrajectory("lowerBack", flipToRed)) \
-                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+                        .addPathStage(self.loadTrajectory("lowerBack", flipToRed)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage()
 
         elif self.autoChooser.getSelected() == AUTO_EXIT:
@@ -442,8 +442,8 @@ class Robot(wpilib.TimedRobot):
             b.addIntakeStage().triggerAlongPath(0.5, traj)
             b.addIntakeStage()
             b.addStageSet(stages.StageBuilder() \
-                          .addPathStage(self.loadTrajectory("upperBack", flipToRed)) \
-                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+                        .addPathStage(self.loadTrajectory("upperBack", flipToRed)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
@@ -455,8 +455,8 @@ class Robot(wpilib.TimedRobot):
             b.addIntakeStage().triggerAlongPath(0.5, traj)
             b.addIntakeStage()
             b.addStageSet(stages.StageBuilder() \
-                          .addPathStage(self.loadTrajectory('lowerBack', flipToRed)) \
-                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+                        .addPathStage(self.loadTrajectory('lowerBack', flipToRed)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage
 
         else:
