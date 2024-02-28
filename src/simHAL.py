@@ -62,7 +62,7 @@ class RobotSimHAL():
             buf.intakeSensor = False
             buf.shooterSensor = False
             if buf.intakeSpeeds[0] > 0.001:
-                if self.ringTransitionStart is -1:
+                if self.ringTransitionStart == -1:
                     self.ringTransitionStart = time.timeSinceInit
                 else:
                     if (time.timeSinceInit - self.ringTransitionStart) > 0.4:
@@ -74,7 +74,7 @@ class RobotSimHAL():
             buf.intakeSensor = True
             buf.shooterSensor = False
             if buf.shooterIntakeSpeed > 0.001:
-                if self.ringTransitionStart is -1:
+                if self.ringTransitionStart == -1:
                     self.ringTransitionStart = time.timeSinceInit
                 else:
                     if (time.timeSinceInit - self.ringTransitionStart) > 0.4:
@@ -86,7 +86,7 @@ class RobotSimHAL():
             buf.intakeSensor = False
             buf.shooterSensor = True
             if buf.shooterIntakeSpeed > 0.001:
-                if self.ringTransitionStart is -1:
+                if self.ringTransitionStart == -1:
                     self.ringTransitionStart = time.timeSinceInit
                 else:
                     if (time.timeSinceInit - self.ringTransitionStart) > 0.2:
