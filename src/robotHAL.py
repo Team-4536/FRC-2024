@@ -15,8 +15,8 @@ class RobotHALBuffer():
         self.driveSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1 // volts to motor controller
         self.steeringSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1
         self.drivePositions: list[float] = [0, 0, 0, 0] # in meters
-        self.steeringPositions: list[float] = [0, 0, 0, 0] # in CCW rads
         self.driveSpeedMeasured: list[float] = [0, 0, 0, 0] # m/s // output from encoders
+        self.steeringPositions: list[float] = [0, 0, 0, 0] # in CCW rads
 
         self.intakeSpeeds: list[float] = [0, 0] # -1 to 1 // volts to motor controller
         # self.intakePositions: list[float] = [0, 0] # whatever encoders return
@@ -30,6 +30,8 @@ class RobotHALBuffer():
 
         self.camSpeed: float = 0
         self.camPos: float = 0
+
+        self.climberSpeed: float = 0.0 # -1 to 1 volts, climb up is +
 
         self.lowerShooterLimitSwitch: bool = False
         self.upperShooterLimitSwitch: bool = False
@@ -64,6 +66,8 @@ class RobotHALBuffer():
 
         self.camSpeed = 0
 
+        self.climberSpeed = 0.0
+
     def publish(self, table: ntcore.NetworkTable) -> None:
         # swerve modules
         prefs = ["FL", "FR", "BL", "BR"]
@@ -97,6 +101,8 @@ class RobotHALBuffer():
         table.putNumber("camSpeed", self.camSpeed)
         table.putNumber("camPos", self.camPos)
 
+        table.putNumber("climberSpeed", self.climberSpeed)
+
         # gyro
         table.putNumber("yaw", self.yaw)
 
@@ -108,7 +114,7 @@ class RobotHAL():
                             rev.CANSparkMax(4, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(6, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(8, rev.CANSparkMax.MotorType.kBrushless)
-                           ]
+                            ]
         self.driveEncoders = [x.getEncoder() for x in self.driveMotors]
         self.driveMotors[1].setInverted(True)
         self.driveMotors[3].setInverted(True)
@@ -119,7 +125,7 @@ class RobotHAL():
                             rev.CANSparkMax(3, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(5, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(7, rev.CANSparkMax.MotorType.kBrushless)
-                           ]
+                            ]
         for m in self.steerMotors:
             m.setInverted(True)
             m.setOpenLoopRampRate(50)
@@ -129,12 +135,12 @@ class RobotHAL():
 
         # intake motors and encoders
         self.intakeMotors = [rev.CANSparkMax(9, rev.CANSparkMax.MotorType.kBrushless),
-                             rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
+                            rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
         self.intakeMotors[1].setInverted(True)
 
-        self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
-        for k in self.intakeMotors:
-            k.setSmartCurrentLimit(30)
+        # self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
+        # for k in self.intakeMotors:
+        #     k.setSmartCurrentLimit(30)
 
         # shooter motors
         self.shooterTopMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless)
@@ -152,6 +158,9 @@ class RobotHAL():
 
         self.camMotor = rev.CANSparkMax(15, rev.CANSparkMax.MotorType.kBrushless)
         self.camEncoder = self.camMotor.getEncoder()
+        self.camEncoder.setPosition(0)
+
+        self.climbingMotor = rev.CANSparkMax(16, rev.CANSparkMax.MotorType.kBrushless)
 
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
@@ -197,6 +206,7 @@ class RobotHAL():
         for i in range(0, 4):
             e = self.steerEncoders[i]
             buf.steeringPositions[i] = math.radians(e.get_position().value_as_double * 360)
+
         profiler.end("drive updates")
 
         profiler.start()
@@ -218,7 +228,10 @@ class RobotHAL():
 
         self.camMotor.set(buf.camSpeed)
         buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
-        profiler.end("shooter motor encoder updates")
+
+        self.climbingMotor.set(buf.climberSpeed)
+
+        profiler.end("other motor encoder updates")
 
         profiler.start()
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):

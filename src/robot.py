@@ -1,3 +1,5 @@
+import math
+
 import auto
 import profiler
 import robotHAL
@@ -9,12 +11,12 @@ from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
 from PIDController import PIDController, PIDControllerForArm
-from real import lerp
+from real import angleWrap, lerp
 from shooterStateMachine import ShooterTarget, StateMachine
 from simHAL import RobotSimHAL
 from swerveDrive import SwerveDrive
 from timing import TimeData
-from utils import Scalar
+from utils import CircularScalar, Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 
@@ -23,9 +25,9 @@ class RobotInputs():
     def __init__(self) -> None:
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
+        self.buttonPanel = wpilib.Joystick(4)
 
-        self.xScalar = Scalar(deadZone = .1, exponent = 1)
-        self.yScalar = Scalar(deadZone = .1, exponent = 1)
+        self.driveScalar = CircularScalar(.05, 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
 
         self.driveX: float = 0.0
@@ -36,27 +38,36 @@ class RobotInputs():
         self.brakeButton: bool = False
         self.absToggle: bool = False
 
+        self.turningPIDButton: bool = False
+        self.targetAngle: float = 0.0
+
         self.intake: bool = False
 
         self.aim: ShooterTarget = ShooterTarget.NONE
         self.rev: bool = False
         self.shoot: bool = False
 
+        self.feed: bool = False
+
         self.camTemp: float = 0.0
 
         self.overideShooterStateMachine: bool = False
         self.overideIntakeStateMachine: bool = False
 
-        self.manualAimJoystickY: float = 0
+        self.shooterAimManual: float = 0
         self.aimEncoderReset: bool = False
-        self.manualFeedMotor: bool = False
+        self.manualFeed: bool = False
+        self.manualFeedReverse: bool = False
 
+        self.climb: float = 0.0 # + is trigger in, - is reverse pressed, range goes -1 to 1
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
-        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
-        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
+        self.driveX, self.driveY = self.driveScalar.Scale(-self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX())
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
+        
+        self.turningPIDButton = self.driveCtrlr.getLeftBumper()
+
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
@@ -64,11 +75,37 @@ class RobotInputs():
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
+    
+        if self.driveCtrlr.getPOV() < 190 and self.driveCtrlr.getPOV() > 170: #down
+            # if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
+                # self.targetAngle = math.radians(90)
+            # else:
+            self.targetAngle = math.radians(0)
+        elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #right
+            self.targetAngle = math.radians(-90)
+        elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350: #up
+            self.targetAngle = math.radians(60)
+        elif self.driveCtrlr.getPOV() > 260 and self.driveCtrlr.getPOV() < 280: #left
+            self.targetAngle = math.radians(90)
+        
+        """        #angle snapping with ABXY
+        if self.driveCtrlr.getAButton():    #AMP SNAP
+            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False): 
+                self.targetAngle = math.radians(90)
+            else:
+                self.targetAngle = math.radians(-90)
+        
+        elif self.driveCtrlr.getBButton(): #SOURCE SNAP
+            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False): 
+                self.targetAngle = math.radians(60)
+            else:
+                self.targetAngle = math.radians(-60)
+        
+        elif self.driveCtrlr.getYButton: #snap to face driver station
+                self.targetAngle = 0"""
+        
         # arm controller
         self.intake = self.armCtrlr.getAButton()
-        self.intakeReverse = self.armCtrlr.getBButton()
-
-        self.shooterAimManual = -self.armCtrlr.getLeftY()
 
         #POV is also known as the Dpad, 0 is centered on top, angles go clockwise
         self.aim = ShooterTarget.NONE
@@ -82,17 +119,22 @@ class RobotInputs():
 
         self.rev = self.armCtrlr.getLeftTriggerAxis() > 0.2
         self.shoot = self.armCtrlr.getLeftBumper()
-
         self.camTemp = -self.armCtrlr.getRightY()
+        self.feed = self.intake
 
+        self.climb = self.armCtrlr.getRightTriggerAxis() - float(self.armCtrlr.getRightBumper())
+        # manual mode controls
 
         if(self.armCtrlr.getYButtonPressed()):
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
 
-        self.manualFeedMotor = self.armCtrlr.getRightTriggerAxis() > 0.2
-        self.manualFeedReverseMotor = self.armCtrlr.getRightBumper()
-        self.manualAimJoystickY = self.armCtrlr.getLeftY()
+
+        self.shooterAimManual = -self.armCtrlr.getLeftY()
+        self.intakeReverse = self.armCtrlr.getBButton()
+        self.manualFeed = self.intake
+        self.manualFeedReverse = self.intakeReverse
+
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
 
@@ -148,8 +190,13 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_SHOOT_PRELOADED, AUTO_SHOOT_PRELOADED)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
+
         self.odomField = wpilib.Field2d()
         wpilib.SmartDashboard.putData("odom", self.odomField)
+        self.turnPID = PIDController(2.4, 0, 0)
+        self.turnPID.kp = 2.4
+        self.table.putNumber("turnPID kp", self.turnPID.kp)
+
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -170,11 +217,20 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
+        self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
+
 
         self.table.putNumber("timesinceinit", self.time.timeSinceInit)
 
         profiler.end("robotPeriodic")
+        self.table.putNumber("target angle", math.degrees(self.input.targetAngle))
 
+        self.turnPID.kp = self.table.getNumber("turnPID kp", 0.3)
+
+
+        self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
+
+        profiler.end("robotPeriodic")
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
@@ -182,6 +238,7 @@ class Robot(wpilib.TimedRobot):
         self.manualShooterPID = PIDController(0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
 
+        self.turnPID = PIDController(0.3, 0, 0)
 
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
@@ -201,9 +258,16 @@ class Robot(wpilib.TimedRobot):
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         if self.abs:
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
-        speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+
+
+        if self.input.turningPIDButton:
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-self.input.targetAngle + (-self.hal.yaw + self.driveGyroYawOffset)), self.input.targetAngle, self.time.dt))
+        else:
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
+
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
@@ -229,6 +293,7 @@ class Robot(wpilib.TimedRobot):
             self.hardware.resetCamEncoderPos(0)
 
         if(not self.input.overideShooterStateMachine):
+            self.shooterStateMachine.feed(self.input.feed) #untested
             self.shooterStateMachine.aim(self.input.aim)
             self.shooterStateMachine.rev(self.input.rev)
             self.shooterStateMachine.shoot(self.input.shoot)
@@ -237,15 +302,15 @@ class Robot(wpilib.TimedRobot):
             self.shooterStateMachine.state = 0
             self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
 
-            if(self.input.manualAimJoystickY > 0.2):
-                self.hal.shooterAimSpeed += -0.2
-            if(self.input.manualAimJoystickY < -0.2):
-                self.hal.shooterAimSpeed += 0.2
+            if(self.input.shooterAimManual > 0.2):
+                self.hal.shooterAimSpeed += -0.1
+            if(self.input.shooterAimManual < -0.2):
+                self.hal.shooterAimSpeed += 0.1
 
-            if(self.input.manualFeedMotor):
+            if(self.input.manualFeed):
                 self.hal.intakeSpeeds[1] += 0.4
                 self.hal.shooterIntakeSpeed += 0.4
-            if(self.input.manualFeedReverseMotor):
+            if(self.input.manualFeedReverse):
                 self.hal.intakeSpeeds[1] -= 0.4
                 self.hal.shooterIntakeSpeed -= 0.4
 
@@ -256,15 +321,23 @@ class Robot(wpilib.TimedRobot):
             self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * 0.1 + self.PIDspeedSetpoint
             self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
             if(self.input.shoot):
-                self.hal.shooterIntakeSpeed = 0.4
+                self.hal.shooterIntakeSpeed = 0.
+
+            # TODO: manual cam drive
+            # camTarget = self.shooterStateMachine.table.getNumber('targetCam', 0)
+            # self.shooterStateMachine.camPID.kp = self.shooterStateMachine.table.getNumber("cam kp", 0)
+            # self.hal.camSpeed = self.shooterStateMachine.camPID.tick(camTarget, self.hal.camPos, self.time.dt)
 
         self.table.putBoolean("ShooterStateMachineOveride", self.input.overideShooterStateMachine)
         self.table.putBoolean("IntakeStateMachineOveride", self.input.overideIntakeStateMachine)
-        self.table.putNumber("LeftStickY", self.input.manualAimJoystickY)
+
+        self.table.putNumber("ShooterAimManual", self.input.shooterAimManual)
+
 
         profiler.end("shooter state machine")
 
-        self.hal.camSpeed = self.input.camTemp * 0.2
+        # self.hal.camSpeed = self.input.camTemp * 0.2
+        self.hal.climberSpeed = self.input.climb * 0.05
 
         profiler.start()
         self.hardware.update(self.hal, self.time)
@@ -288,14 +361,14 @@ class Robot(wpilib.TimedRobot):
 
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),
-            PIDConstants(3, 0, 0),
+            PIDConstants(self.turnPID.kp, self.turnPID.ki, self.turnPID.kd,),
             5.0,
             self.drive.modulePositions[0].distance(Translation2d()))
 
         flipToRed = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
             if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
-               flipToRed = True
+                flipToRed = True
             else:
                 flipToRed = False
 
