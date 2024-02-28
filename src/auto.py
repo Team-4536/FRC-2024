@@ -7,22 +7,32 @@ from ntcore import NetworkTableInstance
 if TYPE_CHECKING:
     from robot import Robot
 
-Stage = Callable[['Robot'], bool]
+StageFunc = Callable[['Robot'], bool | None]
+class Stage:
+    def __init__(self, f: StageFunc, name: str) -> None:
+        self.func = f
+        self.name = name
+        self.nextStage: 'Stage | None' = None
+        self.abortStage: 'Stage | None' = None
+
+    def add(self, s: 'Stage') -> tuple['Stage', 'Stage']:
+        self.nextStage = s
+        return self, s
 
 class Auto():
-    def __init__(self, stagelist: list[Stage], time:float) -> None:
-        self.list = stagelist
-        self.listindex = 0
-        self.stagestart = time
+    def __init__(self, time: float, start: Stage | None) -> None:
+        self.currentStage: Stage | None = start
+        self.stageStart = time
         self.table = NetworkTableInstance.getDefault().getTable("autos")
 
     def update(self, r: "Robot") -> None:
-        self.table.putString("stage", f"{self.listindex}/{len(self.list)}")
-        self.table.putNumber("stageTime", self.stagestart)
-
-        if self.listindex < len(self.list):
-            s = self.list[self.listindex]
-            done = s(r)
-            if done:
-                self.listindex += 1
-                self.stagestart = r.time.timeSinceInit
+        self.table.putNumber("stageTime", self.stageStart)
+        if self.currentStage is not None:
+            self.table.putString("stage", f"{self.currentStage.name}")
+            done = self.currentStage.func(r)
+            if done is True:
+                self.currentStage = self.currentStage.nextStage
+                self.stageStart = r.time.timeSinceInit
+            elif done is None:
+                self.currentStage = self.currentStage.abortStage
+                self.stageStart = r.time.timeSinceInit
