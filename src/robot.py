@@ -166,6 +166,9 @@ class Robot(wpilib.TimedRobot):
         elif self.hal.intakeSensor:
             for i in range(8):
                 self.hal.leds[i] = 0, 255, 0
+        else:
+            for i in range(8):
+                self.hal.leds[i] = 0, 0, 0
 
         profiler.end("robotPeriodic")
 
