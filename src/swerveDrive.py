@@ -30,6 +30,7 @@ class SwerveDrive():
         self.maxSpeed = 5.0 # meters per sec // we measured this its not BS
         self.maxSteerSpeed = 1.0 # CCW rads
 
+
         self.kinematics = SwerveDrive4Kinematics(*self.modulePositions)
         self.odometry = SwerveDrive4Odometry(self.kinematics, angle, tuple(wheelStates), pose) #type: ignore // because of tuple type mismatch, which is assert gaurded
 
@@ -43,6 +44,7 @@ class SwerveDrive():
 
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
     def update(self, dt: float, hal: robotHAL.RobotHALBuffer, speed: ChassisSpeeds):
+
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         targetStates = self.kinematics.toSwerveModuleStates(speed)
         SwerveDrive4Kinematics.desaturateWheelSpeeds(targetStates, self.maxSpeed)
