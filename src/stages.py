@@ -85,52 +85,9 @@ def makeStageSet(stages: list[Stage]) -> Stage:
         return not broken
     return stage
 
-def goToAprilStag(r: 'Robot', pipeline: int, setTx: float, setTy: float) -> Stage:
-    limelightTable = r.limelightTable #NetworkTableInstance.getDefault().getTable("limelight-mb")
-    T_PConstraintsVolocityMax = 6.28
-    T_PConstraintsRotaionAccelerationMax = 1
-    table = NetworkTableInstance.getDefault().getTable("AprilTag")
-    XController = PIDController(
-            table.getNumber('path/Xp', 0), 0, 0)
-       
-    RotationController = ProfiledPIDController(
-           table.getNumber('path/Rp', 0), 0, 0, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
-    def stage(r: 'Robot') -> bool:
-
-        if(limelightTable.getNumber("getpipe", 0) != pipeline):
-            limelightTable.putNumber("pipeline", pipeline)
-
-        table.putNumber("path/Xp", 0)
-        table.putNumber('path/Rp', 0)
-
-        XController.setP(table.getNumber("path/Xp", 0))
-        RotationController.setP(table.getNumber("path/Rp", 0))
-        # goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
-        #goal = Trajectory.State()
-
-
-        #goal = [txGoal, tyGoal]
-        tx = limelightTable.getNumber("tx", 0)
-        ty = limelightTable.getNumber('ty', 0)
-       
-        movementSpeed = XController.calculate(ty, setTx)
-       # ySpeed = self.YController.calculate(currentPose.Y(), tyGoal)
-        rSpeed = RotationController.calculate(tx, setTy)
-        
-        r.drive.update(r.time.dt, r.hal, ChassisSpeeds(movementSpeed, 0, rSpeed))
-
-        #adjustedSpeeds = [movementSpeed, rSpeed]
-        
-        #self.drive.adjustSpeeds
-
-        if 0.3>tx>-0.3  and 0.3>ty>-0.03:
-            return True
-        return False
-    return stage
-
 
 def odometryResetWithLimelight(r: 'Robot', pipeline: int) -> Stage:
-    limelightTable = r.limelightTable
+    limelightTable = r.FrontLimelightTable
     robotPoseTable = r.robotPoseTable
 
     def stage(r: 'Robot') -> bool:

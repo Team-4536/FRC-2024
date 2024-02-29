@@ -55,7 +55,6 @@ class RobotInputs():
         self.manualFeedMotor: bool = False
 
         self.limelightOdomReset: bool = False
-        self.lineupSubwoofer: bool = False
 
 
     def update(self) -> None:
@@ -70,7 +69,6 @@ class RobotInputs():
         self.brakeButton = self.driveCtrlr.getBButtonPressed()
         self.absToggle = self.driveCtrlr.getXButtonPressed()
 
-        self.aprilTagGo = self.driveCtrlr.getStartButton() #getStartButtonPressed()
 
         # arm controller
         self.intake = self.armCtrlr.getAButton()
@@ -98,7 +96,6 @@ class RobotInputs():
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
 
-        #if(self.aprilTagGo.getStartButtonPressed())
         
         self.manualFeedMotor = self.armCtrlr.getRightTriggerAxis() > 0.2
         self.manualFeedReverseMotor = self.armCtrlr.getRightBumper()
@@ -107,7 +104,6 @@ class RobotInputs():
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
         
         self.limelightOdomReset = self.driveCtrlr.getRightStickButtonPressed()
-        self.lineupSubwoofer = self.driveCtrlr.getLeftStickButtonPressed()
 
 
 
@@ -122,7 +118,6 @@ AUTO_GET_ALL = "grab all"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
-        self.limelightOdomResetStage = stages.odometryResetWithLimelight(self, 0)
 
         self.time = timing.TimeData(None)
 
@@ -131,8 +126,10 @@ class Robot(wpilib.TimedRobot):
         #self.input: RobotInputs = RobotInputs(self.driveCtrlr, self.armCtrlr)
 
         self.telemetryTable = NetworkTableInstance.getDefault().getTable("telemetry")
-        self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
+        self.FrontLimelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
         self.robotPoseTable = NetworkTableInstance.getDefault().getTable("robot pose")
+
+        self.limelightOdomResetStage = stages.odometryResetWithLimelight(self, 0)
 
         self.hal = robotHAL.RobotHALBuffer()
         self.hardware = robotHAL.RobotHAL()
@@ -188,7 +185,7 @@ class Robot(wpilib.TimedRobot):
 
 
         self.hal.publish(self.telemetryTable)
-        self.hal.publish(self.limelightTable)
+        self.hal.publish(self.FrontLimelightTable)
         self.hal.publish(self.robotPoseTable)
         
         if(self.input.limelightOdomReset):
@@ -218,9 +215,6 @@ class Robot(wpilib.TimedRobot):
 
         if self.input.absToggle:
             self.abs = not self.abs
-
-        #if self.input.aprilTagGo:
-        #    self.goToShooterAprilTag(self)
 
 
         profiler.start()
