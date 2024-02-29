@@ -215,6 +215,8 @@ class Robot(wpilib.TimedRobot):
 
         self.turnPID = PIDController("turnPID", 3, 0, 0)
 
+        self.frontLimelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
+
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -491,7 +493,7 @@ class Robot(wpilib.TimedRobot):
             b.addShooterFireStage()
             b.addIntakeStage().triggerAlongPath(0.5, traj)
             b.addIntakeStage()
-            b.addStageSet(stages.StageBuilder() \  
+            b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory('lowerBack', self.onRedSide)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
 
