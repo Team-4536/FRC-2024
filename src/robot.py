@@ -54,6 +54,9 @@ class RobotInputs():
         self.aimEncoderReset: bool = False
         self.manualFeedMotor: bool = False
 
+        self.limelightOdomReset: bool = False
+        self.lineupSubwoofer: bool = False
+
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -103,6 +106,9 @@ class RobotInputs():
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
         
+        self.limelightOdomReset = self.driveCtrlr.getRightStickButtonPressed()
+        self.lineupSubwoofer = self.driveCtrlr.getLeftStickButtonPressed()
+
 
 
 AUTO_SIDE_RED = "red"
@@ -185,7 +191,7 @@ class Robot(wpilib.TimedRobot):
         self.robotPoseTable.putNumber("limeXPos", self.visionPose[0])
         self.robotPoseTable.putNumber("limeYPos", self.visionPose[1])
         self.robotPoseTable.putNumber("limeYaw", self.visionPose[5])
-        if not (self.visionPose[0] == 0 and self.visionPose[1] == 0 and self.visionPose[5] == 0):  
+        if (not (self.visionPose[0] == 0 and self.visionPose[1] == 0 and self.visionPose[5] == 0)) and self.input.limelightOdomReset:  
             self.visionPose2D = Pose2d(self.visionPose[0], self.visionPose[1], self.visionPose[5])
             self.drive.odometry.addVisionMeasurement(self.visionPose2D, wpilib.Timer.getFPGATimestamp())
         self.robotPose = self.drive.odometry.getEstimatedPosition()
@@ -209,7 +215,7 @@ class Robot(wpilib.TimedRobot):
         self.manualShooterPID = PIDController(0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
 
-        self.goToShooterAprilTag = stages.goToAprilTag()
+        #self.goToShooterAprilTag = stages.goToAprilTag(self, 1, 0, 0)
 
 
     def teleopPeriodic(self) -> None:
@@ -223,8 +229,8 @@ class Robot(wpilib.TimedRobot):
         if self.input.absToggle:
             self.abs = not self.abs
 
-        if self.input.aprilTagGo:
-            self.goToShooterAprilTag(self)
+        #if self.input.aprilTagGo:
+        #    self.goToShooterAprilTag(self)
 
 
         profiler.start()

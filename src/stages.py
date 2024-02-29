@@ -83,8 +83,8 @@ def makeStageSet(stages: list[Stage]) -> Stage:
         return not broken
     return stage
 
-def goToAprilTag() -> Stage:
-    limelightTable = NetworkTableInstance.getDefault().getTable("limelight-mb")
+def goToAprilTag(r: 'Robot', pipeline: int, setTx: float, setTy: float) -> Stage:
+    limelightTable = r.limelightTable #NetworkTableInstance.getDefault().getTable("limelight-mb")
     T_PConstraintsVolocityMax = 6.28
     T_PConstraintsRotaionAccelerationMax = 1
     table = NetworkTableInstance.getDefault().getTable("AprilTag")
@@ -94,6 +94,9 @@ def goToAprilTag() -> Stage:
     RotationController = ProfiledPIDController(
            table.getNumber('path/Rp', 0), 0, 0, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
     def stage(r: 'Robot') -> bool:
+
+        if(limelightTable.getNumber("getpipe", 0) != pipeline):
+            limelightTable.putNumber("pipeline", pipeline)
 
         table.putNumber("path/Xp", 0)
         table.putNumber('path/Rp', 0)
@@ -108,9 +111,9 @@ def goToAprilTag() -> Stage:
         tx = limelightTable.getNumber("tx", 0)
         ty = limelightTable.getNumber('ty', 0)
        
-        movementSpeed = XController.calculate(ty, 0)
+        movementSpeed = XController.calculate(ty, setTx)
        # ySpeed = self.YController.calculate(currentPose.Y(), tyGoal)
-        rSpeed = RotationController.calculate(tx, 0)
+        rSpeed = RotationController.calculate(tx, setTy)
         
         r.drive.update(r.time.dt, r.hal, ChassisSpeeds(movementSpeed, 0, rSpeed))
 
