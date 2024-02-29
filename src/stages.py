@@ -11,6 +11,8 @@ from ntcore import NetworkTable, NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
 from wpimath.kinematics import ChassisSpeeds
+import math
+
 
 if TYPE_CHECKING:
     from robot import Robot
@@ -83,7 +85,7 @@ def makeStageSet(stages: list[Stage]) -> Stage:
         return not broken
     return stage
 
-def goToAprilTag(r: 'Robot', pipeline: int, setTx: float, setTy: float) -> Stage:
+def goToAprilStag(r: 'Robot', pipeline: int, setTx: float, setTy: float) -> Stage:
     limelightTable = r.limelightTable #NetworkTableInstance.getDefault().getTable("limelight-mb")
     T_PConstraintsVolocityMax = 6.28
     T_PConstraintsRotaionAccelerationMax = 1
@@ -124,4 +126,27 @@ def goToAprilTag(r: 'Robot', pipeline: int, setTx: float, setTy: float) -> Stage
         if 0.3>tx>-0.3  and 0.3>ty>-0.03:
             return True
         return False
+    return stage
+
+
+def odometryResetWithLimelight(r: 'Robot', pipeline: int) -> Stage:
+    limelightTable = r.limelightTable
+    robotPoseTable = r.robotPoseTable
+
+    def stage(r: 'Robot') -> bool:
+        #gets the pos from limelight
+        visionPose = limelightTable.getNumberArray("botpose_wpiblue", [0,0,0,0,0,0,0])
+        #debug values
+        robotPoseTable.putNumber("limeXPos", visionPose[0])
+        robotPoseTable.putNumber("limeYPos", visionPose[1])
+        robotPoseTable.putNumber("limeYaw", visionPose[5])
+        #make sure there is a value present and has input(R3) to update
+        if (not (visionPose[0] == 0 and visionPose[1] == 0 and visionPose[5] == 0)):  
+            visionPose2D = Pose2d(visionPose[0], visionPose[1], math.radians(visionPose[5]))
+            #X, Y, & Yaw are updated correctly
+            r.drive.resetOdometry(visionPose2D, r.hal)
+
+
+        return True
+    
     return stage

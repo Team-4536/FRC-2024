@@ -122,7 +122,7 @@ AUTO_GET_ALL = "grab all"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
-         
+        self.limelightOdomResetStage = stages.odometryResetWithLimelight(self, 0)
 
         self.time = timing.TimeData(None)
 
@@ -184,31 +184,16 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
 
+        self.drive.updateOdometry(self.hal)
 
-
-        #gets the pos from limelight
-        self.visionPose = self.limelightTable.getNumberArray("botpose_wpiblue", [0,0,0,0,0,0,0])
-        #debug values
-        self.robotPoseTable.putNumber("limeXPos", self.visionPose[0])
-        self.robotPoseTable.putNumber("limeYPos", self.visionPose[1])
-        self.robotPoseTable.putNumber("limeYaw", self.visionPose[5])
-        #make sure there is a value present and has input(R3) to update
-        if (not (self.visionPose[0] == 0 and self.visionPose[1] == 0 and self.visionPose[5] == 0)) and self.input.limelightOdomReset:  
-            self.visionPose2D = Pose2d(self.visionPose[0], self.visionPose[1], math.radians(self.visionPose[5]))
-            #self.drive.odometry.addVisionMeasurement(self.visionPose2D, wpilib.Timer.getFPGATimestamp())
-            #X and Y is update correctly but YAW is not!
-            self.drive.resetOdometry(self.visionPose2D, self.hal)
-        self.robotPose = self.drive.odometry.getEstimatedPosition()
-        self.robotX = self.robotPose.X()
-        self.robotY = self.robotPose.Y()
-        self.robotTheta = self.robotPose.rotation().radians() 
-        self.robotPoseTable.putNumber("OdomRobotX" , self.robotX)
-        self.robotPoseTable.putNumber("OdomRobotY" , self.robotY)
-        self.robotPoseTable.putNumber("OdomRobotYaw" , self.robotTheta)
 
         self.hal.publish(self.telemetryTable)
         self.hal.publish(self.limelightTable)
-        self.drive.updateOdometry(self.hal)
+        self.hal.publish(self.robotPoseTable)
+        
+        if(self.input.limelightOdomReset):
+            self.limelightOdomResetStage(self)
+
 
         profiler.end("robotPeriodic")
 
@@ -219,7 +204,8 @@ class Robot(wpilib.TimedRobot):
         self.manualShooterPID = PIDController(0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
 
-        #self.goToShooterAprilTag = stages.goToAprilTag(self, 1, 0, 0)
+        
+
 
 
     def teleopPeriodic(self) -> None:
