@@ -19,7 +19,7 @@ from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-
+import math
 
 class RobotInputs():
     def __init__(self) -> None:
@@ -194,7 +194,7 @@ class Robot(wpilib.TimedRobot):
         self.robotPoseTable.putNumber("limeYaw", self.visionPose[5])
         #make sure there is a value present and has input(R3) to update
         if (not (self.visionPose[0] == 0 and self.visionPose[1] == 0 and self.visionPose[5] == 0)) and self.input.limelightOdomReset:  
-            self.visionPose2D = Pose2d(self.visionPose[0], self.visionPose[1], self.visionPose[5])
+            self.visionPose2D = Pose2d(self.visionPose[0], self.visionPose[1], math.radians(self.visionPose[5]))
             #self.drive.odometry.addVisionMeasurement(self.visionPose2D, wpilib.Timer.getFPGATimestamp())
             #X and Y is update correctly but YAW is not!
             self.drive.resetOdometry(self.visionPose2D, self.hal)
