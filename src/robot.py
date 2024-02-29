@@ -131,7 +131,7 @@ class Robot(wpilib.TimedRobot):
         #self.input: RobotInputs = RobotInputs(self.driveCtrlr, self.armCtrlr)
 
         self.telemetryTable = NetworkTableInstance.getDefault().getTable("telemetry")
-        self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight-mb")
+        self.limelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
         self.robotPoseTable = NetworkTableInstance.getDefault().getTable("robot pose")
 
         self.hal = robotHAL.RobotHALBuffer()
@@ -186,14 +186,18 @@ class Robot(wpilib.TimedRobot):
 
 
 
-
+        #gets the pos from limelight
         self.visionPose = self.limelightTable.getNumberArray("botpose_wpiblue", [0,0,0,0,0,0,0])
+        #debug values
         self.robotPoseTable.putNumber("limeXPos", self.visionPose[0])
         self.robotPoseTable.putNumber("limeYPos", self.visionPose[1])
         self.robotPoseTable.putNumber("limeYaw", self.visionPose[5])
+        #make sure there is a value present and has input(R3) to update
         if (not (self.visionPose[0] == 0 and self.visionPose[1] == 0 and self.visionPose[5] == 0)) and self.input.limelightOdomReset:  
             self.visionPose2D = Pose2d(self.visionPose[0], self.visionPose[1], self.visionPose[5])
-            self.drive.odometry.addVisionMeasurement(self.visionPose2D, wpilib.Timer.getFPGATimestamp())
+            #self.drive.odometry.addVisionMeasurement(self.visionPose2D, wpilib.Timer.getFPGATimestamp())
+            #X and Y is update correctly but YAW is not!
+            self.drive.resetOdometry(self.visionPose2D, self.hal)
         self.robotPose = self.drive.odometry.getEstimatedPosition()
         self.robotX = self.robotPose.X()
         self.robotY = self.robotPose.Y()
