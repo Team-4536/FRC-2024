@@ -36,3 +36,4 @@ class Auto():
             elif done is None:
                 self.currentStage = self.currentStage.abortStage
                 self.stageStart = r.time.timeSinceInit
+

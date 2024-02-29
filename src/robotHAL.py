@@ -31,7 +31,12 @@ class RobotHALBuffer():
         self.camSpeed: float = 0
         self.camPos: float = 0
 
-        self.climberSpeed: float = 0.0 # -1 to 1 volts, climb up is +
+
+        self.climberSpeed: float = 0.0 # -1 to 1 volts, climbing up is -
+        self.climberLimitPressed: bool = False
+        self.climbCurrent = 0.0
+        self.climbTemp = 0.0
+
 
         self.lowerShooterLimitSwitch: bool = False
         self.upperShooterLimitSwitch: bool = False
@@ -103,6 +108,11 @@ class RobotHALBuffer():
 
         table.putNumber("climberSpeed", self.climberSpeed)
 
+        table.putBoolean("climberLimit", self.climberLimitPressed)
+        table.putNumber("climberCurrent", self.climbCurrent)
+        table.putNumber("climberTemp", self.climbTemp)
+
+
         # gyro
         table.putNumber("yaw", self.yaw)
 
@@ -161,6 +171,10 @@ class RobotHAL():
         self.camEncoder.setPosition(0)
 
         self.climbingMotor = rev.CANSparkMax(16, rev.CANSparkMax.MotorType.kBrushless)
+
+        self.climbingMotor.setInverted(False)
+        self.climbSensor = self.climbingMotor.getReverseLimitSwitch(rev.SparkLimitSwitch.Type.kNormallyOpen)
+
 
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
@@ -230,6 +244,11 @@ class RobotHAL():
         buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
 
         self.climbingMotor.set(buf.climberSpeed)
+
+        buf.climberLimitPressed = self.climbSensor.get()
+        buf.climbCurrent = self.climbingMotor.getOutputCurrent()
+        buf.climbTemp = self.climbingMotor.getMotorTemperature()
+
 
         profiler.end("other motor encoder updates")
 

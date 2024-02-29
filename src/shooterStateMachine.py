@@ -31,9 +31,11 @@ class StateMachine():
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
         self.table.putNumber("kff", 0.00181)
         self.table.putNumber("kp", 0.0008)
-        self.table.putNumber("aim kp", 0.8)
-        self.table.putNumber("aim kg", 0.02)
-        self.table.putNumber("cam kp", 0.06)
+
+        self.aimPID = PIDControllerForArm("aim", 0.8, 0, 0, 0, 0.02, 0.1)
+        self.camPID = PIDController("cam", 0.06)
+        self.shooterPID = PIDController("shooter", 0.0008, 0, 0, 0.00181)
+
 
         self.table.putNumber("podiumAim", math.radians(18))
         self.table.putNumber("podiumSpeed", 250)
@@ -46,11 +48,6 @@ class StateMachine():
         self.PIDaimSetpoint = 0
         self.PIDcamSetpoint = 0
         self.state = self.READY_FOR_RING
-
-        self.aimPID = PIDControllerForArm(0, 0, 0, 0, 0, 0)
-        self.camPID = PIDController(0, 0, 0, 0)
-        self.shooterPID = PIDController(0, 0, 0, 0.2)
-        self.intakeShooterPID = PIDController(0., 0, 0)
 
         self.onTarget: bool = False # variable for autos to check in on this, as well as for not firing to early
 
@@ -92,15 +89,9 @@ class StateMachine():
         self.table.putNumber("inputRev", float(self.inputRev))
         self.table.putNumber("inputAim", self.inputAim.value)
 
-        self.shooterPID.kff = self.table.getNumber("kff", 0)
-        self.shooterPID.kp = self.table.getNumber("kp", 0)
-        self.aimPID.kp = self.table.getNumber("aim kp", 0)
-        self.aimPID.kg = self.table.getNumber("aim kg", 0)
-        self.camPID.kp = self.table.getNumber("cam kp", 0)
-
         self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0), self.table.getNumber("podiumCam", 0.0))
-        
-        
+
+
         if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):
                 self.aimSetpoint = self.ampSetpoint[0]
@@ -123,12 +114,15 @@ class StateMachine():
             aimTarget = 0
             speedTarget = 0
             camTarget = self.camSetpoint
+
             if(self.inputFeed and hal.intakeSensor):
+
                 self.state = self.FEEDING
 
         elif(self.state == self.FEEDING):
             aimTarget = 0
             speedTarget = 0
+            camTarget = 0
             hal.shooterIntakeSpeed = 0.1
             hal.intakeSpeeds[1] = 0.1
             camTarget = self.camSetpoint
