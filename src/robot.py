@@ -10,7 +10,7 @@ from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
-from PIDController import PIDController, PIDControllerForArm
+from PIDController import PIDController, PIDControllerForArm, updatePIDsInNT
 from real import angleWrap, lerp
 from shooterStateMachine import ShooterTarget, StateMachine
 from simHAL import RobotSimHAL
@@ -35,6 +35,7 @@ class RobotInputs():
 
         self.driveScalar = CircularScalar(.05, 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
+        self.manualAimScalar = Scalar(deadZone=0.1)
 
         self.driveX: float = 0.0
         self.driveY: float = 0.0
@@ -44,7 +45,6 @@ class RobotInputs():
         self.brakeButton: bool = False
         self.absToggle: bool = False
 
-        self.turningPIDButton: bool = False
         self.angleTarget: int = 0
 
         self.intake: bool = False
@@ -69,7 +69,6 @@ class RobotInputs():
         ##flipped x and y inputs so they are relative to bot
         self.driveX, self.driveY = self.driveScalar.Scale(-self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX())
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
-        self.turningPIDButton = self.driveCtrlr.getLeftBumper()
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
@@ -110,7 +109,7 @@ class RobotInputs():
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
 
-        self.shooterAimManual = -self.armCtrlr.getLeftY()
+        self.shooterAimManual = self.manualAimScalar(-self.armCtrlr.getLeftY())
         self.intakeReverse = self.armCtrlr.getBButton()
         self.manualFeed = self.intake
         self.manualFeedReverse = self.intakeReverse
@@ -167,15 +166,12 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_SIDE_UPPER, AUTO_SIDE_UPPER)
         self.autoChooser.addOption(AUTO_SIDE_LOWER, AUTO_SIDE_LOWER)
         self.autoChooser.addOption(AUTO_SHOOT_PRELOADED, AUTO_SHOOT_PRELOADED)
-
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
         self.odomField = wpilib.Field2d()
         wpilib.SmartDashboard.putData("odom", self.odomField)
 
-        self.turnPID = PIDController(2.4, 0, 0)
-        self.turnPID.kp = 2.4
-        self.table.putNumber("turnPID kp", self.turnPID.kp)
+        self.turnPID = PIDController("turnPID", 3, 0, 0)
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -199,8 +195,6 @@ class Robot(wpilib.TimedRobot):
         self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
         self.table.putNumber("timesinceinit", self.time.timeSinceInit)
 
-        self.turnPID.kp = self.table.getNumber("turnPID kp", 0.3)
-
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
 
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
@@ -210,16 +204,14 @@ class Robot(wpilib.TimedRobot):
             else:
                 self.onRedSide = False
 
+        updatePIDsInNT()
         profiler.end("robotPeriodic")
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
-        self.manualAimPID = PIDControllerForArm(0, 0, 0, 0, 0.04, 0)
-        self.manualShooterPID = PIDController(0, 0, 0, 0.2)
+        self.manualAimPID = PIDControllerForArm("ManualAim", 0, 0, 0, 0, 0.04, 0)
+        self.manualShooterPID = PIDController("ManualShoot", 0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
-
-
-        self.turnPID = PIDController(0.3, 0, 0)
 
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
@@ -294,11 +286,7 @@ class Robot(wpilib.TimedRobot):
         else:
             self.shooterStateMachine.state = 0
             self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
-
-            if(self.input.shooterAimManual > 0.2):
-                self.hal.shooterAimSpeed += -0.1
-            if(self.input.shooterAimManual < -0.2):
-                self.hal.shooterAimSpeed += 0.1
+            self.hal.shooterAimSpeed += self.input.shooterAimManual * 0.2
 
             if(self.input.manualFeed):
                 self.hal.intakeSpeeds[1] += 0.4
