@@ -15,8 +15,9 @@ class ShooterTarget(Enum):
 class StateMachine():
     READY_FOR_RING = 0
     FEEDING = 1
-    AIMING = 2
-    SHOOTING = 3
+    STORED_IN_SHOOTER = 2
+    AIMING = 3
+    SHOOTING = 4
 
     SPEED_SMOOTH_SCALAR = 0.1
     AIM_SMOOTH_SCALAR = 0.05
@@ -58,6 +59,8 @@ class StateMachine():
         self.inputShoot: bool = False
 
         self.inputFeed: bool = False
+        
+        self.inputProfile: float = 0.0
 
     # none will not change currently targeted pos
     def aim(self, target: ShooterTarget):
@@ -96,7 +99,8 @@ class StateMachine():
         self.camPID.kp = self.table.getNumber("cam kp", 0)
 
         self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0), self.table.getNumber("podiumCam", 0.0))
-
+        
+        
         if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):
                 self.aimSetpoint = self.ampSetpoint[0]
@@ -119,7 +123,7 @@ class StateMachine():
             aimTarget = 0
             speedTarget = 0
             camTarget = self.camSetpoint
-            if(self.inputFeed):
+            if(self.inputFeed and hal.intakeSensor):
                 self.state = self.FEEDING
 
         elif(self.state == self.FEEDING):
@@ -127,8 +131,19 @@ class StateMachine():
             speedTarget = 0
             hal.shooterIntakeSpeed = 0.1
             hal.intakeSpeeds[1] = 0.1
-            if hal.shooterSensor and (self.inputAim != ShooterTarget.NONE):
+            camTarget = self.camSetpoint
+            if hal.shooterSensor:
+                self.state = self.STORED_IN_SHOOTER
+        
+        elif(self.state == self.STORED_IN_SHOOTER):
+            hal.shooterIntakeSpeed = 0
+            hal.intakeSpeeds[1] = 0
+            aimTarget = 0
+            speedTarget = 0
+            camTarget = self.camSetpoint
+            if self.inputAim != ShooterTarget.NONE:
                 self.state = self.AIMING
+            
 
         elif(self.state == self.AIMING):
             aimTarget = self.aimSetpoint

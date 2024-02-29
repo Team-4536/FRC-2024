@@ -408,7 +408,7 @@ class Robot(wpilib.TimedRobot):
             # UPPER RING
             b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", flipToRed))
             b.addIntakeStage()
-            b.addStageSet(stages.StageBuilder() \
+            b.addStageSet(stages.StageBuilder() 
                         .addPathStage(self.loadTrajectory("upperBack", flipToRed)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             b.addShooterFireStage()
