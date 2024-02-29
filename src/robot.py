@@ -35,6 +35,7 @@ class RobotInputs():
 
         self.driveScalar = CircularScalar(.05, 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
+        self.manualAimScalar = Scalar(deadZone=0.1)
 
         self.driveX: float = 0.0
         self.driveY: float = 0.0
@@ -108,7 +109,7 @@ class RobotInputs():
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
 
-        self.shooterAimManual = -self.armCtrlr.getLeftY()
+        self.shooterAimManual = self.manualAimScalar(-self.armCtrlr.getLeftY())
         self.intakeReverse = self.armCtrlr.getBButton()
         self.manualFeed = self.intake
         self.manualFeedReverse = self.intakeReverse
@@ -285,11 +286,7 @@ class Robot(wpilib.TimedRobot):
         else:
             self.shooterStateMachine.state = 0
             self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
-
-            if(self.input.shooterAimManual > 0.2):
-                self.hal.shooterAimSpeed += -0.1
-            if(self.input.shooterAimManual < -0.2):
-                self.hal.shooterAimSpeed += 0.1
+            self.hal.shooterAimSpeed += self.input.shooterAimManual * 0.2
 
             if(self.input.manualFeed):
                 self.hal.intakeSpeeds[1] += 0.4
