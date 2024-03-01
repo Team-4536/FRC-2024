@@ -115,7 +115,7 @@ class RobotHAL():
                             rev.CANSparkMax(4, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(6, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(8, rev.CANSparkMax.MotorType.kBrushless)
-                           ]
+                            ]
         self.driveEncoders = [x.getEncoder() for x in self.driveMotors]
         self.driveMotors[1].setInverted(True)
         self.driveMotors[3].setInverted(True)
@@ -126,7 +126,7 @@ class RobotHAL():
                             rev.CANSparkMax(3, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(5, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(7, rev.CANSparkMax.MotorType.kBrushless)
-                           ]
+                            ]
         for m in self.steerMotors:
             m.setInverted(True)
             m.setOpenLoopRampRate(50)
@@ -177,6 +177,7 @@ class RobotHAL():
         self.ledController: CANdle = CANdle(20)
 
     def update(self, buf: RobotHALBuffer) -> None:
+        """
         prev = self.prev
         self.prev = copy.deepcopy(buf)
 
@@ -224,9 +225,10 @@ class RobotHAL():
             self.gyro.reset()
         buf.yaw = math.radians(-self.gyro.getAngle())
         profiler.end("gyro updates")
-        
-        """for i, led in enumerate(buf.leds):
-            self.ledController.setLEDs(led[0], led[1], led[2], 0, i, 1)"""
+        """
+        for i, led in enumerate(buf.leds):
+            self.ledController.setLEDs(led[0], led[1], led[2], 0, i, 1)
+            """
 
         profiler.start()
         buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
@@ -240,6 +242,8 @@ class RobotHAL():
         #     buf.shooterSensor = True
         # else:
         #     buf.shooterSensor = False
+        """
+        
         buf.intakeSensor = self.intakeSensor.get()
         buf.intakeSensor = self.intakeSensor.get()
         buf.shooterSensor = self.shooterSensor.get()

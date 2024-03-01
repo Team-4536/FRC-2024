@@ -17,7 +17,7 @@ from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from phoenix5.led import StrobeAnimation, RainbowAnimation
+from phoenix5.led import StrobeAnimation, RainbowAnimation, FireAnimation, ColorFlowAnimation
 from lightControl import setLights
 
 class RobotInputs():
@@ -109,13 +109,17 @@ AUTO_EXIT = "exit"
 AUTO_GET_ALL = "grab all"
 
 strobeAnim  = StrobeAnimation(255, 255, 255, 0, 3, 200, 8)
-rainbowAnim = RainbowAnimation(1, 1, 200, False, 8)
+rainbowAnim = RainbowAnimation(1, .3, 200, False, 8)
+offAnim = FireAnimation(0, 0, 200, 0, 0, False, 8)
+colorFlowAnim = ColorFlowAnimation(255, 0, 255, 0, .2, 54)
+
+
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.hal = robotHAL.RobotHALBuffer()
         self.hardware = robotHAL.RobotHAL()
-        self.hardware.update(self.hal)
+        #self.hardware.update(self.hal)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
 
@@ -143,13 +147,17 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
         
-        
+        self.hardware.ledController.animate(rainbowAnim)
+        self.ledTime = 0
+
         
 
     def robotPeriodic(self) -> None:
         profiler.start()
 
         self.time = TimeData(self.time)
+        
+        
 
         self.hal.publish(self.table)
         self.shooterStateMachine.publishInfo()
@@ -164,21 +172,36 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
+        
+        self.ledTime+=1
+        if self.ledTime>200:
+            self.ledTime = 0
+        self.table.putNumber("ledTime", self.ledTime)
 
         
         if self.hal.debugBool:
             for i in range(8):
                 self.hal.leds[i] = 255, 255, 255
         elif self.hal.shooterSensor:
-            for i in range(8):
-                self.hal.leds[i] = 0, 0, 255
+            #for i in range(8):
+                #self.hal.leds[i] = 0, 0, 255
+            if self.ledTime>100:
+                self.hardware.ledController.setLEDs(0, 0, 255, 0, 0, 200)
         elif self.hal.intakeSensor:
             #for i in range(8):
             #    self.hal.leds[i] = 0, 255, 0
-            self.hardware.ledController.animate(rainbowAnim)
+            #self.hardware.ledController.animate(rainbowAnim)
+            #self.hardware.ledController.setLEDs(0, 0, 0, 0, 0, 200)
+            #self.hardware.ledController.setLEDs(0, 255, 0)
+            if self.ledTime>100:
+                self.hardware.ledController.setLEDs(0, 255, 0, 0, 0, 200)
+                
+            
+
         else:
-            for i in range(8):
-                self.hal.leds[i] = 0, 0, 0
+            #self.hardware.ledController.animate(offAnim)
+            self.hardware.ledController.setLEDs(0, 0, 0)
+            pass
         
 
         profiler.end("robotPeriodic")
@@ -277,7 +300,7 @@ class Robot(wpilib.TimedRobot):
         self.hal.camSpeed = self.input.camTemp * 0.2
 
         profiler.start()
-        self.hardware.update(self.hal)
+        #self.hardware.update(self.hal)
         profiler.end("hardware update")
         self.table.putNumber("frame time", wpilib.getTime() - frameStart)
 
@@ -371,14 +394,14 @@ class Robot(wpilib.TimedRobot):
         self.driveGyroYawOffset = initialPose.rotation().radians()
         self.hardware.gyro.reset()
         self.hardware.gyro.setAngleAdjustment(-initialPose.rotation().degrees())
-        self.hardware.update(self.hal)
+        #self.hardware.update(self.hal)
         self.drive.resetOdometry(initialPose, self.hal)
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
         self.auto.update(self)
         self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
-        self.hardware.update(self.hal)
+        #self.hardware.update(self.hal)
 
     def disabledInit(self) -> None:
         self.disabledPeriodic()

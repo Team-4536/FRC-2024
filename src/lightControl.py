@@ -1,5 +1,6 @@
 from phoenix5.led import CANdle #only use for LEDs
 import math
+from robotHAL import RobotHAL, RobotHALBuffer
 totalLights = 8
 numHeaderLights = 1
 
