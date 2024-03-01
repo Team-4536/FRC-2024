@@ -1,3 +1,4 @@
+import ntcore
 import profiler
 import robotHAL
 import wpilib
@@ -11,6 +12,12 @@ from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
+import SimEncoders
+from SimEncoders import RobotSimHAL, RobotSimHALBuffer
+from wpilib import SmartDashboard
+import timing
+from timing import TimeData
+
 
 
 class RobotInputs():
@@ -43,6 +50,8 @@ class RobotInputs():
         self.shoot: bool = False
 
         self.camTemp: float = 0.0
+
+        
         # self.stateMachineOverrideToggle: bool = False
 
     def update(self) -> None:
@@ -75,7 +84,10 @@ class RobotInputs():
         self.rev = self.armCtrlr.getLeftTriggerAxis() > 0.2
         self.shoot = self.armCtrlr.getLeftBumper()
 
-        self.camTemp = -self.armCtrlr.getRightY()
+        self.Table = wpilib.SmartDashboard
+        self.table = ntcore.NetworkTableInstance
+        self.Table.putNumber("camTemp", self.camTemp)
+        self.camTemp = self.Table.getNumber('camTemp', 0)#-self.armCtrlr.getRightY()
 
 
     
@@ -83,9 +95,13 @@ class RobotInputs():
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
+        self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
-        self.hardware = robotHAL.RobotHAL()
-        self.hardware.update(self.hal)
+        self.hhal = SimEncoders.RobotSimHALBuffer()
+        self.hardware = RobotSimHAL()
+        self.prev = RobotSimHALBuffer()
+    
+     #self.hardware.update(self.hhal, self.time.dt)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
 
@@ -93,7 +109,7 @@ class Robot(wpilib.TimedRobot):
 
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
-        self.time = TimeData(None)
+        
 
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
@@ -177,10 +193,11 @@ class Robot(wpilib.TimedRobot):
         self.hal.camSpeed = self.input.camTemp * 0.2
 
         profiler.start()
-        self.hardware.update(self.hal)
+        self.hardware.update(self.hhal, self.time.dt)
         profiler.end("hardware update")
         self.table.putNumber("TIME FOR FRAME", wpilib.getTime() - frameStart)
 
+        self.hardware.update(self.hhal, self.time.dt)
     def autonomousInit(self) -> None:
         pass
 
@@ -192,7 +209,7 @@ class Robot(wpilib.TimedRobot):
 
     def disabledPeriodic(self) -> None:
         self.hal.stopMotors()
-        self.hardware.update(self.hal)
+        #self.hardware.update(self.hhal, self.time.dt)
 
 
 if __name__ == "__main__":
