@@ -75,7 +75,7 @@ class RobotInputs():
         ##flipped x and y inputs so they are relative to bot
         self.driveX, self.driveY = self.driveScalar.Scale(-self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX())
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
-        
+
         self.turningPIDButton = self.driveCtrlr.getLeftBumper()
 
 
@@ -94,35 +94,6 @@ class RobotInputs():
         elif self.driveCtrlr.getXButton(): #left
             self.angleTarget = self.TARGET_LEFT
 
-    
-        if self.driveCtrlr.getPOV() < 190 and self.driveCtrlr.getPOV() > 170: #down
-            # if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
-                # self.targetAngle = math.radians(90)
-            # else:
-            self.targetAngle = math.radians(0)
-        elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #right
-            self.targetAngle = math.radians(-90)
-        elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350: #up
-            self.targetAngle = math.radians(60)
-        elif self.driveCtrlr.getPOV() > 260 and self.driveCtrlr.getPOV() < 280: #left
-            self.targetAngle = math.radians(90)
-        
-        """        #angle snapping with ABXY
-        if self.driveCtrlr.getAButton():    #AMP SNAP
-            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False): 
-                self.targetAngle = math.radians(90)
-            else:
-                self.targetAngle = math.radians(-90)
-        
-        elif self.driveCtrlr.getBButton(): #SOURCE SNAP
-            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False): 
-                self.targetAngle = math.radians(60)
-            else:
-                self.targetAngle = math.radians(-60)
-        
-        elif self.driveCtrlr.getYButton: #snap to face driver station
-                self.targetAngle = 0"""
-        
         # arm controller
         self.intake = self.armCtrlr.getAButton()
 
@@ -236,8 +207,6 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
-
-        self.table.putNumber("target angle", math.degrees(self.input.targetAngle))
 
         self.table.putNumber("timesinceinit", self.time.timeSinceInit)
 
@@ -491,7 +460,7 @@ class Robot(wpilib.TimedRobot):
             b.addShooterFireStage()
             b.addIntakeStage().triggerAlongPath(0.5, traj)
             b.addIntakeStage()
-            b.addStageSet(stages.StageBuilder() \  
+            b.addStageSet(stages.StageBuilder() \
                           .addPathStage(self.loadTrajectory('lowerBack', self.onRedSide)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
 
