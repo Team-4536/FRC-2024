@@ -183,19 +183,13 @@ class StageBuilder:
         table = NetworkTableInstance.getDefault().getTable("AprilTag")
         XController = PIDController(
                 table.getNumber('path/Xp', 0), 0, 0)
-        
-        RotationController = ProfiledPIDController(
-            table.getNumber('path/Rp', 0), 0, 0, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
+        #RotationController = ProfiledPIDController(
+        #    table.getNumber('path/Rp', 0), 0, 0, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
         def stage(r: 'Robot') -> bool:
 
             if(frontLimelightTable.getNumber("getpipe", 0) != pipeline):
                 frontLimelightTable.putNumber("pipeline", pipeline)
 
-            table.putNumber("path/Xp", 0)
-            table.putNumber('path/Rp', 0)
-
-            XController.setP(table.getNumber("path/Xp", 0))
-            RotationController.setP(table.getNumber("path/Rp", 0))
             # goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
             #goal = Trajectory.State()
 
@@ -206,9 +200,10 @@ class StageBuilder:
         
             movementSpeed = XController.calculate(ty, setTx)
         # ySpeed = self.YController.calculate(currentPose.Y(), tyGoal)
-            rSpeed = RotationController.calculate(tx, setTy)
+            #rSpeed = RotationController.calculate(tx, setTy)
+            rSpeed = r.turnPID.reset
             
-            r.drive.update(r.time.dt, r.hal, ChassisSpeeds(movementSpeed, 0, rSpeed))
+            #r.drive.update(r.time.dt, r.hal, ChassisSpeeds(movementSpeed, 0, rSpeed))
 
             #adjustedSpeeds = [movementSpeed, rSpeed]
             
@@ -217,4 +212,6 @@ class StageBuilder:
             if 0.3>tx>-0.3  and 0.3>ty>-0.03:
                 return True
             return False
+        
+        self.add(Stage(stage, "go To April Tag"))
         return self

@@ -1,6 +1,7 @@
 import math
 
 import auto
+from auto import Stage
 import profiler
 import robotHAL
 import stages
@@ -70,6 +71,8 @@ class RobotInputs():
 
         self.climb: float = 0.0 # - is trigger in, + is reverse pressed, range goes -1 to 1
 
+        self.lineUpWithSubwoofer: bool = False
+
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -93,35 +96,6 @@ class RobotInputs():
             self.angleTarget = self.TARGET_SOURCE
         elif self.driveCtrlr.getXButton(): #left
             self.angleTarget = self.TARGET_LEFT
-
-    
-        if self.driveCtrlr.getPOV() < 190 and self.driveCtrlr.getPOV() > 170: #down
-            # if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False):
-                # self.targetAngle = math.radians(90)
-            # else:
-            self.targetAngle = math.radians(0)
-        elif self.driveCtrlr.getPOV() > 80  and self.driveCtrlr.getPOV() < 100: #right
-            self.targetAngle = math.radians(-90)
-        elif (self.driveCtrlr.getPOV() < 10 and self.driveCtrlr.getPOV() > -0.9) or self.driveCtrlr.getPOV() > 350: #up
-            self.targetAngle = math.radians(60)
-        elif self.driveCtrlr.getPOV() > 260 and self.driveCtrlr.getPOV() < 280: #left
-            self.targetAngle = math.radians(90)
-        
-        """        #angle snapping with ABXY
-        if self.driveCtrlr.getAButton():    #AMP SNAP
-            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False): 
-                self.targetAngle = math.radians(90)
-            else:
-                self.targetAngle = math.radians(-90)
-        
-        elif self.driveCtrlr.getBButton(): #SOURCE SNAP
-            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("isBlueAlliance", False): 
-                self.targetAngle = math.radians(60)
-            else:
-                self.targetAngle = math.radians(-60)
-        
-        elif self.driveCtrlr.getYButton: #snap to face driver station
-                self.targetAngle = 0"""
         
         # arm controller
         self.intake = self.armCtrlr.getAButton()
@@ -157,6 +131,8 @@ class RobotInputs():
         self.manualFeedReverse = self.intakeReverse
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
+
+        self.lineUpWithSubwoofer = self.driveCtrlr.getLeftTriggerAxis() > 0.3
 
 AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
@@ -213,9 +189,14 @@ class Robot(wpilib.TimedRobot):
         self.odomField = wpilib.Field2d()
         wpilib.SmartDashboard.putData("odom", self.odomField)
 
+        #kp can be 4 if wanted
         self.turnPID = PIDController("turnPID", 3, 0, 0)
 
         self.frontLimelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
+
+        #goToSubwooferStagebuilder = stages.StageBuilder()
+        #test = goToSubwooferStagebuilder.addGoToAprilStag(self, 1, 0, 0).firstStage
+        #self.goToSubwoofer = test
 
 
     def robotPeriodic(self) -> None:
@@ -239,8 +220,6 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
 
-        self.table.putNumber("target angle", math.degrees(self.input.targetAngle))
-
         self.table.putNumber("timesinceinit", self.time.timeSinceInit)
 
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
@@ -255,6 +234,8 @@ class Robot(wpilib.TimedRobot):
 
 
         updatePIDsInNT()
+
+        self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
 
         profiler.end("robotPeriodic")
 
@@ -300,6 +281,16 @@ class Robot(wpilib.TimedRobot):
                 ang = 0
             self.table.putNumber("ctrl/targetAngle", math.degrees(ang))
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(ang + (-self.hal.yaw + self.driveGyroYawOffset)), ang, self.time.dt))
+            
+        elif self.input.lineUpWithSubwoofer:
+            #self.goToSubwoofer.func(self)
+            if(self.frontLimelightTable.getNumber("getpipe", 0) != 0):
+                self.frontLimelightTable.putNumber("pipeline", 0)
+            tx = self.frontLimelightTable.getNumber("tx", 0)
+            ty = self.frontLimelightTable.getNumber('ty', 0)
+
+
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))  
 
         else:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
