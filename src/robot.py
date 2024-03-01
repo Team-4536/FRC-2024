@@ -103,6 +103,7 @@ class RobotInputs():
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
         
+        #most likely needs to be changed
         self.limelightOdomReset = self.driveCtrlr.getRightStickButtonPressed()
 
 
