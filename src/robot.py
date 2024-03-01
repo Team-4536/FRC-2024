@@ -1,3 +1,4 @@
+import phoenix5
 import auto
 import profiler
 import robotHAL
@@ -16,6 +17,7 @@ from timing import TimeData
 from utils import Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
+from phoenix5.led import StrobeAnimation, RainbowAnimation
 from lightControl import setLights
 
 class RobotInputs():
@@ -106,6 +108,9 @@ AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
 AUTO_GET_ALL = "grab all"
 
+strobeAnim  = StrobeAnimation(255, 255, 255, 0, 3, 200, 8)
+rainbowAnim = RainbowAnimation(1, 1, 200, False, 8)
+
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.hal = robotHAL.RobotHALBuffer()
@@ -137,6 +142,9 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_EXIT, AUTO_EXIT)
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
+        
+        
+        
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -157,6 +165,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
 
+        
         if self.hal.debugBool:
             for i in range(8):
                 self.hal.leds[i] = 255, 255, 255
@@ -164,11 +173,13 @@ class Robot(wpilib.TimedRobot):
             for i in range(8):
                 self.hal.leds[i] = 0, 0, 255
         elif self.hal.intakeSensor:
-            for i in range(8):
-                self.hal.leds[i] = 0, 255, 0
+            #for i in range(8):
+            #    self.hal.leds[i] = 0, 255, 0
+            self.hardware.ledController.animate(rainbowAnim)
         else:
             for i in range(8):
                 self.hal.leds[i] = 0, 0, 0
+        
 
         profiler.end("robotPeriodic")
 
@@ -287,7 +298,7 @@ class Robot(wpilib.TimedRobot):
         flipToRed = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
             if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
-               flipToRed = True
+                flipToRed = True
             else:
                 flipToRed = False
 

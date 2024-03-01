@@ -136,7 +136,7 @@ class RobotHAL():
 
         # intake motors and encoders
         self.intakeMotors = [rev.CANSparkMax(9, rev.CANSparkMax.MotorType.kBrushless),
-                             rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
+                            rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
         self.intakeMotors[1].setInverted(True)
 
         self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
@@ -225,8 +225,8 @@ class RobotHAL():
         buf.yaw = math.radians(-self.gyro.getAngle())
         profiler.end("gyro updates")
         
-        for i, led in enumerate(buf.leds):
-            self.ledController.setLEDs(led[0], led[1], led[2], 0, i, 1)
+        """for i, led in enumerate(buf.leds):
+            self.ledController.setLEDs(led[0], led[1], led[2], 0, i, 1)"""
 
         profiler.start()
         buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
