@@ -12,11 +12,14 @@ class ShooterTarget(Enum):
     SUBWOOFER = 3
 
 class StateMachine():
-    READY_FOR_RING = 0
-    FEEDING = 1
-    AIMING = 2
-    REVVING = 3
-    SHOOTING = 4
+    START = 0
+    INTAKING = 1
+    STORING = 2
+    #READY_FOR_RING = 0
+    FEEDING = 3
+    AIMING = 4
+    REVVING = 5
+    SHOOTING = 6
 
     SPEED_SMOOTH_SCALAR = 0.1
     AIM_SMOOTH_SCALAR = 0.05
@@ -40,7 +43,7 @@ class StateMachine():
         self.speedSetpoint = 0
         self.PIDspeedSetpoint = 0
         self.PIDaimSetpoint = 0
-        self.state = self.READY_FOR_RING
+        self.state = self.START
 
         self.aimPID = PIDControllerForArm(0, 0, 0, 0, 0, 0)
         self.shooterPID = PIDController(0, 0, 0, 0.2)
@@ -71,7 +74,7 @@ class StateMachine():
 
     # To send commands to the state machine, use aim(), rev(), and shoot() before calling this
     # Note that calling aim from READY_FOR_RING will feed and then aim
-    def update(self, hal: RobotHALBuffer, time: float, dt: float):
+    def update(self, hal: RobotHALBuffer, time: float, dt: float, beIntaking: bool):
         self.shooterPID.kff = self.table.getNumber("kff", 0)
         self.shooterPID.kp = self.table.getNumber("kp", 0)
         self.aimPID.kp = self.table.getNumber("aim kp", 0)
@@ -80,7 +83,7 @@ class StateMachine():
         self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0))
 
         if(self.inputAim):
-            if(self.state == self.READY_FOR_RING):
+            if(self.state == self.STORING):
                 self.state = self.FEEDING
 
             if(self.inputAim == ShooterTarget.AMP):
@@ -95,9 +98,29 @@ class StateMachine():
 
         self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 10
 
-        if(self.state == self.READY_FOR_RING):
+
+        if(self.state == self.START):
+            hal.intakeSpeeds = [0, 0]
             aimTarget = 0
             speedTarget = 0
+            if(beIntaking):
+                self.state = self.INTAKING
+
+        elif(self.state == self.INTAKING):
+            hal.intakeSpeeds = [0.4, 0.4]
+            aimTarget = 0
+            speedTarget = 0
+            if(not beIntaking):
+                self.state = self.START
+            if(hal.intakeSensor):
+                self.state = self.STORING
+
+        elif(self.state == self.STORING):
+            hal.intakeSpeeds = [0, 0]
+            aimTarget = 0
+            speedTarget = 0
+            if not hal.intakeSensor:
+                self.state = self.START
 
         elif(self.state == self.FEEDING):
             aimTarget = 0
@@ -129,7 +152,7 @@ class StateMachine():
             hal.shooterIntakeSpeed = 0.4
             hal.intakeSpeeds[1] = 0.4
             if(time - self.time > 1.0):
-               self.state = self.READY_FOR_RING
+               self.state = self.START
 
         else:
             aimTarget = 0

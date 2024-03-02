@@ -3,7 +3,7 @@ import profiler
 import robotHAL
 import stages
 import wpilib
-from intakeStateMachine import IntakeStateMachine
+#from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
@@ -97,7 +97,7 @@ class Robot(wpilib.TimedRobot):
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
 
-        self.intakeStateMachine = IntakeStateMachine()
+        #self.intakeStateMachine = IntakeStateMachine()
         self.shooterStateMachine = StateMachine()
 
         self.autoSideChooser = wpilib.SendableChooser()
@@ -161,14 +161,14 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
         profiler.start()
-        self.intakeStateMachine.update(self.hal, self.input.intake)
+        self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt, self.input.intake)
         profiler.end("intake state machine")
 
         profiler.start()
         self.shooterStateMachine.aim(self.input.aim)
         self.shooterStateMachine.rev(self.input.rev)
         self.shooterStateMachine.shoot(self.input.shoot)
-        self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
+        self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt, self.input.intake)
         profiler.end("shooter state machine")
 
         self.hal.camSpeed = self.input.camTemp * 0.2
@@ -232,7 +232,7 @@ class Robot(wpilib.TimedRobot):
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
         self.auto.update(self)
-        self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
+        self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt, self.input.intake)
         self.hardware.update(self.hal)
 
     def disabledInit(self) -> None:
