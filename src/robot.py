@@ -1,11 +1,9 @@
 import math
 
-import auto
-from auto import Stage
 import profiler
 import robotHAL
-import stages
 import wpilib
+from autos import AutoBuilder
 from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
@@ -369,11 +367,9 @@ class Robot(wpilib.TimedRobot):
 
         self.table.putNumber("ShooterAimManual", self.input.shooterAimManual)
 
-
         profiler.end("shooter state machine")
 
         # self.hal.camSpeed = self.input.camTemp * 0.2
-
         self.hal.climberSpeed = self.input.climb * 0.2
 
 
@@ -404,15 +400,15 @@ class Robot(wpilib.TimedRobot):
             self.drive.modulePositions[0].distance(Translation2d()))
 
 
-        b = stages.StageBuilder()
+        self.auto = AutoBuilder()
         # shootRoutine = stages.StageBuilder() \
         #     .addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout") \
         #     .addShooterFireStage()
         traj = self.loadTrajectory("middle", self.onRedSide)
-        centerRing = stages.StageBuilder() \
+        centerRing = AutoBuilder() \
             .addIntakeStage().triggerAlongPath(0.6, traj) \
             .addIntakeStage() \
-            .addStageSet(stages.StageBuilder() \
+            .addStageSet(AutoBuilder() \
                           .addPathStage(self.loadTrajectory("middleBack", self.onRedSide)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True)) \
             .addShooterFireStage()
@@ -425,83 +421,80 @@ class Robot(wpilib.TimedRobot):
 
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
             initialPose = traj.getInitialState().getTargetHolonomicPose()
-            b.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
-            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
-            b.addShooterFireStage()
-            b.addStageBuiltStage(centerRing)
+            self.auto.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addSequence(centerRing)
 
         elif self.autoChooser.getSelected() == AUTO_GET_ALL:
             traj = self.loadTrajectory("middle", self.onRedSide)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
-            b.addTelemetryStage(AUTO_GET_ALL)
-            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
-            b.addShooterFireStage()
-            b.addStageBuiltStage(centerRing)
+            self.auto.addTelemetryStage(AUTO_GET_ALL)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addSequence(centerRing)
 
             # UPPER RING
 
-            b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", self.onRedSide))
-            b.addIntakeStage()
-            b.addStageSet(stages.StageBuilder() \
+            self.auto.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", self.onRedSide))
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
                           .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
-            b.addShooterFireStage()
+            self.auto.addShooterFireStage()
 
             # LOWER RING
-            b.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("lower", self.onRedSide))
-            b.addIntakeStage()
-            b.addStageSet(stages.StageBuilder() \
+            self.auto.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("lower", self.onRedSide))
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
                           .addPathStage(self.loadTrajectory("lowerBack", self.onRedSide)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
-            b.addShooterFireStage()
+            self.auto.addShooterFireStage()
 
         elif self.autoChooser.getSelected() == AUTO_EXIT:
             traj = self.loadTrajectory("exit", self.onRedSide)
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
-            b.addTelemetryStage(AUTO_EXIT)
-            b.addPathStage(traj)
+            self.auto.addTelemetryStage(AUTO_EXIT)
+            self.auto.addPathStage(traj)
 
         elif self.autoChooser.getSelected() == AUTO_SHOOT_PRELOADED:
             initialPose = Pose2d()
-            b.addTelemetryStage(AUTO_SHOOT_PRELOADED)
-            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
-            b.addShooterFireStage()
+            self.auto.addTelemetryStage(AUTO_SHOOT_PRELOADED)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_UPPER:
-
             traj = self.loadTrajectory("side-upper", self.onRedSide)
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
-            b.addTelemetryStage(AUTO_SIDE_UPPER)
-            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
-            b.addShooterFireStage()
-            b.addIntakeStage().triggerAlongPath(0.5, traj)
-            b.addIntakeStage()
-            b.addStageSet(stages.StageBuilder() \
+            self.auto.addTelemetryStage(AUTO_SIDE_UPPER)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addIntakeStage().triggerAlongPath(0.5, traj)
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
 
                           .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
-            b.addShooterFireStage
+            self.auto.addShooterFireStage()
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
             traj = self.loadTrajectory('side-lower', self.onRedSide)
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
-            b.addTelemetryStage(AUTO_SIDE_LOWER)
-            b.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
-            b.addShooterFireStage()
-            b.addIntakeStage().triggerAlongPath(0.5, traj)
-            b.addIntakeStage()
-            b.addStageSet(stages.StageBuilder() \
+            self.auto.addTelemetryStage(AUTO_SIDE_LOWER)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addIntakeStage().triggerAlongPath(0.5, traj)
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
                           .addPathStage(self.loadTrajectory('lowerBack', self.onRedSide)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
-
-            b.addShooterFireStage
+            self.auto.addShooterFireStage()
 
         else:
             assert(False)
-        self.auto = auto.Auto(self.time.timeSinceInit, b.firstStage)
 
         self.driveGyroYawOffset = initialPose.rotation().radians()
         self.hardware.resetGyroToAngle(initialPose.rotation().radians())
@@ -511,7 +504,7 @@ class Robot(wpilib.TimedRobot):
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
-        self.auto.update(self)
+        self.auto.run(self)
         self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
         self.hardware.update(self.hal, self.time)
 
@@ -524,10 +517,3 @@ class Robot(wpilib.TimedRobot):
 
 if __name__ == "__main__":
     wpilib.run(Robot)
-
-    # r = Robot()
-    # r.robotInit()
-    # r.autonomousInit()
-    # while(True):
-    #     r.robotPeriodic()
-    #     r.autonomousPeriodic()
