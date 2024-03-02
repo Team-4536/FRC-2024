@@ -1,34 +1,40 @@
-from turtle import ontimer
-import phoenix5
-import auto
+import math
+
 import profiler
 import robotHAL
-import stages
 import wpilib
+from autos import AutoBuilder
 from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
-from PIDController import PIDController, PIDControllerForArm
-from real import lerp
+from PIDController import PIDController, PIDControllerForArm, updatePIDsInNT
+from real import angleWrap, lerp
 from shooterStateMachine import ShooterTarget, StateMachine
+from simHAL import RobotSimHAL
 from swerveDrive import SwerveDrive
 from timing import TimeData
-from utils import Scalar
+from utils import CircularScalar, Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from phoenix5.led import StrobeAnimation, RainbowAnimation, FireAnimation, ColorFlowAnimation
-from lightControl import setLights
+
 
 class RobotInputs():
+    TARGET_NONE = 0
+    TARGET_LEFT = 1
+    TARGET_RIGHT = 2
+    TARGET_SUBWOOFER = 3
+    TARGET_SOURCE = 4
+
     def __init__(self) -> None:
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
+        self.buttonPanel = wpilib.Joystick(4)
 
-        self.xScalar = Scalar(deadZone = .1, exponent = 1)
-        self.yScalar = Scalar(deadZone = .1, exponent = 1)
+        self.driveScalar = CircularScalar(.05, 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
+        self.manualAimScalar = Scalar(deadZone=0.1)
 
         self.driveX: float = 0.0
         self.driveY: float = 0.0
@@ -38,39 +44,56 @@ class RobotInputs():
         self.brakeButton: bool = False
         self.absToggle: bool = False
 
+
+        self.angleTarget: int = 0
         self.intake: bool = False
 
         self.aim: ShooterTarget = ShooterTarget.NONE
         self.rev: bool = False
         self.shoot: bool = False
 
+        self.feed: bool = False
+
         self.camTemp: float = 0.0
 
         self.overideShooterStateMachine: bool = False
         self.overideIntakeStateMachine: bool = False
 
-        self.manualAimJoystickY: float = 0
+        self.shooterAimManual: float = 0
         self.aimEncoderReset: bool = False
-        self.manualFeedMotor: bool = False
+        self.manualFeed: bool = False
+        self.manualFeedReverse: bool = False
 
+
+        self.climb: float = 0.0 # - is trigger in, + is reverse pressed, range goes -1 to 1
+
+        self.lineUpWithSubwoofer: bool = False
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
-        self.driveX = self.xScalar(-self.driveCtrlr.getLeftY())
-        self.driveY = self.yScalar(-self.driveCtrlr.getLeftX())
+        self.driveX, self.driveY = self.driveScalar.Scale(-self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX())
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
+
+        self.turningPIDButton = self.driveCtrlr.getLeftBumper()
+
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
-        self.gyroReset = self.driveCtrlr.getYButtonPressed()
-        self.brakeButton = self.driveCtrlr.getBButtonPressed()
-        self.absToggle = self.driveCtrlr.getXButtonPressed()
+        self.gyroReset = self.driveCtrlr.getStartButtonPressed()
+        self.absToggle = self.driveCtrlr.getBackButtonPressed()
+
+        self.angleTarget = self.TARGET_NONE
+        if self.driveCtrlr.getAButton(): #down
+            self.angleTarget = self.TARGET_SUBWOOFER
+        elif self.driveCtrlr.getBButton(): #right
+            self.angleTarget = self.TARGET_RIGHT
+        elif self.driveCtrlr.getYButton(): #up
+            self.angleTarget = self.TARGET_SOURCE
+        elif self.driveCtrlr.getXButton(): #left
+            self.angleTarget = self.TARGET_LEFT
 
         # arm controller
         self.intake = self.armCtrlr.getAButton()
-        self.intakeReverse = self.armCtrlr.getBButton()
-
-        self.shooterAimManual = -self.armCtrlr.getLeftY()
 
         #POV is also known as the Dpad, 0 is centered on top, angles go clockwise
         self.aim = ShooterTarget.NONE
@@ -84,21 +107,25 @@ class RobotInputs():
 
         self.rev = self.armCtrlr.getLeftTriggerAxis() > 0.2
         self.shoot = self.armCtrlr.getLeftBumper()
-
         self.camTemp = -self.armCtrlr.getRightY()
+        self.feed = self.intake
 
 
+        self.climb = float(self.armCtrlr.getRightBumper()) - self.armCtrlr.getRightTriggerAxis()
+
+        # manual mode controls
         if(self.armCtrlr.getYButtonPressed()):
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
-        
-        self.manualFeedMotor = self.armCtrlr.getRightTriggerAxis() > 0.2
-        self.manualFeedReverseMotor = self.armCtrlr.getRightBumper()
-        self.manualAimJoystickY = self.armCtrlr.getLeftY()
+
+        self.shooterAimManual = self.manualAimScalar(-self.armCtrlr.getLeftY())
+        self.intakeReverse = self.armCtrlr.getBButton()
+        self.manualFeed = self.intake
+        self.manualFeedReverse = self.intakeReverse
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
-        
 
+        self.lineUpWithSubwoofer = self.driveCtrlr.getLeftTriggerAxis() > 0.3
 
 AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
@@ -108,6 +135,9 @@ AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
 AUTO_GET_ALL = "grab all"
+AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
+AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
+AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
 
 strobeAnim  = StrobeAnimation(255, 255, 255, 0, 3, 200, 8)
 rainbowAnim = RainbowAnimation(1, .3, 200, False, 8)
@@ -120,9 +150,15 @@ LIGHTS_ON = "on"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
+        self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
-        self.hardware = robotHAL.RobotHAL()
-        #self.hardware.update(self.hal)
+
+        self.hardware: robotHAL.RobotHAL | RobotSimHAL
+        if self.isSimulation():
+            self.hardware = RobotSimHAL()
+        else:
+            self.hardware = robotHAL.RobotHAL()
+        self.hardware.update(self.hal, self.time)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
 
@@ -130,7 +166,6 @@ class Robot(wpilib.TimedRobot):
 
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
-        self.time = TimeData(None)
 
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
@@ -148,10 +183,20 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_INTAKE_CENTER_RING, AUTO_INTAKE_CENTER_RING)
         self.autoChooser.addOption(AUTO_EXIT, AUTO_EXIT)
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
+        self.autoChooser.addOption(AUTO_SIDE_UPPER, AUTO_SIDE_UPPER)
+        self.autoChooser.addOption(AUTO_SIDE_LOWER, AUTO_SIDE_LOWER)
+        self.autoChooser.addOption(AUTO_SHOOT_PRELOADED, AUTO_SHOOT_PRELOADED)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
-        
-        
 
+        self.odomField = wpilib.Field2d()
+        wpilib.SmartDashboard.putData("odom", self.odomField)
+
+        #kp can be 4 if wanted
+        self.turnPID = PIDController("turnPID", 3, 0, 0)
+
+        self.frontLimelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
+
+        self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
         self.number = 1
         self.lastLEDTransition = 0
@@ -178,17 +223,35 @@ class Robot(wpilib.TimedRobot):
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
+        self.odomField.setRobotPose(pose)
 
         self.table.putBoolean("ctrl/absOn", self.abs)
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
+        self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
         
         self.table.putNumber("brightness array index", self.number)
         self.table.putNumber("on timer", self.onTimer)
         self.table.putNumber("on timer 2", self.onTimer2)
         self.table.putBoolean("test bool", self.testBool)
         self.table.putBoolean("sensor trig", self.sensorTrig)
+        self.table.putNumber("timesinceinit", self.time.timeSinceInit)
+        self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
+        
+        
+        
+        
+        self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
+        if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
+            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
+               self.onRedSide = True
+            else:
+                self.onRedSide = False
+
+        updatePIDsInNT()
+        self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
+        profiler.end("robotPeriodic")
         
         if self.hal.debugBool:
             for i in range(8):
@@ -197,8 +260,8 @@ class Robot(wpilib.TimedRobot):
             #for i in range(8):
                 #self.hal.leds[i] = 0, 0, 255
             pass
-        #if self.hal.intakeSensor:
-        if self.lightToggle.getSelected() == LIGHTS_ON:
+        if self.hal.intakeSensor:
+        #if self.lightToggle.getSelected() == LIGHTS_ON:
             self.sensorTrig = True
             
             #for i in range(8):
@@ -233,18 +296,19 @@ class Robot(wpilib.TimedRobot):
             #self.hardware.ledController.animate(offAnim)
             self.hardware.ledController.setLEDs(0, 0, 0)
             pass
-        
-
-        profiler.end("robotPeriodic")
-
-
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
-        self.manualAimPID = PIDControllerForArm(0, 0, 0, 0, 0.04, 0)
-        self.manualShooterPID = PIDController(0, 0, 0, 0.2)
+        self.manualAimPID = PIDControllerForArm("ManualAim", 0, 0, 0, 0, 0.04, 0)
+        self.manualShooterPID = PIDController("ManualShoot", 0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
 
+        #TODO make the pipelines an Enum
+        #red side
+        self.subwooferLineupPipeline: int = 1
+        if(not self.onRedSide):
+            #blue side
+            self.subwooferLineupPipeline = 2
 
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
@@ -264,9 +328,42 @@ class Robot(wpilib.TimedRobot):
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         if self.abs:
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
-        speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+
+        if self.input.angleTarget != RobotInputs.TARGET_NONE:
+            ang = 0
+            if self.input.angleTarget == RobotInputs.TARGET_LEFT:
+                ang = math.radians(90)
+            elif self.input.angleTarget == RobotInputs.TARGET_RIGHT:
+                ang = math.radians(-90)
+            elif self.input.angleTarget == RobotInputs.TARGET_SOURCE:
+                if self.onRedSide:
+                    ang = math.radians(60)
+                else:
+                    ang = math.radians(-60)
+            elif self.input.angleTarget == RobotInputs.TARGET_SUBWOOFER:
+                ang = 0
+            self.table.putNumber("ctrl/targetAngle", math.degrees(ang))
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(ang + (-self.hal.yaw + self.driveGyroYawOffset)), ang, self.time.dt))
+            
+        elif self.input.lineUpWithSubwoofer:
+            if(self.frontLimelightTable.getNumber("getpipe", 0) != self.subwooferLineupPipeline):
+                self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
+            tx = self.frontLimelightTable.getNumber("tx", 0)
+            ty = self.frontLimelightTable.getNumber('ty', 0)
+            
+
+            
+            #speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
+            speed = ChassisSpeeds(self.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, self.time.dt), \
+                    driveVector.Y(), \
+                    self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))    
+
+        else:
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
+
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
@@ -286,12 +383,13 @@ class Robot(wpilib.TimedRobot):
         profiler.start()
 
         if(self.input.aimEncoderReset):
-            self.hardware.shooterAimEncoder.setPosition(0)
+            self.hardware.resetAimEncoderPos(0)
 
         if(self.input.camEncoderReset):
-            self.hardware.camEncoder.setPosition(0)
+            self.hardware.resetCamEncoderPos(0)
 
         if(not self.input.overideShooterStateMachine):
+            self.shooterStateMachine.feed(self.input.feed) #untested
             self.shooterStateMachine.aim(self.input.aim)
             self.shooterStateMachine.rev(self.input.rev)
             self.shooterStateMachine.shoot(self.input.shoot)
@@ -299,16 +397,13 @@ class Robot(wpilib.TimedRobot):
         else:
             self.shooterStateMachine.state = 0
             self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
+            self.hal.shooterAimSpeed += self.input.shooterAimManual * 0.2
 
-            if(self.input.manualAimJoystickY > 0.2):
-                self.hal.shooterAimSpeed += -0.2
-            if(self.input.manualAimJoystickY < -0.2):
-                self.hal.shooterAimSpeed += 0.2
 
-            if(self.input.manualFeedMotor):
+            if(self.input.manualFeed):
                 self.hal.intakeSpeeds[1] += 0.4
                 self.hal.shooterIntakeSpeed += 0.4
-            if(self.input.manualFeedReverseMotor):
+            if(self.input.manualFeedReverse):
                 self.hal.intakeSpeeds[1] -= 0.4
                 self.hal.shooterIntakeSpeed -= 0.4
 
@@ -319,127 +414,165 @@ class Robot(wpilib.TimedRobot):
             self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * 0.1 + self.PIDspeedSetpoint
             self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
             if(self.input.shoot):
-                self.hal.shooterIntakeSpeed = 0.4
+                self.hal.shooterIntakeSpeed = 0.
+
+            # TODO: manual cam drive
+            # camTarget = self.shooterStateMachine.table.getNumber('targetCam', 0)
+            # self.shooterStateMachine.camPID.kp = self.shooterStateMachine.table.getNumber("cam kp", 0)
+            # self.hal.camSpeed = self.shooterStateMachine.camPID.tick(camTarget, self.hal.camPos, self.time.dt)
 
         self.table.putBoolean("ShooterStateMachineOveride", self.input.overideShooterStateMachine)
         self.table.putBoolean("IntakeStateMachineOveride", self.input.overideIntakeStateMachine)
-        self.table.putNumber("LeftStickY", self.input.manualAimJoystickY)
-        self.table.putNumber("AimEncoder", self.hardware.shooterAimEncoder.getPosition())
+
+        self.table.putNumber("ShooterAimManual", self.input.shooterAimManual)
 
         profiler.end("shooter state machine")
 
-        self.hal.camSpeed = self.input.camTemp * 0.2
+        # self.hal.camSpeed = self.input.camTemp * 0.2
+        self.hal.climberSpeed = self.input.climb * 0.2
+
 
         profiler.start()
-        #self.hardware.update(self.hal)
+        self.hardware.update(self.hal, self.time)
         profiler.end("hardware update")
         self.table.putNumber("frame time", wpilib.getTime() - frameStart)
 
-    def loadTrajectory(self, name: str, flipped: bool) -> PathPlannerTrajectory:
-        p = PathPlannerPath.fromPathFile(name)
+    # NOTE: filename is *just* the title of the file, with no extension and no path
+    # filename is directly passed to pathplanner.loadPath
+    def loadTrajectory(self, fileName: str, flipped: bool) -> PathPlannerTrajectory:
+        p = PathPlannerPath.fromPathFile(fileName)
         if flipped:
             p = p.flipPath()
         t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
         return t
 
     def autonomousInit(self) -> None:
+        # when simulating, initalize sim to have a preloaded ring
+        if isinstance(self.hardware, RobotSimHAL):
+            self.hardware.ringPos = 1
+            self.hardware.ringTransitionStart = -1
+
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),
-            PIDConstants(3, 0, 0),
+            PIDConstants(self.turnPID.kp, self.turnPID.ki, self.turnPID.kd,),
             5.0,
             self.drive.modulePositions[0].distance(Translation2d()))
 
-        flipToRed = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
-        if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
-            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
-                flipToRed = True
-            else:
-                flipToRed = False
 
-        stageList: list[auto.Stage] = []
+        self.auto = AutoBuilder()
+        # shootRoutine = stages.StageBuilder() \
+        #     .addShooterPrepStage(ShooterTarget.SUBWOOFER, True).setTimeout(4).addAbortLog("cancelled shooter prep because of timeout") \
+        #     .addShooterFireStage()
+        traj = self.loadTrajectory("middle", self.onRedSide)
+        centerRing = AutoBuilder() \
+            .addIntakeStage().triggerAlongPath(0.6, traj) \
+            .addIntakeStage() \
+            .addStageSet(AutoBuilder() \
+                          .addPathStage(self.loadTrajectory("middleBack", self.onRedSide)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True)) \
+            .addShooterFireStage()
+
+
         initialPose: Pose2d = Pose2d()
 
         if self.autoChooser.getSelected() == AUTO_NONE:
-            stageList = []
+            pass
+
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
-            traj = self.loadTrajectory("middle", flipToRed)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
-            stageList = [
-                stages.makeTelemetryStage(AUTO_INTAKE_CENTER_RING),
-                stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                stages.makeShooterFireStage(),
-                stages.makePathStageWithTriggerAtPercent(traj, 0.6, stages.makeIntakeStage()),
-                stages.makeIntakeStage(),
-                stages.makeStageSet([
-                    stages.makePathStage(self.loadTrajectory("middleBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                ]),
-                stages.makeShooterFireStage()
-            ]
+            self.auto.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addSequence(centerRing)
+
         elif self.autoChooser.getSelected() == AUTO_GET_ALL:
-            traj = self.loadTrajectory("middle", flipToRed)
+            traj = self.loadTrajectory("middle", self.onRedSide)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
-            stageList = [
-                stages.makeTelemetryStage(AUTO_GET_ALL),
-                stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                stages.makeShooterFireStage(),
+            self.auto.addTelemetryStage(AUTO_GET_ALL)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addSequence(centerRing)
 
-                # CENTER RING
-                stages.makePathStageWithTriggerAtPercent(traj, 0.6, stages.makeIntakeStage()),
-                stages.makeIntakeStage(),
-                stages.makeStageSet([
-                    stages.makePathStage(self.loadTrajectory("middleBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                ]),
-                stages.makeShooterFireStage(),
+            # UPPER RING
 
-                # UPPER RING
-                stages.makePathStageWithTriggerAtPercent(self.loadTrajectory("upper", flipToRed), 0.6, stages.makeIntakeStage()),
-                stages.makeIntakeStage(),
-                stages.makeStageSet([
-                    stages.makePathStage(self.loadTrajectory("upperBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                ]),
-                stages.makeShooterFireStage(),
+            self.auto.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", self.onRedSide))
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
+                          .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            self.auto.addShooterFireStage()
 
-                # LOWER RING
-                stages.makePathStageWithTriggerAtPercent(self.loadTrajectory("lower", flipToRed), 0.6, stages.makeIntakeStage()),
-                stages.makeIntakeStage(),
-                stages.makeStageSet([
-                    stages.makePathStage(self.loadTrajectory("lowerBack", flipToRed)),
-                    stages.makeShooterPrepStage(ShooterTarget.SUBWOOFER, True),
-                ]),
-                stages.makeShooterFireStage(),
-            ]
+            # LOWER RING
+            self.auto.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("lower", self.onRedSide))
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
+                          .addPathStage(self.loadTrajectory("lowerBack", self.onRedSide)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            self.auto.addShooterFireStage()
+
         elif self.autoChooser.getSelected() == AUTO_EXIT:
-            traj = self.loadTrajectory("exit", flipToRed)
-            initialPose = traj.getInitialTargetHolonomicPose()
-            stageList = [
-                stages.makeTelemetryStage(AUTO_EXIT),
-                stages.makePathStage(traj),
-            ]
+            traj = self.loadTrajectory("exit", self.onRedSide)
+
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            self.auto.addTelemetryStage(AUTO_EXIT)
+            self.auto.addPathStage(traj)
+
+        elif self.autoChooser.getSelected() == AUTO_SHOOT_PRELOADED:
+            initialPose = Pose2d()
+            self.auto.addTelemetryStage(AUTO_SHOOT_PRELOADED)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+
+        elif self.autoChooser.getSelected() == AUTO_SIDE_UPPER:
+            traj = self.loadTrajectory("side-upper", self.onRedSide)
+
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            self.auto.addTelemetryStage(AUTO_SIDE_UPPER)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addIntakeStage().triggerAlongPath(0.5, traj)
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
+
+                          .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            self.auto.addShooterFireStage()
+
+        elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
+            traj = self.loadTrajectory('side-lower', self.onRedSide)
+
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            self.auto.addTelemetryStage(AUTO_SIDE_LOWER)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addIntakeStage().triggerAlongPath(0.5, traj)
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
+                          .addPathStage(self.loadTrajectory('lowerBack', self.onRedSide)) \
+                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            self.auto.addShooterFireStage()
+
         else:
             assert(False)
-        self.auto = auto.Auto(stageList, self.time.timeSinceInit)
 
         self.driveGyroYawOffset = initialPose.rotation().radians()
-        self.hardware.gyro.reset()
-        self.hardware.gyro.setAngleAdjustment(-initialPose.rotation().degrees())
-        #self.hardware.update(self.hal)
+        self.hardware.resetGyroToAngle(initialPose.rotation().radians())
+        self.hardware.update(self.hal, self.time)
         self.drive.resetOdometry(initialPose, self.hal)
+        self.holonomicController.reset(initialPose, ChassisSpeeds())
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
-        self.auto.update(self)
+        self.auto.run(self)
         self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
-        #self.hardware.update(self.hal)
+        self.hardware.update(self.hal, self.time)
 
     def disabledInit(self) -> None:
         self.disabledPeriodic()
 
     def disabledPeriodic(self) -> None:
         self.hal.stopMotors()
-        self.hardware.update(self.hal)
+        self.hardware.update(self.hal, self.time)
 
 if __name__ == "__main__":
     wpilib.run(Robot)

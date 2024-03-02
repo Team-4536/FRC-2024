@@ -10,6 +10,7 @@ from phoenix6.hardware import CANcoder
 from phoenix6 import StatusCode
 import math
 from phoenix5.led import CANdle
+from timing import TimeData
 
 
 class RobotHALBuffer():
@@ -17,8 +18,34 @@ class RobotHALBuffer():
         self.driveSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1 // volts to motor controller
         self.steeringSpeeds: list[float] = [0, 0, 0, 0] # -1 to 1
         self.drivePositions: list[float] = [0, 0, 0, 0] # in meters
-        self.steeringPositions: list[float] = [0, 0, 0, 0] # in CCW rads
         self.driveSpeedMeasured: list[float] = [0, 0, 0, 0] # m/s // output from encoders
+        self.steeringPositions: list[float] = [0, 0, 0, 0] # in CCW rads
+
+        self.intakeSpeeds: list[float] = [0, 0] # -1 to 1 // volts to motor controller
+        # self.intakePositions: list[float] = [0, 0] # whatever encoders return
+
+        self.shooterSpeed: float = 0 # -1 to 1 // volts to motor controller
+        self.shooterAimSpeed: float = 0 # -1 to 1 // volts to motor controller
+        self.shooterIntakeSpeed: float = 0 # -1 to 1 // volts to motor controller
+        self.shooterAimPos: float = 0 # rads out from resting position
+
+        self.shooterAngVelocityMeasured : float = 0
+
+        self.camSpeed: float = 0
+        self.camPos: float = 0
+
+
+        self.climberSpeed: float = 0.0 # -1 to 1 volts, climbing up is -
+        self.climberLimitPressed: bool = False
+        self.climbCurrent = 0.0
+        self.climbTemp = 0.0
+
+
+        self.lowerShooterLimitSwitch: bool = False
+        self.upperShooterLimitSwitch: bool = False
+
+        self.intakeSensor: bool = False
+        self.shooterSensor: bool = False
 
         self.intakeSpeeds: list[float] = [0, 0] # -1 to 1 // volts to motor controller
         # self.intakePositions: list[float] = [0, 0] # whatever encoders return
@@ -71,6 +98,8 @@ class RobotHALBuffer():
 
         self.camSpeed = 0
 
+        self.climberSpeed = 0.0
+
     def publish(self, table: ntcore.NetworkTable) -> None:
         # swerve modules
         prefs = ["FL", "FR", "BL", "BR"]
@@ -103,6 +132,12 @@ class RobotHALBuffer():
 
         table.putNumber("camSpeed", self.camSpeed)
         table.putNumber("camPos", self.camPos)
+
+        table.putNumber("climberSpeed", self.climberSpeed)
+
+        table.putBoolean("climberLimit", self.climberLimitPressed)
+        table.putNumber("climberCurrent", self.climbCurrent)
+        table.putNumber("climberTemp", self.climbTemp)
 
         # gyro
         table.putNumber("yaw", self.yaw)
@@ -139,9 +174,9 @@ class RobotHAL():
                             rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
         self.intakeMotors[1].setInverted(True)
 
-        self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
-        for k in self.intakeMotors:
-            k.setSmartCurrentLimit(30)
+        # self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
+        # for k in self.intakeMotors:
+        #     k.setSmartCurrentLimit(30)
 
         # shooter motors
         self.shooterTopMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless)
@@ -159,6 +194,12 @@ class RobotHAL():
 
         self.camMotor = rev.CANSparkMax(15, rev.CANSparkMax.MotorType.kBrushless)
         self.camEncoder = self.camMotor.getEncoder()
+        self.camEncoder.setPosition(0)
+
+        self.climbingMotor = rev.CANSparkMax(16, rev.CANSparkMax.MotorType.kBrushless)
+
+        self.climbingMotor.setInverted(False)
+        self.climbSensor = self.climbingMotor.getReverseLimitSwitch(rev.SparkLimitSwitch.Type.kNormallyOpen)
 
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
@@ -174,10 +215,18 @@ class RobotHAL():
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
 
-        self.ledController: CANdle = CANdle(20)
+    # angle expected in CCW rads
+    def resetGyroToAngle(self, ang: float) -> None:
+        self.gyro.reset()
+        self.gyro.setAngleAdjustment(-math.degrees(ang))
 
-    def update(self, buf: RobotHALBuffer) -> None:
-        """
+    def resetCamEncoderPos(self, nPos: float) -> None:
+        self.camEncoder.setPosition(nPos)
+
+    def resetAimEncoderPos(self, nPos: float) -> None:
+        self.shooterAimEncoder.setPosition(nPos)
+
+    def update(self, buf: RobotHALBuffer, time: TimeData) -> None:
         prev = self.prev
         self.prev = copy.deepcopy(buf)
 
@@ -221,14 +270,42 @@ class RobotHAL():
 
         profiler.start()
 
+        profiler.end("drive updates")
+
+        profiler.start()
+        for m, s in zip(self.intakeMotors, buf.intakeSpeeds):
+            m.set(s)
+        profiler.end("steer updates")
+
+        # for i in range(0, 2):
+        #     e = self.intakeEncoders[i]
+        #     buf.intakePositions[i] = e.getPosition()
+
+        profiler.start()
+        self.shooterTopMotor.set(buf.shooterSpeed) # bottom shooter motor is on follower mode
+        self.shooterAimMotor.set(buf.shooterAimSpeed)
+        self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
+
+        buf.shooterAngVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
+        buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 45
+
+        self.camMotor.set(buf.camSpeed)
+        buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
+
+        self.climbingMotor.set(buf.climberSpeed)
+
+        buf.climberLimitPressed = self.climbSensor.get()
+        buf.climbCurrent = self.climbingMotor.getOutputCurrent()
+        buf.climbTemp = self.climbingMotor.getMotorTemperature()
+
+
+        profiler.end("other motor encoder updates")
+
+        profiler.start()
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
         buf.yaw = math.radians(-self.gyro.getAngle())
         profiler.end("gyro updates")
-        """
-        for i, led in enumerate(buf.leds):
-            self.ledController.setLEDs(led[0], led[1], led[2], 0, i, 1)
-            """
 
         profiler.start()
         buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
@@ -242,8 +319,7 @@ class RobotHAL():
         #     buf.shooterSensor = True
         # else:
         #     buf.shooterSensor = False
-        """
-        
+
         buf.intakeSensor = self.intakeSensor.get()
         buf.intakeSensor = self.intakeSensor.get()
         buf.shooterSensor = self.shooterSensor.get()

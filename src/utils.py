@@ -1,4 +1,10 @@
 import math
+from wpimath.geometry import Rotation2d, Translation2d
+import wpilib
+import numpy
+
+from wpimath.geometry import Rotation2d, Translation2d
+
 
 
 class Scalar:
@@ -21,6 +27,9 @@ class Scalar:
     def deadzone(self):
         return self._deadZone
 
+    def setExponent(self, exponent):
+        self.exponent = exponent
+        
     @deadzone.setter
     def deadzone(self, deadZone):
         deadZone = abs(deadZone)
@@ -34,3 +43,18 @@ class Scalar:
     @exponent.setter
     def exponent(self, exponent):
         self._exponent = exponent
+
+class CircularScalar:
+    def __init__(self, deadzone: float, exponent: int):
+        self.scalar = Scalar(deadzone, exponent)
+
+    def Scale(self, x: float, y: float):
+        angle = math.atan2(y, x)
+        mag = math.hypot(x, y)
+
+        ScaledMag = self.scalar.scale(mag)
+
+        stickXY = Translation2d(ScaledMag, 0)
+        stickXY = stickXY.rotateBy(Rotation2d(angle))
+
+        return stickXY.x, stickXY.y
