@@ -5,6 +5,9 @@ import profiler
 import robotHAL
 import stages
 import wpilib
+import timing
+import swerveDrive
+
 from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
@@ -19,7 +22,7 @@ from timing import TimeData
 from utils import CircularScalar, Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-
+import math
 
 class RobotInputs():
     TARGET_NONE = 0
@@ -32,6 +35,7 @@ class RobotInputs():
         self.driveCtrlr = wpilib.XboxController(0)
         self.armCtrlr = wpilib.XboxController(1)
         self.buttonPanel = wpilib.Joystick(4)
+
 
         self.driveScalar = CircularScalar(.05, 1)
         self.rotScalar = Scalar(deadZone = .1, exponent = 1)
@@ -70,6 +74,8 @@ class RobotInputs():
 
         self.climb: float = 0.0 # - is trigger in, + is reverse pressed, range goes -1 to 1
 
+        self.limelightOdomReset: bool = False
+
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -93,6 +99,7 @@ class RobotInputs():
             self.angleTarget = self.TARGET_SOURCE
         elif self.driveCtrlr.getXButton(): #left
             self.angleTarget = self.TARGET_LEFT
+
 
         # arm controller
         self.intake = self.armCtrlr.getAButton()
@@ -129,6 +136,9 @@ class RobotInputs():
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
 
+        #most likely needs to be changed
+        self.limelightOdomReset = self.driveCtrlr.getRightStickButtonPressed()
+
 AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
 AUTO_SIDE_FMS = "FMS side"
@@ -143,7 +153,11 @@ AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
+
         self.time = TimeData(None)
+
+        self.limelightOdomResetStage = stages.odometryResetWithLimelight(self, 0)
+
         self.hal = robotHAL.RobotHALBuffer()
 
         self.hardware: robotHAL.RobotHAL | RobotSimHAL
@@ -152,6 +166,7 @@ class Robot(wpilib.TimedRobot):
         else:
             self.hardware = robotHAL.RobotHAL()
         self.hardware.update(self.hal, self.time)
+
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
 
@@ -165,6 +180,7 @@ class Robot(wpilib.TimedRobot):
 
         self.intakeStateMachine = IntakeStateMachine()
         self.shooterStateMachine = StateMachine()
+
 
         self.autoSideChooser = wpilib.SendableChooser()
         self.autoSideChooser.setDefaultOption(AUTO_SIDE_FMS, AUTO_SIDE_FMS)
@@ -181,10 +197,14 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_SHOOT_PRELOADED, AUTO_SHOOT_PRELOADED)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
+
         self.odomField = wpilib.Field2d()
         wpilib.SmartDashboard.putData("odom", self.odomField)
 
         self.turnPID = PIDController("turnPID", 3, 0, 0)
+
+        wpilib.SmartDashboard.putData('Field', self.drive.field)
+
 
 
     def robotPeriodic(self) -> None:
@@ -193,14 +213,15 @@ class Robot(wpilib.TimedRobot):
         self.time = TimeData(self.time)
 
         self.hal.publish(self.table)
+
         self.shooterStateMachine.publishInfo()
 
-        self.drive.updateOdometry(self.hal)
 
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
         self.odomField.setRobotPose(pose)
+
 
         self.table.putBoolean("ctrl/absOn", self.abs)
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
@@ -212,6 +233,12 @@ class Robot(wpilib.TimedRobot):
 
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
 
+        if(self.input.limelightOdomReset):
+            self.limelightOdomResetStage(self)
+
+
+
+        profiler.end("robotPeriodic")
 
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
@@ -230,6 +257,9 @@ class Robot(wpilib.TimedRobot):
         self.manualAimPID = PIDControllerForArm("ManualAim", 0, 0, 0, 0, 0.04, 0)
         self.manualShooterPID = PIDController("ManualShoot", 0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
+
+        
+
 
 
     def teleopPeriodic(self) -> None:
@@ -358,6 +388,8 @@ class Robot(wpilib.TimedRobot):
         t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
         return t
 
+        
+    
     def autonomousInit(self) -> None:
         # when simulating, initalize sim to have a preloaded ring
         if isinstance(self.hardware, RobotSimHAL):

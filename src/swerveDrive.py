@@ -12,7 +12,8 @@ from wpimath.kinematics import (
     SwerveModulePosition,
     SwerveModuleState,
 )
-
+from wpimath.estimator import SwerveDrive4PoseEstimator
+import wpilib
 
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
 class SwerveDrive():
@@ -32,15 +33,23 @@ class SwerveDrive():
 
 
         self.kinematics = SwerveDrive4Kinematics(*self.modulePositions)
+
         self.odometry = SwerveDrive4Odometry(self.kinematics, angle, tuple(wheelStates), pose) #type: ignore // because of tuple type mismatch, which is assert gaurded
 
         prefs = ["FL", "FR", "BL", "BR"]
         self.turningPIDs = [PIDController(prefs[i] + "Turning", 0.3) for i in range(4)]
         self.drivePIDs = [PIDController(prefs[i] + "Drive", 0.03, 0, 0, 0.2) for i in range(4)]
 
+
+        self.field = wpilib.Field2d()
+
+
     def resetOdometry(self, pose: Pose2d, hal):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         self.odometry.resetPosition(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]), pose)
+        
+
+
 
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
     def update(self, dt: float, hal: robotHAL.RobotHALBuffer, speed: ChassisSpeeds):
@@ -64,6 +73,8 @@ class SwerveDrive():
     def updateOdometry(self, hal: robotHAL.RobotHALBuffer):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         self.odometry.update(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]))
+
+        self.field.setRobotPose(self.odometry.getEstimatedPosition())
 
     def optimizeTarget(self, target: SwerveModuleState, moduleAngle: Rotation2d) -> SwerveModuleState:
 

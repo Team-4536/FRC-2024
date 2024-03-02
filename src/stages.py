@@ -1,17 +1,33 @@
-
 from copy import copy, deepcopy
 
 from typing import TYPE_CHECKING
 
+
+from typing import TYPE_CHECKING, Self
+import wpimath
+from wpimath import controller
+from wpimath import trajectory, geometry, controller
+from wpimath.trajectory import TrapezoidProfile, Trajectory, TrapezoidProfileRadians
+from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.controller import ProfiledPIDController, HolonomicDriveController, ProfiledPIDControllerRadians, PIDController
+import stages
+
 from auto import Stage
-from ntcore import NetworkTableInstance
+from ntcore import NetworkTable, NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
 from real import angleWrap
 from shooterStateMachine import ShooterTarget
+
 from wpimath import angleModulus
+
+from wpimath.kinematics import ChassisSpeeds
+import math
+
+
 
 if TYPE_CHECKING:
     from robot import Robot
+
 
 class StageBuilder:
     def __init__(self) -> None:
@@ -172,3 +188,25 @@ class StageBuilder:
         self.currentStage.func = func
         self.currentStage.abortStage = None
         return self
+
+def odometryResetWithLimelight(r: 'Robot', pipeline: int) -> Stage:
+    limelightTable = r.FrontLimelightTable
+    robotPoseTable = r.robotPoseTable
+
+    def stage(r: 'Robot') -> bool:
+        #gets the pos from limelight
+        visionPose = limelightTable.getNumberArray("botpose_wpiblue", [0,0,0,0,0,0,0])
+        #debug values
+        robotPoseTable.putNumber("limeXPos", visionPose[0])
+        robotPoseTable.putNumber("limeYPos", visionPose[1])
+        robotPoseTable.putNumber("limeYaw", visionPose[5])
+        #make sure there is a value present and has input(R3) to update
+        if (not (visionPose[0] == 0 and visionPose[1] == 0 and visionPose[5] == 0)):  
+            visionPose2D = Pose2d(visionPose[0], visionPose[1], math.radians(visionPose[5]))
+            #X, Y, & Yaw are updated correctly
+            r.drive.resetOdometry(visionPose2D, r.hal)
+
+
+        return True
+    
+    return stage
