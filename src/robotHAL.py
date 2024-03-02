@@ -6,10 +6,8 @@ import ntcore
 import profiler
 import rev
 import wpilib
-from phoenix6.hardware import CANcoder
-from phoenix6 import StatusCode
-import math
 from phoenix5.led import CANdle
+from phoenix6.hardware import CANcoder
 from timing import TimeData
 
 
@@ -214,6 +212,8 @@ class RobotHAL():
 
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
+
+        self.ledController: CANdle = CANdle(20)
 
     # angle expected in CCW rads
     def resetGyroToAngle(self, ang: float) -> None:
