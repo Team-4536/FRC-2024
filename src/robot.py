@@ -78,7 +78,7 @@ class RobotInputs():
         ##flipped x and y inputs so they are relative to bot
         self.driveX, self.driveY = self.driveScalar.Scale(-self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX())
         self.turning = self.rotScalar(self.driveCtrlr.getRightX())
-        
+
         self.turningPIDButton = self.driveCtrlr.getLeftBumper()
 
 
@@ -96,7 +96,7 @@ class RobotInputs():
             self.angleTarget = self.TARGET_SOURCE
         elif self.driveCtrlr.getXButton(): #left
             self.angleTarget = self.TARGET_LEFT
-        
+
         # arm controller
         self.intake = self.armCtrlr.getAButton()
 
