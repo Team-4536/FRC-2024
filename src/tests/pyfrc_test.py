@@ -11,3 +11,4 @@ from pyfrc.tests import *
 # We can write additional tests to verify our code still works after changes.
 
 # You can read more about pyfrc.test's here: https://robotpy.readthedocs.io/projects/pyfrc/en/stable/testing.html
+#test
