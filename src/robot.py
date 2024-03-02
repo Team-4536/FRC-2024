@@ -194,9 +194,7 @@ class Robot(wpilib.TimedRobot):
 
         self.frontLimelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
 
-        #goToSubwooferStagebuilder = stages.StageBuilder()
-        #test = goToSubwooferStagebuilder.addGoToAprilStag(self, 1, 0, 0).firstStage
-        #self.goToSubwoofer = test
+        self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
 
     def robotPeriodic(self) -> None:
@@ -245,6 +243,12 @@ class Robot(wpilib.TimedRobot):
         self.manualShooterPID = PIDController("ManualShoot", 0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
 
+        #red side
+        self.subwooferLineupPipeline: int = 1
+        if(not self.onRedSide):
+            #blue side
+            self.subwooferLineupPipeline = 2
+
 
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
@@ -283,14 +287,17 @@ class Robot(wpilib.TimedRobot):
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(ang + (-self.hal.yaw + self.driveGyroYawOffset)), ang, self.time.dt))
             
         elif self.input.lineUpWithSubwoofer:
-            #self.goToSubwoofer.func(self)
-            if(self.frontLimelightTable.getNumber("getpipe", 0) != 0):
-                self.frontLimelightTable.putNumber("pipeline", 0)
+            if(self.frontLimelightTable.getNumber("getpipe", 0) != self.subwooferLineupPipeline):
+                self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
             tx = self.frontLimelightTable.getNumber("tx", 0)
             ty = self.frontLimelightTable.getNumber('ty', 0)
+            
 
-
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))  
+            
+            #speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
+            speed = ChassisSpeeds(self.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, self.time.dt), \
+                    driveVector.Y(), \
+                    self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))    
 
         else:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
