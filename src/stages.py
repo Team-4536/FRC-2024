@@ -9,6 +9,9 @@ from pathplannerlib.path import PathPlannerTrajectory
 from real import angleWrap
 from shooterStateMachine import ShooterTarget
 from wpimath import angleModulus
+from wpimath.controller import ProfiledPIDController, PIDController
+from wpimath.kinematics import ChassisSpeeds
+from wpimath.trajectory import TrapezoidProfile, Trajectory, TrapezoidProfileRadians
 
 if TYPE_CHECKING:
     from robot import Robot
@@ -171,4 +174,44 @@ class StageBuilder:
         self.currentStage.name = f"{stg.name} with timeout"
         self.currentStage.func = func
         self.currentStage.abortStage = None
+        return self
+    
+    def addGoToAprilStag(self, r: 'Robot', pipeline: int, setTx: float, setTy: float) -> 'StageBuilder':
+        frontLimelightTable = r.frontLimelightTable #NetworkTableInstance.getDefault().getTable("limelight-mb")
+        T_PConstraintsVolocityMax = 6.28
+        T_PConstraintsRotaionAccelerationMax = 1
+        table = NetworkTableInstance.getDefault().getTable("AprilTag")
+        XController = PIDController(
+                table.getNumber('path/Xp', 0), 0, 0)
+        #RotationController = ProfiledPIDController(
+        #    table.getNumber('path/Rp', 0), 0, 0, TrapezoidProfile.Constraints(T_PConstraintsVolocityMax, T_PConstraintsRotaionAccelerationMax))
+        def stage(r: 'Robot') -> bool:
+
+            if(frontLimelightTable.getNumber("getpipe", 0) != pipeline):
+                frontLimelightTable.putNumber("pipeline", pipeline)
+
+            # goal = self.trajectory.sample(self.time.timeSinceInit - self.autoStartTime)
+            #goal = Trajectory.State()
+
+
+            #goal = [txGoal, tyGoal]
+            tx = frontLimelightTable.getNumber("tx", 0)
+            ty = frontLimelightTable.getNumber('ty', 0)
+        
+            movementSpeed = XController.calculate(ty, setTx)
+        # ySpeed = self.YController.calculate(currentPose.Y(), tyGoal)
+            #rSpeed = RotationController.calculate(tx, setTy)
+            rSpeed = r.turnPID.reset
+            
+            #r.drive.update(r.time.dt, r.hal, ChassisSpeeds(movementSpeed, 0, rSpeed))
+
+            #adjustedSpeeds = [movementSpeed, rSpeed]
+            
+            #self.drive.adjustSpeeds
+
+            if 0.3>tx>-0.3  and 0.3>ty>-0.03:
+                return True
+            return False
+        
+        self.add(Stage(stage, "go To April Tag"))
         return self
