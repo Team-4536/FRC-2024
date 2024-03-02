@@ -340,9 +340,9 @@ class Robot(wpilib.TimedRobot):
         if self.input.angleTarget != RobotInputs.TARGET_NONE:
             ang = 0
             if self.input.angleTarget == RobotInputs.TARGET_LEFT:
-                ang = math.radians(90)
-            elif self.input.angleTarget == RobotInputs.TARGET_RIGHT:
                 ang = math.radians(-90)
+            elif self.input.angleTarget == RobotInputs.TARGET_RIGHT:
+                ang = math.radians(90)
             elif self.input.angleTarget == RobotInputs.TARGET_SOURCE:
                 if self.onRedSide:
                     ang = math.radians(60)
