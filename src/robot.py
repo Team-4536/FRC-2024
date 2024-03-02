@@ -69,6 +69,8 @@ class RobotInputs():
 
         self.climb: float = 0.0 # - is trigger in, + is reverse pressed, range goes -1 to 1
 
+        self.lineUpWithSubwoofer: bool = False
+
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -128,6 +130,8 @@ class RobotInputs():
         self.aimEncoderReset = self.armCtrlr.getLeftStickButtonPressed()
         self.camEncoderReset = self.armCtrlr.getRightStickButtonPressed()
 
+        self.lineUpWithSubwoofer = self.driveCtrlr.getLeftTriggerAxis() > 0.3
+
 AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
 AUTO_SIDE_FMS = "FMS side"
@@ -183,7 +187,12 @@ class Robot(wpilib.TimedRobot):
         self.odomField = wpilib.Field2d()
         wpilib.SmartDashboard.putData("odom", self.odomField)
 
+        #kp can be 4 if wanted
         self.turnPID = PIDController("turnPID", 3, 0, 0)
+
+        self.frontLimelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
+
+        self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
 
     def robotPeriodic(self) -> None:
@@ -222,6 +231,8 @@ class Robot(wpilib.TimedRobot):
 
         updatePIDsInNT()
 
+        self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
+
         profiler.end("robotPeriodic")
 
     def teleopInit(self) -> None:
@@ -229,6 +240,14 @@ class Robot(wpilib.TimedRobot):
         self.manualAimPID = PIDControllerForArm("ManualAim", 0, 0, 0, 0, 0.04, 0)
         self.manualShooterPID = PIDController("ManualShoot", 0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
+
+
+        #TODO make the pipelines an Enum
+        #red side
+        self.subwooferLineupPipeline: int = 1
+        if(not self.onRedSide):
+            #blue side
+            self.subwooferLineupPipeline = 2
 
 
     def teleopPeriodic(self) -> None:
@@ -266,6 +285,19 @@ class Robot(wpilib.TimedRobot):
                 ang = 0
             self.table.putNumber("ctrl/targetAngle", math.degrees(ang))
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(ang + (-self.hal.yaw + self.driveGyroYawOffset)), ang, self.time.dt))
+            
+        elif self.input.lineUpWithSubwoofer:
+            if(self.frontLimelightTable.getNumber("getpipe", 0) != self.subwooferLineupPipeline):
+                self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
+            tx = self.frontLimelightTable.getNumber("tx", 0)
+            ty = self.frontLimelightTable.getNumber('ty', 0)
+            
+
+            
+            #speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
+            speed = ChassisSpeeds(self.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, self.time.dt), \
+                    driveVector.Y(), \
+                    self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))    
 
         else:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
