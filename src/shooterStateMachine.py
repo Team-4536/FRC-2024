@@ -90,7 +90,6 @@ class StateMachine():
 
         self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0), self.table.getNumber("podiumCam", 0.0))
 
-
         if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):
                 self.aimSetpoint = self.ampSetpoint[0]
@@ -115,7 +114,6 @@ class StateMachine():
             camTarget = self.camSetpoint
 
             if(self.inputFeed and hal.intakeSensor):
-
                 self.state = self.FEEDING
 
         elif(self.state == self.FEEDING):

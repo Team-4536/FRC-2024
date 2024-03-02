@@ -46,8 +46,6 @@ class RobotInputs():
 
 
         self.angleTarget: int = 0
-
-
         self.intake: bool = False
 
         self.aim: ShooterTarget = ShooterTarget.NONE
@@ -70,7 +68,6 @@ class RobotInputs():
         self.climb: float = 0.0 # - is trigger in, + is reverse pressed, range goes -1 to 1
 
         self.lineUpWithSubwoofer: bool = False
-
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -117,11 +114,9 @@ class RobotInputs():
         self.climb = float(self.armCtrlr.getRightBumper()) - self.armCtrlr.getRightTriggerAxis()
 
         # manual mode controls
-
         if(self.armCtrlr.getYButtonPressed()):
             self.overideShooterStateMachine = not self.overideShooterStateMachine
             self.overideIntakeStateMachine = self.overideShooterStateMachine
-
 
         self.shooterAimManual = self.manualAimScalar(-self.armCtrlr.getLeftY())
         self.intakeReverse = self.armCtrlr.getBButton()
@@ -143,6 +138,15 @@ AUTO_GET_ALL = "grab all"
 AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
 AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
 AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
+
+strobeAnim  = StrobeAnimation(255, 255, 255, 0, 3, 200, 8)
+rainbowAnim = RainbowAnimation(1, .3, 200, False, 8)
+offAnim = FireAnimation(0, 0, 200, 0, 0, False, 8)
+colorFlowAnim = ColorFlowAnimation(255, 0, 255, 0, .2, 54)
+
+
+LIGHTS_OFF = "off"
+LIGHTS_ON = "on"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -194,6 +198,17 @@ class Robot(wpilib.TimedRobot):
 
         self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
+        self.number = 1
+        self.lastLEDTransition = 0
+        self.onTimer = 0
+        self.onTimer2 = 0
+        self.testBool = False
+        self.sensorTrig = False
+        
+        self.lightToggle = wpilib.SendableChooser()
+        self.lightToggle.setDefaultOption(LIGHTS_OFF, LIGHTS_OFF)
+        self.lightToggle.addOption(LIGHTS_ON, LIGHTS_ON)
+        wpilib.SmartDashboard.putData('lights toggle', self.lightToggle)
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -215,12 +230,18 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
-
+        
+        self.table.putNumber("brightness array index", self.number)
+        self.table.putNumber("on timer", self.onTimer)
+        self.table.putNumber("on timer 2", self.onTimer2)
+        self.table.putBoolean("test bool", self.testBool)
+        self.table.putBoolean("sensor trig", self.sensorTrig)
         self.table.putNumber("timesinceinit", self.time.timeSinceInit)
-
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
-
-
+        
+        
+        
+        
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
             if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
@@ -228,12 +249,53 @@ class Robot(wpilib.TimedRobot):
             else:
                 self.onRedSide = False
 
-
         updatePIDsInNT()
-
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
-
         profiler.end("robotPeriodic")
+        
+        if self.hal.debugBool:
+            for i in range(8):
+                self.hal.leds[i] = 255, 255, 255
+        elif self.hal.shooterSensor:
+            #for i in range(8):
+                #self.hal.leds[i] = 0, 0, 255
+            pass
+        if self.hal.intakeSensor:
+        #if self.lightToggle.getSelected() == LIGHTS_ON:
+            self.sensorTrig = True
+            
+            #for i in range(8):
+            #    self.hal.leds[i] = 0, 255, 0
+            #self.hardware.ledController.animate(rainbowAnim)
+            #self.hardware.ledController.setLEDs(0, 0, 0, 0, 0, 200)
+            #self.hardware.ledController.setLEDs(0, 255, 0)
+        if self.sensorTrig:
+            
+            self.onTimer2+=1
+            self.onTimer+=1
+            brightnessArray = [0, 255, 0, 255]
+            if (self.onTimer) > 10:
+                self.testBool = not self.testBool
+                self.onTimer = 0
+                
+                if (self.time.timeSinceInit - self.lastLEDTransition > 0.1):
+                    self.lastLEDTransition = self.time.timeSinceInit
+                    self.hardware.ledController.setLEDs(brightnessArray[self.number], brightnessArray[self.number], brightnessArray[self.number], 0, 0, 200)
+                    self.number+=1
+                    if self.number>3:
+                        self.number = 0
+                    #self.hardware.ledController.setLEDs(*col, 0, 0, 200)
+            else:
+                self.hardware.ledController.setLEDs(0, 0, 0)
+            if self.onTimer2 > 100:
+                self.sensorTrig = False
+                self.onTimer2 = 0
+                self.hardware.ledController.setLEDs(0, 0, 0)
+                self.testBool = False
+        else:
+            #self.hardware.ledController.animate(offAnim)
+            self.hardware.ledController.setLEDs(0, 0, 0)
+            pass
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
@@ -241,14 +303,12 @@ class Robot(wpilib.TimedRobot):
         self.manualShooterPID = PIDController("ManualShoot", 0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
 
-
         #TODO make the pipelines an Enum
         #red side
         self.subwooferLineupPipeline: int = 1
         if(not self.onRedSide):
             #blue side
             self.subwooferLineupPipeline = 2
-
 
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
@@ -268,7 +328,6 @@ class Robot(wpilib.TimedRobot):
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         if self.abs:
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
-
 
         if self.input.angleTarget != RobotInputs.TARGET_NONE:
             ang = 0
@@ -517,3 +576,13 @@ class Robot(wpilib.TimedRobot):
 
 if __name__ == "__main__":
     wpilib.run(Robot)
+
+    # r = Robot()
+    # r.robotInit()
+    # r.autonomousInit()
+    # while(True):
+    #     r.robotPeriodic()
+    #     r.autonomousPeriodic()
+
+
+
