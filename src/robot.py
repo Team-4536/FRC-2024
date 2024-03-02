@@ -243,6 +243,8 @@ class Robot(wpilib.TimedRobot):
         self.manualShooterPID = PIDController("ManualShoot", 0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
 
+
+        #TODO make the pipelines an Enum
         #red side
         self.subwooferLineupPipeline: int = 1
         if(not self.onRedSide):
