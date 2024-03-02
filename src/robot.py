@@ -114,6 +114,8 @@ offAnim = FireAnimation(0, 0, 200, 0, 0, False, 8)
 colorFlowAnim = ColorFlowAnimation(255, 0, 255, 0, .2, 54)
 
 
+LIGHTS_OFF = "off"
+LIGHTS_ON = "on"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
@@ -147,17 +149,21 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_GET_ALL, AUTO_GET_ALL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
         
-        self.hardware.ledController.animate(rainbowAnim)
-        self.ledTime = 0
-
         
+
+
+        self.number = 1
+        self.lastLEDTransition = 0
+        
+        self.lightToggle = wpilib.SendableChooser()
+        self.lightToggle.setDefaultOption(LIGHTS_OFF, LIGHTS_OFF)
+        self.lightToggle.addOption(LIGHTS_ON, LIGHTS_ON)
+        wpilib.SmartDashboard.putData('lights toggle', self.lightToggle)
 
     def robotPeriodic(self) -> None:
         profiler.start()
 
         self.time = TimeData(self.time)
-        
-        
 
         self.hal.publish(self.table)
         self.shooterStateMachine.publishInfo()
@@ -173,10 +179,9 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         
-        self.ledTime+=1
-        if self.ledTime>200:
-            self.ledTime = 0
-        self.table.putNumber("ledTime", self.ledTime)
+        self.table.putNumber("brightness array index", self.number)
+        
+        
 
         
         if self.hal.debugBool:
@@ -185,18 +190,21 @@ class Robot(wpilib.TimedRobot):
         elif self.hal.shooterSensor:
             #for i in range(8):
                 #self.hal.leds[i] = 0, 0, 255
-            if self.ledTime>100:
-                self.hardware.ledController.setLEDs(0, 0, 255, 0, 0, 200)
-        elif self.hal.intakeSensor:
+            pass
+        if self.hal.intakeSensor:
             #for i in range(8):
             #    self.hal.leds[i] = 0, 255, 0
             #self.hardware.ledController.animate(rainbowAnim)
             #self.hardware.ledController.setLEDs(0, 0, 0, 0, 0, 200)
             #self.hardware.ledController.setLEDs(0, 255, 0)
-            if self.ledTime>100:
-                self.hardware.ledController.setLEDs(0, 255, 0, 0, 0, 200)
-                
-            
+            brightnessArray = [0, 255, 0, 255]
+            if (self.time.timeSinceInit - self.lastLEDTransition > 0.1):
+                self.lastLEDTransition = self.time.timeSinceInit
+                self.number+=1
+                if self.number>3:
+                    self.number = 0
+                #self.hardware.ledController.setLEDs(*col, 0, 0, 200)
+                self.hardware.ledController.setLEDs(brightnessArray[self.number], brightnessArray[self.number], brightnessArray[self.number], 0, 0, 200)
 
         else:
             #self.hardware.ledController.animate(offAnim)
