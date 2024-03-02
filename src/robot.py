@@ -335,11 +335,9 @@ class Robot(wpilib.TimedRobot):
 
         self.table.putNumber("ShooterAimManual", self.input.shooterAimManual)
 
-
         profiler.end("shooter state machine")
 
         # self.hal.camSpeed = self.input.camTemp * 0.2
-
         self.hal.climberSpeed = self.input.climb * 0.2
 
 

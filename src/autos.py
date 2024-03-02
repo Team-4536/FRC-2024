@@ -41,14 +41,14 @@ class AutoBuilder:
             self.currentRunStage = self.firstStage
 
         self.table.putNumber("stageTime", self.stageStart)
-        if self.currentStage is not None:
-            self.table.putString("stage", f"{self.currentStage.name}")
-            done = self.currentStage.func(r)
+        if self.currentRunStage is not None:
+            self.table.putString("stage", f"{self.currentRunStage.name}")
+            done = self.currentRunStage.func(r)
             if done is True:
-                self.currentStage = self.currentStage.nextStage
+                self.currentRunStage = self.currentRunStage.nextStage
                 self.stageStart = r.time.timeSinceInit
             elif done is None:
-                self.currentStage = self.currentStage.abortStage
+                self.currentRunStage = self.currentRunStage.abortStage
                 self.stageStart = r.time.timeSinceInit
 
         return self.currentRunStage is None
@@ -66,8 +66,8 @@ class AutoBuilder:
         return self
 
     def addAbort(self, new: 'AutoBuilder') -> 'AutoBuilder':
-        if self.currentStage is not None:
-            self.currentStage.abortStage = new.firstStage
+        if self.currentBuildStage is not None:
+            self.currentBuildStage.abortStage = new.firstStage
         return self
 
     def addAbortLog(self, log: str) -> 'AutoBuilder':
@@ -141,6 +141,7 @@ class AutoBuilder:
     # ends when state is on target
     def addShooterPrepStage(self, target: ShooterTarget, rev: bool) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
+            r.shooterStateMachine.feed(True)
             r.shooterStateMachine.aim(target)
             r.shooterStateMachine.rev(rev)
             return r.shooterStateMachine.onTarget
