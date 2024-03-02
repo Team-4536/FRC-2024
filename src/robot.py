@@ -193,11 +193,12 @@ class Robot(wpilib.TimedRobot):
         self.hal.camSpeed = self.input.camTemp * 0.2
 
         profiler.start()
-        self.hardware.update(self.hhal, self.time.dt)
+        self.hardware.update(self.hhal, self.time.dt, ntcore.NetworkTableInstance)
         profiler.end("hardware update")
         self.table.putNumber("TIME FOR FRAME", wpilib.getTime() - frameStart)
 
-        self.hardware.update(self.hhal, self.time.dt)
+        self.hardware.update(self.hhal, self.time.dt, ntcore.NetworkTableInstance)
+        self.hal.publish(self.table)
     def autonomousInit(self) -> None:
         pass
 

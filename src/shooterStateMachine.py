@@ -2,7 +2,6 @@ from ntcore import NetworkTableInstance
 import math
 from PIDController import PIDController, PIDControllerForArm
 from robotHAL import RobotHALBuffer
-
 #from wpimath.controller import PIDController
 #from robot import RobotInputs
 

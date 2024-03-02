@@ -9,7 +9,7 @@ import robot
 import timing
 from timing import TimeData
 import wpilib
-
+from wpilib import shuffleboard
 from phoenix6.hardware import CANcoder
 import profiler
 
@@ -39,6 +39,7 @@ class RobotInputs():
         self.shoot: bool = False
 
         self.camTemp: float = 0.0
+        
 
 class RobotSimHALBuffer():
     def __init__(self) -> None:
@@ -55,6 +56,8 @@ class RobotSimHALBuffer():
     
         table.putNumber("camSpeed", self.camSpeed)
         table.putNumber("camPos", self.camPos)
+        
+        
 
 class RobotSimHAL():
     def __init__(self) -> None:
@@ -65,17 +68,25 @@ class RobotSimHAL():
         self.hhal.camSpeed = self.input.camTemp * 0.2
         
 
-    def update(self, buf: RobotSimHALBuffer, dt) -> None:
+    def update(self, buf: RobotSimHALBuffer, dt, table) -> None:
         
         #self.table = NetworkTableInstance.getDefault().getTable("telemetry")
-        self.table = wpilib.SmartDashboard
-        
         prev = self.prev
         self.prev = copy.deepcopy(buf)
 
+
         madeUpRadiansCam = buf.camSpeed / 3
         timePassed = dt
-        MadeUpCamPos = madeUpRadiansCam * timePassed
-        self.table.putNumber('CamPoseMadeUp', MadeUpCamPos)
+        self.madeUpCamPos = madeUpRadiansCam * timePassed
+        
+        #table.putNumber('camPoseMadeUp', self.madeUpCamPos)
+
+       
+        #self.camSpeed = table.getNumber('cam')
+
+        #table.putNumber('camSpeed', self.camSpeed)
+        table.putNumber("camPosMadeUp", self.madeUpCamPos)
+
+        
 
        
