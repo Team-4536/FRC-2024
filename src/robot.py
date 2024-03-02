@@ -433,7 +433,6 @@ class Robot(wpilib.TimedRobot):
             self.auto.addShooterFireStage()
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_UPPER:
-
             traj = self.loadTrajectory("side-upper", self.onRedSide)
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
@@ -446,7 +445,7 @@ class Robot(wpilib.TimedRobot):
 
                           .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
-            self.auto.addShooterFireStage
+            self.auto.addShooterFireStage()
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
             traj = self.loadTrajectory('side-lower', self.onRedSide)
@@ -460,8 +459,7 @@ class Robot(wpilib.TimedRobot):
             self.auto.addStageSet(AutoBuilder() \
                           .addPathStage(self.loadTrajectory('lowerBack', self.onRedSide)) \
                           .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
-
-            self.auto.addShooterFireStage
+            self.auto.addShooterFireStage()
 
         else:
             assert(False)
