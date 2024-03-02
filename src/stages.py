@@ -1,4 +1,9 @@
 from typing import TYPE_CHECKING
+import wpimath
+from wpimath import kinematics
+from wpimath.kinematics import ChassisSpeeds
+import shooterStateMachine
+from shooterStateMachine import StateMachine
 
 import stages
 from auto import Stage
@@ -39,6 +44,7 @@ def makePathStageWithTriggerAtPercent(t: PathPlannerTrajectory, percent: float, 
         if ((r.time.timeSinceInit - r.auto.stagestart) > (t.getTotalTimeSeconds() * percent)):
             triggered(r)
         return isOver
+
     return stage
 
 # targets go: 0 - amp, 1 - podium, 2 - subwoofer
@@ -72,3 +78,19 @@ def makeStageSet(stages: list[Stage]) -> Stage:
                 broken = True
         return not broken
     return stage
+
+def dontGiveUp(r: 'Robot') -> Stage:
+    def stage(r: 'Robot') -> bool:
+        r.table.putNumber("forwardSpeedForStgae", 0.1)
+        forwardSpeed = r.table.getNumber("forawrdSpeedForStage", 0.1)
+        speed = ChassisSpeeds(forwardSpeed, 0, 0)
+        s = StateMachine()
+        if s.state == s.READY_FOR_RING:    
+            r.drive.update(r.time.dt, r.hal, speed)
+        else:
+            haveRing = True
+        return haveRing
+    
+    return stage
+    
+    

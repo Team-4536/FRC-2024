@@ -239,6 +239,7 @@ class Robot(wpilib.TimedRobot):
                 stages.makePathStageWithTriggerAtPercent(
                         path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
                         0.6, stages.makeIntakeStage()),
+                stages.makeStageSet([stages.dontGiveUp(self), stages.makeIntakeStage()]),
                 stages.makeIntakeStage(),
                 stages.makeStageSet([
                     stages.makePathStage(self.loadPathFlipped("middleBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
@@ -256,6 +257,7 @@ class Robot(wpilib.TimedRobot):
                 stages.makePathStageWithTriggerAtPercent(
                         path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
                         0.6, stages.makeIntakeStage()),
+                stages.makeStageSet([stages.dontGiveUp(self), stages.makeIntakeStage()]),
                 stages.makeIntakeStage(),
                 stages.makeStageSet([
                     stages.makePathStage(self.loadPathFlipped("lowerBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
@@ -273,6 +275,7 @@ class Robot(wpilib.TimedRobot):
                 stages.makePathStageWithTriggerAtPercent(
                         path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
                         0.6, stages.makeIntakeStage()),
+                stages.makeStageSet([stages.dontGiveUp(self), stages.makeIntakeStage()]),
                 stages.makeIntakeStage(),
                 stages.makeStageSet([
                     stages.makePathStage(self.loadPathFlipped("upperBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
@@ -297,6 +300,7 @@ class Robot(wpilib.TimedRobot):
                 stages.makePathStageWithTriggerAtPercent(
                         path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
                         0.6, stages.makeIntakeStage()),
+                stages.makeStageSet([stages.dontGiveUp(self), stages.makeIntakeStage()]),
                 stages.makeIntakeStage(),
                 stages.makeStageSet([
                     stages.makePathStage(self.loadPathFlipped("upperBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
@@ -310,6 +314,7 @@ class Robot(wpilib.TimedRobot):
                 stages.makePathStageWithTriggerAtPercent(
                         path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
                         0.6, stages.makeIntakeStage()),
+                stages.makeStageSet([stages.dontGiveUp(self), stages.makeIntakeStage()]),
                 stages.makeIntakeStage(),
                 stages.makeStageSet([
                     stages.makePathStage(self.loadPathFlipped("lowerBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
@@ -323,6 +328,7 @@ class Robot(wpilib.TimedRobot):
                 stages.makePathStageWithTriggerAtPercent(
                         path.getTrajectory(ChassisSpeeds(), initialPose.rotation()),
                         0.6, stages.makeIntakeStage()),
+                stages.makeStageSet([stages.dontGiveUp(self), stages.makeIntakeStage()]),
                 stages.makeIntakeStage(),
                 stages.makeStageSet([
                     stages.makePathStage(self.loadPathFlipped("middleBack", flipToRed).getTrajectory(ChassisSpeeds(), initialPose.rotation())),
