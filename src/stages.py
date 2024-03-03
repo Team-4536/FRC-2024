@@ -85,9 +85,14 @@ def dontGiveUp(r: 'Robot') -> Stage:
         forwardSpeed = r.table.getNumber("forawrdSpeedForStage", 0.1)
         speed = ChassisSpeeds(forwardSpeed, 0, 0)
         s = StateMachine()
+        x = 1
         if s.state == s.READY_FOR_RING:    
             r.drive.update(r.time.dt, r.hal, speed)
+            x = (x +1)
         else:
+            backwardSpeed = forwardSpeed*(-x)
+            speed = ChassisSpeeds(backwardSpeed, 0, 0)
+            r.drive.update(r.time.dt, r.hal, speed)
             haveRing = True
         return haveRing
     
