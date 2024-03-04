@@ -324,6 +324,5 @@ class RobotHAL():
         #     buf.shooterSensor = False
 
         buf.intakeSensor = self.intakeSensor.get()
-        buf.intakeSensor = self.intakeSensor.get()
         buf.shooterSensor = self.shooterSensor.get()
         profiler.end("sensor updates")
