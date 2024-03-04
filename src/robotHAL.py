@@ -268,7 +268,7 @@ class RobotHAL():
         buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 45
 
         self.camMotor.set(buf.camSpeed)
-        buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
+        buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 16
         profiler.end("shooter motor encoder updates")
 
         profiler.start()
