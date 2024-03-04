@@ -207,7 +207,8 @@ class Robot(wpilib.TimedRobot):
         self.LEDAnimationFrame = 0
         self.LEDLastTransition = 0
         self.LEDFlashTimer = 0.0
-        self.LEDSensorWasOn = False
+        self.LEDPrevTrigger = False
+        self.LEDTrigger = False
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -245,10 +246,11 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
         profiler.end("robotPeriodic")
 
-        if self.hal.intakeSensor and not self.LEDSensorWasOn:
+        self.LEDTrigger |= self.hal.intakeSensor
+        if self.LEDTrigger and not self.LEDPrevTrigger:
             self.LEDFlashTimer = 2.0
             self.lastLEDTransition = self.time.timeSinceInit
-        self.LEDSensorWasOn = self.hal.intakeSensor
+        self.LEDPrevTrigger = self.LEDTrigger
 
         if self.LEDFlashTimer > 0:
             self.LEDFlashTimer -= self.time.dt
