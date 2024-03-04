@@ -212,7 +212,7 @@ class Robot(wpilib.TimedRobot):
         self.onTimer2 = 0
         self.testBool = False
         self.sensorTrig = False
-        
+
         self.lightToggle = wpilib.SendableChooser()
         self.lightToggle.setDefaultOption(LIGHTS_OFF, LIGHTS_OFF)
         self.lightToggle.addOption(LIGHTS_ON, LIGHTS_ON)
@@ -238,7 +238,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
-        
+
         self.table.putNumber("brightness array index", self.number)
         self.table.putNumber("on timer", self.onTimer)
         self.table.putNumber("on timer 2", self.onTimer2)
@@ -246,10 +246,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putBoolean("sensor trig", self.sensorTrig)
         self.table.putNumber("timesinceinit", self.time.timeSinceInit)
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
-        
-        
-        
-        
+
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
             if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
@@ -260,7 +257,7 @@ class Robot(wpilib.TimedRobot):
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
         profiler.end("robotPeriodic")
-        
+
         if self.hal.debugBool:
             for i in range(8):
                 self.hal.leds[i] = 255, 255, 255
@@ -271,21 +268,21 @@ class Robot(wpilib.TimedRobot):
         if self.hal.intakeSensor:
         #if self.lightToggle.getSelected() == LIGHTS_ON:
             self.sensorTrig = True
-            
+
             #for i in range(8):
             #    self.hal.leds[i] = 0, 255, 0
             #self.hardware.ledController.animate(rainbowAnim)
             #self.hardware.ledController.setLEDs(0, 0, 0, 0, 0, 200)
             #self.hardware.ledController.setLEDs(0, 255, 0)
         if self.sensorTrig:
-            
+
             self.onTimer2+=1
             self.onTimer+=1
             brightnessArray = [0, 255, 0, 255]
             if (self.onTimer) > 10:
                 self.testBool = not self.testBool
                 self.onTimer = 0
-                
+
                 if (self.time.timeSinceInit - self.lastLEDTransition > 0.1):
                     self.lastLEDTransition = self.time.timeSinceInit
                     self.hardware.ledController.setLEDs(brightnessArray[self.number], brightnessArray[self.number], brightnessArray[self.number], 0, 0, 200)
@@ -352,19 +349,17 @@ class Robot(wpilib.TimedRobot):
                 ang = 0
             self.table.putNumber("ctrl/targetAngle", math.degrees(ang))
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(ang + (-self.hal.yaw + self.driveGyroYawOffset)), ang, self.time.dt))
-            
+
         elif self.input.lineUpWithSubwoofer:
             if(self.frontLimelightTable.getNumber("getpipe", 0) != self.subwooferLineupPipeline):
                 self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
             tx = self.frontLimelightTable.getNumber("tx", 0)
             ty = self.frontLimelightTable.getNumber('ty', 0)
-            
 
-            
             #speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
             speed = ChassisSpeeds(self.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, self.time.dt), \
                     driveVector.Y(), \
-                    self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))    
+                    self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
 
         else:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
