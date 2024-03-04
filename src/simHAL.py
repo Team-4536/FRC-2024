@@ -127,4 +127,7 @@ class RobotSimHAL():
     def resetAimEncoderPos(self, nPos: float) -> None:
         pass
 
+    def setLEDs(self, r: int, g: int, b: int, w: int = 0, startIdx: int = 0, count: int = 0) -> None:
+        pass
+
     # TODO: test to verify that this and the actual hal have the same signature

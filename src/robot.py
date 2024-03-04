@@ -145,11 +145,11 @@ AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
 AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
 AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
 
-strobeAnim  = StrobeAnimation(255, 255, 255, 0, 3, 200, 8)
-rainbowAnim = RainbowAnimation(1, .3, 200, False, 8)
-offAnim = FireAnimation(0, 0, 200, 0, 0, False, 8)
-colorFlowAnim = ColorFlowAnimation(255, 0, 255, 0, .2, 54)
-
+# Light animations, unused because they ovveride manual controls of lights
+# strobeAnim  = StrobeAnimation(255, 255, 255, 0, 3, 200, 8)
+# rainbowAnim = RainbowAnimation(1, .3, 200, False, 8)
+# offAnim = FireAnimation(0, 0, 200, 0, 0, False, 8)
+# colorFlowAnim = ColorFlowAnimation(255, 0, 255, 0, .2, 54)
 
 LIGHTS_OFF = "off"
 LIGHTS_ON = "on"
@@ -159,13 +159,11 @@ class Robot(wpilib.TimedRobot):
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
 
-        # TODO: cleanup hacks from HCPA
-        # self.hardware: robotHAL.RobotHAL | RobotSimHAL
-        # if self.isSimulation():
-        #     self.hardware = RobotSimHAL()
-        # else:
-        #     self.hardware = robotHAL.RobotHAL()
-        self.hardware = robotHAL.RobotHAL()
+        self.hardware: robotHAL.RobotHAL | RobotSimHAL
+        if self.isSimulation():
+            self.hardware = RobotSimHAL()
+        else:
+            self.hardware = robotHAL.RobotHAL()
         self.hardware.update(self.hal, self.time)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
@@ -206,17 +204,10 @@ class Robot(wpilib.TimedRobot):
 
         self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
-        self.number = 1
-        self.lastLEDTransition = 0
-        self.onTimer = 0.0
-        self.onTimer2 = 0.0
-        self.testBool = False
-        self.sensorTrig = False
-
-        self.lightToggle = wpilib.SendableChooser()
-        self.lightToggle.setDefaultOption(LIGHTS_OFF, LIGHTS_OFF)
-        self.lightToggle.addOption(LIGHTS_ON, LIGHTS_ON)
-        wpilib.SmartDashboard.putData('lights toggle', self.lightToggle)
+        self.LEDAnimationFrame = 0
+        self.LEDLastTransition = 0
+        self.LEDFlashTimer = 0.0
+        self.LEDSensorWasOn = False
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -238,12 +229,8 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
-
-        self.table.putNumber("brightness array index", self.number)
-        self.table.putNumber("on timer", self.onTimer)
-        self.table.putNumber("on timer 2", self.onTimer2)
-        self.table.putBoolean("test bool", self.testBool)
-        self.table.putBoolean("sensor trig", self.sensorTrig)
+        self.table.putNumber("LEDAnimationFrame", self.LEDAnimationFrame)
+        self.table.putNumber("LEDFlashTimer", self.LEDFlashTimer)
         self.table.putNumber("timesinceinit", self.time.timeSinceInit)
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
 
@@ -258,24 +245,24 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
         profiler.end("robotPeriodic")
 
-        if self.hal.intakeSensor:
-            self.onTimer2 = 2.0
+        if self.hal.intakeSensor and not self.LEDSensorWasOn:
+            self.LEDFlashTimer = 2.0
             self.lastLEDTransition = self.time.timeSinceInit
+        self.LEDSensorWasOn = self.hal.intakeSensor
 
-        if self.onTimer2 > 0:
-            self.onTimer2 -= self.time.dt
-
+        if self.LEDFlashTimer > 0:
+            self.LEDFlashTimer -= self.time.dt
             brightnessArray = [0, 255, 0, 255]
             if (self.time.timeSinceInit - self.lastLEDTransition > 0.1):
                 self.lastLEDTransition = self.time.timeSinceInit
-                self.hardware.ledController.setLEDs(brightnessArray[self.number], 0, brightnessArray[self.number], 0, 0, 200)
-                self.number += 1
-                self.number %= 4
-                self.testBool = brightnessArray[self.number] != 0
+                self.hardware.setLEDs(brightnessArray[self.LEDAnimationFrame],
+                                      brightnessArray[self.LEDAnimationFrame],
+                                      brightnessArray[self.LEDAnimationFrame], 0, 0, 200)
+                self.LEDAnimationFrame += 1
+                self.LEDAnimationFrame %= len(brightnessArray)
         else:
-            self.onTimer2 = 0.0
-            self.hardware.ledController.setLEDs(0, 0, 0)
-            self.testBool = False
+            self.LEDFlashTimer = 0.0
+            self.hardware.setLEDs(0, 0, 0)
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0

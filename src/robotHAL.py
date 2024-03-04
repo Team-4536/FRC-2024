@@ -226,6 +226,9 @@ class RobotHAL():
     def resetAimEncoderPos(self, nPos: float) -> None:
         self.shooterAimEncoder.setPosition(nPos)
 
+    def setLEDs(self, r: int, g: int, b: int, w: int = 0, startIdx: int = 0, count: int = 512) -> None:
+        self.ledController.setLEDs(r, g, b, w, startIdx, count)
+
     def update(self, buf: RobotHALBuffer, time: TimeData) -> None:
         prev = self.prev
         self.prev = copy.deepcopy(buf)
