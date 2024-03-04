@@ -208,8 +208,8 @@ class Robot(wpilib.TimedRobot):
 
         self.number = 1
         self.lastLEDTransition = 0
-        self.onTimer = 0
-        self.onTimer2 = 0
+        self.onTimer = 0.0
+        self.onTimer2 = 0.0
         self.testBool = False
         self.sensorTrig = False
 
@@ -258,49 +258,24 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
         profiler.end("robotPeriodic")
 
-        if self.hal.debugBool:
-            for i in range(8):
-                self.hal.leds[i] = 255, 255, 255
-        elif self.hal.shooterSensor:
-            #for i in range(8):
-                #self.hal.leds[i] = 0, 0, 255
-            pass
         if self.hal.intakeSensor:
-        #if self.lightToggle.getSelected() == LIGHTS_ON:
-            self.sensorTrig = True
+            self.onTimer2 = 2.0
+            self.lastLEDTransition = self.time.timeSinceInit
 
-            #for i in range(8):
-            #    self.hal.leds[i] = 0, 255, 0
-            #self.hardware.ledController.animate(rainbowAnim)
-            #self.hardware.ledController.setLEDs(0, 0, 0, 0, 0, 200)
-            #self.hardware.ledController.setLEDs(0, 255, 0)
-        if self.sensorTrig:
+        if self.onTimer2 > 0:
+            self.onTimer2 -= self.time.dt
 
-            self.onTimer2+=1
-            self.onTimer+=1
             brightnessArray = [0, 255, 0, 255]
-            if (self.onTimer) > 10:
-                self.testBool = not self.testBool
-                self.onTimer = 0
-
-                if (self.time.timeSinceInit - self.lastLEDTransition > 0.1):
-                    self.lastLEDTransition = self.time.timeSinceInit
-                    self.hardware.ledController.setLEDs(brightnessArray[self.number], brightnessArray[self.number], brightnessArray[self.number], 0, 0, 200)
-                    self.number+=1
-                    if self.number>3:
-                        self.number = 0
-                    #self.hardware.ledController.setLEDs(*col, 0, 0, 200)
-            else:
-                self.hardware.ledController.setLEDs(0, 0, 0)
-            if self.onTimer2 > 100:
-                self.sensorTrig = False
-                self.onTimer2 = 0
-                self.hardware.ledController.setLEDs(0, 0, 0)
-                self.testBool = False
+            if (self.time.timeSinceInit - self.lastLEDTransition > 0.1):
+                self.lastLEDTransition = self.time.timeSinceInit
+                self.hardware.ledController.setLEDs(brightnessArray[self.number], 0, brightnessArray[self.number], 0, 0, 200)
+                self.number += 1
+                self.number %= 4
+                self.testBool = brightnessArray[self.number] != 0
         else:
-            #self.hardware.ledController.animate(offAnim)
+            self.onTimer2 = 0.0
             self.hardware.ledController.setLEDs(0, 0, 0)
-            pass
+            self.testBool = False
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
