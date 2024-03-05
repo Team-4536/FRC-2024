@@ -17,6 +17,10 @@ from wpimath.kinematics import (
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
 class SwerveDrive():
     # meters, relative to robot center
+    vx: float = 0
+    vy: float = 0
+    omega: float = 0
+
     oneFtInMeters = 0.305
     modulePositions: list[Translation2d] = [
         Translation2d(oneFtInMeters, oneFtInMeters),
@@ -42,10 +46,20 @@ class SwerveDrive():
         self.odometry.resetPosition(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]), pose)
 
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
-    def update(self, dt: float, hal: robotHAL.RobotHALBuffer, speed: ChassisSpeeds):
+
+    def setCassisSpeed(self, setVx: float | None, setVy: float | None, setOmega: float | None) -> None:
+        if(setVx != None):
+            self.vx = setVx
+        if(setVy != None):
+            self.vy = setVy
+        if(setOmega != None):
+            self.omega = setOmega
+        return
+    
+    def update(self, dt: float, hal: robotHAL.RobotHALBuffer):
 
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
-        targetStates = self.kinematics.toSwerveModuleStates(speed)
+        targetStates = self.kinematics.toSwerveModuleStates(ChassisSpeeds(self.vx, self.vy, self.omega))
         SwerveDrive4Kinematics.desaturateWheelSpeeds(targetStates, self.maxSpeed)
         # TODO: Why does the example discretize velocity?
 
@@ -59,6 +73,10 @@ class SwerveDrive():
             telemetryTable.putNumber(prefs[i] + "targetSpeed", state.speed)
             steeringError = angleWrap(state.angle.radians() - wheelPositions[i].angle.radians())
             hal.steeringSpeeds[i] = self.turningPIDs[i].tickErr(steeringError, state.angle.radians(), dt)
+
+        self.vx = 0
+        self.vy = 0
+        self.omega = 0
 
     def updateOdometry(self, hal: robotHAL.RobotHALBuffer):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]

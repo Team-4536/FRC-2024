@@ -273,11 +273,12 @@ class Robot(wpilib.TimedRobot):
         self.PIDspeedSetpoint = 0
 
         #TODO make the pipelines an Enum
-        #red side
-        self.subwooferLineupPipeline: int = 1
-        if(not self.onRedSide):
+        if(self.onRedSide):
+            #red side
+            self.longShotLineup = AutoBuilder().moveWithAprilTag(self, 1)
+        else:
             #blue side
-            self.subwooferLineupPipeline = 2
+            self.longShotLineup = AutoBuilder().moveWithAprilTag(self, 2)
 
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
@@ -312,23 +313,15 @@ class Robot(wpilib.TimedRobot):
             elif self.input.angleTarget == RobotInputs.TARGET_SUBWOOFER:
                 ang = 0
             self.table.putNumber("ctrl/targetAngle", math.degrees(ang))
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(ang + (-self.hal.yaw + self.driveGyroYawOffset)), ang, self.time.dt))
-
+            self.drive.setCassisSpeed(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(ang + (-self.hal.yaw + self.driveGyroYawOffset)), ang, self.time.dt))
         elif self.input.lineUpWithSubwoofer:
-            if(self.frontLimelightTable.getNumber("getpipe", 0) != self.subwooferLineupPipeline):
-                self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
-            tx = self.frontLimelightTable.getNumber("tx", 0)
-            ty = self.frontLimelightTable.getNumber('ty', 0)
-
-            #speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
-            speed = ChassisSpeeds(self.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, self.time.dt), \
-                    driveVector.Y(), \
-                    self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
+            self.longShotLineup.reset(self.time.timeSinceInit)
+            self.longShotLineup.run(self)
 
         else:
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+            self.drive.setCassisSpeed(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
 
-        self.drive.update(self.time.dt, self.hal, speed)
+        self.drive.update(self.time.dt, self.hal)
         profiler.end("drive updates")
 
 

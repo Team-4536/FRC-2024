@@ -6,6 +6,9 @@ from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
 
+import math
+from real import angleWrap
+
 if TYPE_CHECKING:
     from robot import Robot
 
@@ -96,8 +99,8 @@ class AutoBuilder:
             table.putNumber("pathVelX", adjustedSpeeds.vx)
             table.putNumber("pathVelY", adjustedSpeeds.vy)
             table.putNumber("pathVelR", adjustedSpeeds.omega)
-
-            r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
+            r.drive.setCassisSpeed(adjustedSpeeds.vx, adjustedSpeeds.vy, adjustedSpeeds.omega)
+            r.drive.update(r.time.dt, r.hal)
             return (r.time.timeSinceInit - r.auto.stageStart) > t.getTotalTimeSeconds()
         s = Stage(func, f"path '{trajName}'")
         return s
@@ -207,4 +210,18 @@ class AutoBuilder:
         self.currentBuildStage.name = f"{stg.name} with timeout"
         self.currentBuildStage.func = func
         self.currentBuildStage.abortStage = None
+        return self
+    
+    def moveWithAprilTag(self, r: 'Robot', pipeline: int) -> 'AutoBuilder':
+        frontLimelightTable = r.frontLimelightTable
+        def func(r: 'Robot') -> bool | None:
+            if(frontLimelightTable.getNumber("getpipe", 0) != pipeline):
+                frontLimelightTable.putNumber("pipeline", pipeline)
+            tx = frontLimelightTable.getNumber("tx", 0)
+            ty = frontLimelightTable.getNumber('ty', 0)
+            r.drive.setCassisSpeed(r.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, r.time.dt), 
+                                   None, 
+                                   r.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, r.time.dt))
+
+        self.add(Stage(func, f"moveWithAprilTag: {pipeline}"))
         return self
