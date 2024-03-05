@@ -234,11 +234,14 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("LEDFlashTimer", self.LEDFlashTimer)
         self.table.putNumber("timesinceinit", self.time.timeSinceInit)
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
+        
+        self.table.putBoolean("ledPrevTrigger", self.LEDPrevTrigger)
+        self.table.putBoolean("ledTrigger", self.LEDTrigger)
 
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
             if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
-               self.onRedSide = True
+                self.onRedSide = True
             else:
                 self.onRedSide = False
 
@@ -251,6 +254,7 @@ class Robot(wpilib.TimedRobot):
             self.LEDFlashTimer = 2.0
             self.lastLEDTransition = self.time.timeSinceInit
         self.LEDPrevTrigger = self.LEDTrigger
+        self.LEDTrigger = False
 
         if self.LEDFlashTimer > 0:
             self.LEDFlashTimer -= self.time.dt
@@ -258,8 +262,8 @@ class Robot(wpilib.TimedRobot):
             if (self.time.timeSinceInit - self.lastLEDTransition > 0.1):
                 self.lastLEDTransition = self.time.timeSinceInit
                 self.hardware.setLEDs(brightnessArray[self.LEDAnimationFrame],
-                                      brightnessArray[self.LEDAnimationFrame],
-                                      brightnessArray[self.LEDAnimationFrame], 0, 0, 200)
+                                        brightnessArray[self.LEDAnimationFrame],
+                                        brightnessArray[self.LEDAnimationFrame], 0, 0, 200)
                 self.LEDAnimationFrame += 1
                 self.LEDAnimationFrame %= len(brightnessArray)
         else:
@@ -396,7 +400,7 @@ class Robot(wpilib.TimedRobot):
         profiler.end("shooter state machine")
 
         # self.hal.camSpeed = self.input.camTemp * 0.2
-        self.hal.climberSpeed = self.input.climb * 0.2
+        self.hal.climberSpeed = self.input.climb * 0.5
 
 
         profiler.start()
@@ -435,8 +439,8 @@ class Robot(wpilib.TimedRobot):
             .addIntakeStage().triggerAlongPath(0.6, traj) \
             .addIntakeStage() \
             .addStageSet(AutoBuilder() \
-                          .addPathStage(self.loadTrajectory("middleBack", self.onRedSide)) \
-                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True)) \
+                        .addPathStage(self.loadTrajectory("middleBack", self.onRedSide)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True)) \
             .addShooterFireStage()
 
 
@@ -465,16 +469,16 @@ class Robot(wpilib.TimedRobot):
             self.auto.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", self.onRedSide))
             self.auto.addIntakeStage()
             self.auto.addStageSet(AutoBuilder() \
-                          .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
-                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+                        .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
 
             # LOWER RING
             self.auto.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("lower", self.onRedSide))
             self.auto.addIntakeStage()
             self.auto.addStageSet(AutoBuilder() \
-                          .addPathStage(self.loadTrajectory("lowerBack", self.onRedSide)) \
-                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+                        .addPathStage(self.loadTrajectory("lowerBack", self.onRedSide)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
 
         elif self.autoChooser.getSelected() == AUTO_EXIT:
@@ -501,8 +505,8 @@ class Robot(wpilib.TimedRobot):
             self.auto.addIntakeStage()
             self.auto.addStageSet(AutoBuilder() \
 
-                          .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
-                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+                        .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
@@ -515,8 +519,8 @@ class Robot(wpilib.TimedRobot):
             self.auto.addIntakeStage().triggerAlongPath(0.5, traj)
             self.auto.addIntakeStage()
             self.auto.addStageSet(AutoBuilder() \
-                          .addPathStage(self.loadTrajectory('lowerBack', self.onRedSide)) \
-                          .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+                        .addPathStage(self.loadTrajectory('lowerBack', self.onRedSide)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
 
         else:
