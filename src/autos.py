@@ -222,6 +222,9 @@ class AutoBuilder:
             r.drive.setCassisSpeed(r.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, r.time.dt), 
                                    None, 
                                    r.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, r.time.dt))
+            if(abs(tx) < 0.5 and abs(ty) < 0.5):
+                return True
+            return False
 
         self.add(Stage(func, f"moveWithAprilTag: {pipeline}"))
         return self
