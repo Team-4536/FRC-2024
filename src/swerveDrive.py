@@ -30,7 +30,6 @@ class SwerveDrive():
         self.maxSpeed = 5.0 # meters per sec // we measured this its not BS
         self.maxSteerSpeed = 1.0 # CCW rads
 
-
         self.kinematics = SwerveDrive4Kinematics(*self.modulePositions)
         self.odometry = SwerveDrive4Odometry(self.kinematics, angle, tuple(wheelStates), pose) #type: ignore // because of tuple type mismatch, which is assert gaurded
 

@@ -54,9 +54,8 @@ class StateMachine():
         self.inputAim: ShooterTarget = ShooterTarget.NONE
         self.inputRev: bool = False
         self.inputShoot: bool = False
-
         self.inputFeed: bool = False
-        
+
         self.inputProfile: float = 0.0
 
     # none will not change currently targeted pos
@@ -91,7 +90,6 @@ class StateMachine():
 
         self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0), self.table.getNumber("podiumCam", 0.0))
 
-
         if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):
                 self.aimSetpoint = self.ampSetpoint[0]
@@ -116,7 +114,6 @@ class StateMachine():
             camTarget = self.camSetpoint
 
             if(self.inputFeed and hal.intakeSensor):
-
                 self.state = self.FEEDING
 
         elif(self.state == self.FEEDING):
@@ -128,7 +125,7 @@ class StateMachine():
             camTarget = self.camSetpoint
             if hal.shooterSensor:
                 self.state = self.STORED_IN_SHOOTER
-        
+
         elif(self.state == self.STORED_IN_SHOOTER):
             hal.shooterIntakeSpeed = 0
             hal.intakeSpeeds[1] = 0
@@ -137,7 +134,6 @@ class StateMachine():
             camTarget = self.camSetpoint
             if self.inputAim != ShooterTarget.NONE:
                 self.state = self.AIMING
-            
 
         elif(self.state == self.AIMING):
             aimTarget = self.aimSetpoint
@@ -176,5 +172,6 @@ class StateMachine():
         self.inputAim = ShooterTarget.NONE
         self.inputRev = False
         self.inputShoot = False
+        self.inputFeed = False
 
         return self.state

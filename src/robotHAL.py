@@ -6,6 +6,7 @@ import ntcore
 import profiler
 import rev
 import wpilib
+from phoenix5.led import CANdle
 from phoenix6.hardware import CANcoder
 from timing import TimeData
 
@@ -44,7 +45,31 @@ class RobotHALBuffer():
         self.intakeSensor: bool = False
         self.shooterSensor: bool = False
 
+        self.intakeSpeeds: list[float] = [0, 0] # -1 to 1 // volts to motor controller
+        # self.intakePositions: list[float] = [0, 0] # whatever encoders return
+
+        self.shooterSpeed: float = 0 # -1 to 1 // volts to motor controller
+        self.shooterAimSpeed: float = 0 # -1 to 1 // volts to motor controller
+        self.shooterIntakeSpeed: float = 0 # -1 to 1 // volts to motor controller
+        self.shooterAimPos: float = 0 # rads out from resting position
+
+        self.shooterAngVelocityMeasured : float = 0
+
+        self.camSpeed: float = 0
+        self.camPos: float = 0
+
+        self.lowerShooterLimitSwitch: bool = False
+        self.upperShooterLimitSwitch: bool = False
+
+        self.intakeSensor: bool = False
+        self.shooterSensor: bool = False
+
         self.yaw: float = 0
+        self.leds: list[tuple] = [(0, 0, 0)] * 8
+
+        self.debugBool: bool = False
+
+        
 
     def resetEncoders(self) -> None:
         # swerve encoders
@@ -112,7 +137,6 @@ class RobotHALBuffer():
         table.putNumber("climberCurrent", self.climbCurrent)
         table.putNumber("climberTemp", self.climbTemp)
 
-
         # gyro
         table.putNumber("yaw", self.yaw)
 
@@ -175,7 +199,6 @@ class RobotHAL():
         self.climbingMotor.setInverted(False)
         self.climbSensor = self.climbingMotor.getReverseLimitSwitch(rev.SparkLimitSwitch.Type.kNormallyOpen)
 
-
         # other
         self.gyro = navx.AHRS(wpilib.SPI.Port.kMXP)
 
@@ -190,6 +213,8 @@ class RobotHAL():
         self.driveGearing: float = 6.12 # motor to wheel rotations
         self.wheelRadius: float = .05 # in meteres
 
+        self.ledController: CANdle = CANdle(20)
+
     # angle expected in CCW rads
     def resetGyroToAngle(self, ang: float) -> None:
         self.gyro.reset()
@@ -200,6 +225,9 @@ class RobotHAL():
 
     def resetAimEncoderPos(self, nPos: float) -> None:
         self.shooterAimEncoder.setPosition(nPos)
+
+    def setLEDs(self, r: int, g: int, b: int, w: int = 0, startIdx: int = 0, count: int = 512) -> None:
+        self.ledController.setLEDs(r, g, b, w, startIdx, count)
 
     def update(self, buf: RobotHALBuffer, time: TimeData) -> None:
         prev = self.prev
@@ -220,6 +248,30 @@ class RobotHAL():
         for i in range(0, 4):
             e = self.steerEncoders[i]
             buf.steeringPositions[i] = math.radians(e.get_position().value_as_double * 360)
+        profiler.end("drive updates")
+
+        profiler.start()
+        for m, s in zip(self.intakeMotors, buf.intakeSpeeds):
+            m.set(s)
+        profiler.end("steer updates")
+
+        # for i in range(0, 2):
+        #     e = self.intakeEncoders[i]
+        #     buf.intakePositions[i] = e.getPosition()
+
+        profiler.start()
+        self.shooterTopMotor.set(buf.shooterSpeed) # bottom shooter motor is on follower mode
+        self.shooterAimMotor.set(buf.shooterAimSpeed)
+        self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
+
+        buf.shooterAngVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
+        buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 45
+
+        self.camMotor.set(buf.camSpeed)
+        buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
+        profiler.end("shooter motor encoder updates")
+
+        profiler.start()
 
         profiler.end("drive updates")
 
@@ -270,7 +322,7 @@ class RobotHAL():
         #     buf.shooterSensor = True
         # else:
         #     buf.shooterSensor = False
-        buf.intakeSensor = self.intakeSensor.get()
+
         buf.intakeSensor = self.intakeSensor.get()
         buf.shooterSensor = self.shooterSensor.get()
         profiler.end("sensor updates")

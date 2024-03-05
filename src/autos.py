@@ -1,43 +1,85 @@
 
-from copy import copy, deepcopy
+from copy import copy
+from typing import TYPE_CHECKING, Callable
 
-from typing import TYPE_CHECKING
-
-from auto import Stage
 from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
-from real import angleWrap
 from shooterStateMachine import ShooterTarget
-from wpimath import angleModulus
 
 if TYPE_CHECKING:
     from robot import Robot
 
-class StageBuilder:
+StageFunc = Callable[['Robot'], bool | None]
+class Stage:
+    def __init__(self, f: StageFunc, name: str) -> None:
+        self.func = f
+        self.name = name
+        self.nextStage: 'Stage | None' = None
+        self.abortStage: 'Stage | None' = None
+
+    def add(self, s: 'Stage') -> tuple['Stage', 'Stage']:
+        self.nextStage = s
+        return self, s
+
+class AutoBuilder:
     def __init__(self) -> None:
         self.firstStage: Stage | None = None
-        self.currentStage: Stage = None # type: ignore
+        self.currentBuildStage: Stage = None # type: ignore
+        self.currentRunStage: Stage | None = None
 
-    def add(self, new: Stage | None) -> 'StageBuilder':
+        self.stageStart = 0 # This is the trigger for restarting a seq. when 0, run will start from firstRunStage
+        self.table = NetworkTableInstance.getDefault().getTable("autos")
+
+    # Resets and makes sure StageBuilder will start up from the beginning of the sequence next run call
+    def reset(self, time: float) -> None:
+        self.stageStart = 0
+
+    # runs one tick, returns if still running or finished
+    def run(self, r: 'Robot') -> bool:
+        if self.stageStart == 0:
+            self.stageStart = r.time.timeSinceInit
+            self.currentRunStage = self.firstStage
+
+        self.table.putNumber("stageTime", self.stageStart)
+        if self.currentRunStage is not None:
+            self.table.putString("stage", f"{self.currentRunStage.name}")
+            done = self.currentRunStage.func(r)
+            if done is True:
+                self.currentRunStage = self.currentRunStage.nextStage
+                self.stageStart = r.time.timeSinceInit
+            elif done is None:
+                self.currentRunStage = self.currentRunStage.abortStage
+                self.stageStart = r.time.timeSinceInit
+
+        return self.currentRunStage is None
+
+    def add(self, new: Stage | None) -> 'AutoBuilder':
         if new is None:
             return self
 
-        if self.currentStage is not None:
-            self.currentStage.nextStage = new
-        self.currentStage = new
+        if self.currentBuildStage is not None:
+            self.currentBuildStage.nextStage = new
+        self.currentBuildStage = new
 
         if self.firstStage is None:
             self.firstStage = new
         return self
 
-    def addAbortLog(self, log: str) -> 'StageBuilder':
-        if self.currentStage is not None:
-            self.currentStage.abortStage = StageBuilder().addTelemetryStage(log).currentStage
+    def addAbort(self, new: 'AutoBuilder') -> 'AutoBuilder':
+        if self.currentBuildStage is not None:
+            self.currentBuildStage.abortStage = new.firstStage
         return self
 
-    def addAbort(self, new: 'StageBuilder') -> 'StageBuilder':
-        if self.currentStage is not None:
-            self.currentStage.abortStage = new.firstStage
+    def addAbortLog(self, log: str) -> 'AutoBuilder':
+        if self.currentBuildStage is not None:
+            self.currentBuildStage.abortStage = AutoBuilder().addTelemetryStage(log).currentBuildStage
+        return self
+
+    # NOTE: TODO: doesn't make a copy of the new stages - so watch out
+    def addSequence(self, s: 'AutoBuilder') -> 'AutoBuilder':
+        self.add(s.firstStage)
+        while self.currentBuildStage.nextStage is not None:
+            self.currentBuildStage = self.currentBuildStage.nextStage
         return self
 
     def _newPathStage(self, t: PathPlannerTrajectory, trajName: str) -> Stage:
@@ -62,18 +104,18 @@ class StageBuilder:
 
     # NOTE: filename is *just* the title of the file, with no extension and no path
     # filename is directly passed to pathplanner.loadPath
-    def addPathStage(self, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'StageBuilder':
+    def addPathStage(self, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'AutoBuilder':
         self.add(self._newPathStage(t, trajName))
         return self
 
-    def addWaitStage(self, t: float) -> 'StageBuilder':
+    def addWaitStage(self, t: float) -> 'AutoBuilder':
         def func(r : 'Robot') -> bool | None:
             return (r.time.timeSinceInit - r.auto.stageStart) > t
 
         self.add(Stage(func, f"wait for {t}s"))
         return self
 
-    def addIntakeStage(self) -> 'StageBuilder':
+    def addIntakeStage(self) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
             r.intakeStateMachine.update(r.hal, True)
             return (r.intakeStateMachine.state == r.intakeStateMachine.STORING)
@@ -82,8 +124,8 @@ class StageBuilder:
 
     # return status is dictated by the path stage, the triggered stages return is ignored (including aborts)
     # starts up the triggered stage when the path has covered [percent] of its total time
-    def triggerAlongPath(self, percent: float, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'StageBuilder':
-        stg = copy(self.currentStage)
+    def triggerAlongPath(self, percent: float, t: PathPlannerTrajectory, trajName: str = "unnamed") -> 'AutoBuilder':
+        stg = copy(self.currentBuildStage)
         pathStage = self._newPathStage(t, trajName)
         def func(r: 'Robot') -> bool|None:
             isOver = pathStage.func(r)
@@ -91,28 +133,29 @@ class StageBuilder:
                 stg.func(r)
             return isOver
 
-        self.currentStage.func = func
-        self.currentStage.name = f"path with {stg.name} trigger"
-        self.currentStage.abortStage = None
+        self.currentBuildStage.func = func
+        self.currentBuildStage.name = f"path with {stg.name} trigger"
+        self.currentBuildStage.abortStage = None
         return self
 
     # ends when state is on target
-    def addShooterPrepStage(self, target: ShooterTarget, rev: bool) -> 'StageBuilder':
+    def addShooterPrepStage(self, target: ShooterTarget, rev: bool) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
+            r.shooterStateMachine.feed(True)
             r.shooterStateMachine.aim(target)
             r.shooterStateMachine.rev(rev)
             return r.shooterStateMachine.onTarget
         self.add(Stage(func, f"shooter aim at {target.name}, revved: {rev}"))
         return self
 
-    def addShooterFireStage(self) -> 'StageBuilder':
+    def addShooterFireStage(self) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
             r.shooterStateMachine.shoot(True)
             return r.shooterStateMachine.state == r.shooterStateMachine.READY_FOR_RING
         self.add(Stage(func, "fire shooter"))
         return self
 
-    def addTelemetryStage(self, s: str) -> 'StageBuilder':
+    def addTelemetryStage(self, s: str) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
             NetworkTableInstance.getDefault().getTable("autos").putString("telemStageLog", s)
             return True
@@ -124,7 +167,7 @@ class StageBuilder:
     # aborts from the inner stages are reported, but the sets abort is what get moved to
 
     # Stage set executes all and then ends when all are done
-    def addStageSet(self, stages: 'StageBuilder') -> 'StageBuilder':
+    def addStageSet(self, stages: 'AutoBuilder') -> 'AutoBuilder':
         stageList: list[Stage] = []
         s = stages.firstStage
         while s is not None:
@@ -148,17 +191,10 @@ class StageBuilder:
         self.add(Stage(func, f"set [{', '.join(s.name for s in stageList)}]"))
         return self
 
-    # NOTE: doesn't make a copy of the new stages - so watch out
-    def addStageBuiltStage(self, s: 'StageBuilder') -> 'StageBuilder':
-        self.add(s.firstStage)
-        while self.currentStage.nextStage is not None:
-            self.currentStage = self.currentStage.nextStage
-        return self
-
     # NOTE: triggers abort when the timeout is hit, moves to nextStage and abortStage of the given stage
     # passes through aborts from the inner stage
-    def setTimeout(self, duration: float) -> 'StageBuilder':
-        stg = copy(self.currentStage)
+    def setTimeout(self, duration: float) -> 'AutoBuilder':
+        stg = copy(self.currentBuildStage)
         def func(r: 'Robot') -> bool | None:
             status = stg.func(r)
             if status is None:
@@ -168,7 +204,7 @@ class StageBuilder:
             else:
                 return status
 
-        self.currentStage.name = f"{stg.name} with timeout"
-        self.currentStage.func = func
-        self.currentStage.abortStage = None
+        self.currentBuildStage.name = f"{stg.name} with timeout"
+        self.currentBuildStage.func = func
+        self.currentBuildStage.abortStage = None
         return self
