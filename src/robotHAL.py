@@ -43,7 +43,7 @@ class RobotHALBuffer():
         self.lowerShooterLimitSwitch: bool = False
         self.upperShooterLimitSwitch: bool = False
 
-        self.intakeSensor: bool = False
+       # self.intakeSensor: bool = False
         self.shooterSensor: bool = False
 
         self.yaw: float = 0
@@ -106,7 +106,7 @@ class RobotHALBuffer():
         table.putBoolean("LowerShooterLimitSwitch", self.lowerShooterLimitSwitch)
         table.putBoolean("UpperShooterLimitSwitch", self.upperShooterLimitSwitch)
 
-        table.putBoolean("IntakeSensor", self.intakeSensor)
+       # table.putBoolean("IntakeSensor", self.intakeSensor)
         table.putBoolean("ShooterSensor", self.shooterSensor)
 
         table.putNumber("camSpeed", self.camSpeed)
@@ -290,8 +290,8 @@ class RobotHAL():
         #     buf.shooterSensor = True
         # else:
         #     buf.shooterSensor = False
-        buf.intakeSensor = self.intakeSensor.get()
-        buf.intakeSensor = self.intakeSensor.get()
+        #buf.intakeSensor = self.intakeSensor.get()
+        #buf.intakeSensor = self.intakeSensor.get()
         buf.shooterSensor = self.shooterSensor.get()
         profiler.end("sensor updates")
         

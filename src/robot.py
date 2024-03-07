@@ -5,7 +5,6 @@ import profiler
 import robotHAL
 import stages
 import wpilib
-from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
@@ -163,7 +162,6 @@ class Robot(wpilib.TimedRobot):
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
 
-        self.intakeStateMachine = IntakeStateMachine()
         self.shooterStateMachine = StateMachine()
 
         self.autoSideChooser = wpilib.SendableChooser()
@@ -280,13 +278,13 @@ class Robot(wpilib.TimedRobot):
         profiler.start()
 
         if(not self.input.overideIntakeStateMachine):
-            self.intakeStateMachine.update(self.hal, self.input.intake)
+            self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
         else:
             if(self.input.intake):
                 self.hal.intakeSpeeds = [0.4, 0.4]
             if(self.input.intakeReverse):
                 self.hal.intakeSpeeds = [-0.4, -0.4]
-            self.intakeStateMachine.state = 0
+            self.shooterStateMachine.state = 0
 
         profiler.end("intake state machine")
 
