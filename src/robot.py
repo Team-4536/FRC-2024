@@ -10,11 +10,11 @@ from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
 from phoenix5.led import (
-    ColorFlowAnimation,
-    FireAnimation,
-    RainbowAnimation,
-    StrobeAnimation,
-)
+     ColorFlowAnimation,
+     FireAnimation,
+     RainbowAnimation,
+     StrobeAnimation,
+ )
 from PIDController import PIDController, PIDControllerForArm, updatePIDsInNT
 from real import angleWrap, lerp
 from shooterStateMachine import ShooterTarget, StateMachine
@@ -143,6 +143,7 @@ AUTO_EXIT = "exit"
 AUTO_GET_ALL = "grab all"
 AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
 AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
+AUTO_FAR_MIDDLE = 'go from subwoofer to far middle ring'
 AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
 
 # Light animations, unused because they ovveride manual controls of lights
@@ -192,6 +193,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_SIDE_UPPER, AUTO_SIDE_UPPER)
         self.autoChooser.addOption(AUTO_SIDE_LOWER, AUTO_SIDE_LOWER)
         self.autoChooser.addOption(AUTO_SHOOT_PRELOADED, AUTO_SHOOT_PRELOADED)
+        self.autoChooser.addOption(AUTO_FAR_MIDDLE, AUTO_FAR_MIDDLE)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
         self.odomField = wpilib.Field2d()
@@ -494,6 +496,21 @@ class Robot(wpilib.TimedRobot):
             self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             self.auto.addShooterFireStage()
 
+        elif self.autoChooser.getSelected() == AUTO_FAR_MIDDLE:
+            traj = self.loadTrajectory("far-middle", self.onRedSide)
+            
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            self.auto.addTelemetryStage(AUTO_FAR_MIDDLE)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addIntakeStage().triggerAlongPath(0.7, traj)
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
+
+                        .addPathStage(self.loadTrajectory("far-middle-back", self.onRedSide)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            self.auto.addShooterFireStage()
+
         elif self.autoChooser.getSelected() == AUTO_SIDE_UPPER:
             traj = self.loadTrajectory("side-upper", self.onRedSide)
 
@@ -505,7 +522,7 @@ class Robot(wpilib.TimedRobot):
             self.auto.addIntakeStage()
             self.auto.addStageSet(AutoBuilder() \
 
-                        .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
+                        .addPathStage(self.loadTrajectory("side-upper-back", self.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
 
@@ -519,7 +536,7 @@ class Robot(wpilib.TimedRobot):
             self.auto.addIntakeStage().triggerAlongPath(0.5, traj)
             self.auto.addIntakeStage()
             self.auto.addStageSet(AutoBuilder() \
-                        .addPathStage(self.loadTrajectory('lowerBack', self.onRedSide)) \
+                        .addPathStage(self.loadTrajectory('side-lower-back', self.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
 
