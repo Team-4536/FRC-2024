@@ -69,8 +69,6 @@ class RobotHALBuffer():
 
         self.debugBool: bool = False
 
-        
-
     def resetEncoders(self) -> None:
         # swerve encoders
         for i in range(4):
@@ -274,11 +272,6 @@ class RobotHAL():
         profiler.start()
 
         profiler.end("drive updates")
-
-        profiler.start()
-        for m, s in zip(self.intakeMotors, buf.intakeSpeeds):
-            m.set(s)
-        profiler.end("steer updates")
 
         # for i in range(0, 2):
         #     e = self.intakeEncoders[i]
