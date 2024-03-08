@@ -140,7 +140,7 @@ AUTO_SIDE_FMS = "FMS side"
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
-AUTO_GET_ALL = "grab all"
+AUTO_GET_ALL = "three piece chicken nugget happy meal"
 AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
 AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
 AUTO_FAR_MIDDLE = 'go from subwoofer to far middle ring'
@@ -261,7 +261,7 @@ class Robot(wpilib.TimedRobot):
         if self.LEDFlashTimer > 0:
             self.LEDFlashTimer -= self.time.dt
             brightnessArray = [0, 255, 0, 255]
-            if (self.time.timeSinceInit - self.lastLEDTransition > 0.1):
+            if (self.time.timeSinceInit - self.lastLEDTransition > 0.2):
                 self.lastLEDTransition = self.time.timeSinceInit
                 self.hardware.setLEDs(brightnessArray[self.LEDAnimationFrame],
                                         brightnessArray[self.LEDAnimationFrame],
@@ -299,11 +299,10 @@ class Robot(wpilib.TimedRobot):
 
         profiler.start()
         speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
-        turnScalar = 3.6
+        turnScalar = 4
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         if self.abs:
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
-
         if self.input.angleTarget != RobotInputs.TARGET_NONE:
             ang = 0
             if self.input.angleTarget == RobotInputs.TARGET_LEFT:
@@ -402,7 +401,7 @@ class Robot(wpilib.TimedRobot):
         profiler.end("shooter state machine")
 
         # self.hal.camSpeed = self.input.camTemp * 0.2
-        self.hal.climberSpeed = self.input.climb * 0.5
+        self.hal.climberSpeed = self.input.climb * 0.6
 
 
         profiler.start()
