@@ -453,9 +453,13 @@ class Robot(wpilib.TimedRobot):
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             self.auto.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
+            self.table.putNumber("stage#", 1)
             self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.table.putNumber("stage#", 2)
             self.auto.addShooterFireStage()
+            self.table.putNumber("stage#", 3)
             self.auto.addSequence(centerRing)
+            self.table.putNumber("stage#", 4)
 
         elif self.autoChooser.getSelected() == AUTO_GET_ALL:
             traj = self.loadTrajectory("middle", self.onRedSide)
