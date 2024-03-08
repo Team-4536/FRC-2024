@@ -267,26 +267,6 @@ class RobotHAL():
 
         self.camMotor.set(buf.camSpeed)
         buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
-        profiler.end("shooter motor encoder updates")
-
-        profiler.start()
-
-        profiler.end("drive updates")
-
-        # for i in range(0, 2):
-        #     e = self.intakeEncoders[i]
-        #     buf.intakePositions[i] = e.getPosition()
-
-        profiler.start()
-        self.shooterTopMotor.set(buf.shooterSpeed) # bottom shooter motor is on follower mode
-        self.shooterAimMotor.set(buf.shooterAimSpeed)
-        self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
-
-        buf.shooterAngVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
-        buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 45
-
-        self.camMotor.set(buf.camSpeed)
-        buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
 
         self.climbingMotor.set(buf.climberSpeed)
 
