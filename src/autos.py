@@ -1,11 +1,10 @@
 
 from copy import copy
-from typing import TYPE_CHECKING, Callable, Self
-from wpimath.geometry import Pose2d
+from typing import TYPE_CHECKING, Callable
+
 from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
-import math
 
 if TYPE_CHECKING:
     from robot import Robot
@@ -208,27 +207,4 @@ class AutoBuilder:
         self.currentBuildStage.name = f"{stg.name} with timeout"
         self.currentBuildStage.func = func
         self.currentBuildStage.abortStage = None
-        return self
-    
-
-    def odometryResetWithLimelight(self, r: 'Robot', pipeline: int) -> 'AutoBuilder':
-        limelightTable = r.frontLimelightTable
-        robotPoseTable = r.table
-
-        def stage(r: 'Robot') -> bool | None:
-            #gets the pos from limelight
-            visionPose = limelightTable.getNumberArray("botpose_wpiblue", [0,0,0,0,0,0,0])
-            #debug values
-            robotPoseTable.putNumber("limeXPos", visionPose[0])
-            robotPoseTable.putNumber("limeYPos", visionPose[1])
-            robotPoseTable.putNumber("limeYaw", visionPose[5])
-            #make sure there is a value present and has input(R3) to update
-            if (not (visionPose[0] == 0 and visionPose[1] == 0 and visionPose[5] == 0)):
-                visionPose2D = Pose2d(visionPose[0], visionPose[1], math.radians(visionPose[5]))
-                #X, Y, & Yaw are updated correctly
-                r.drive.resetOdometry(visionPose2D, r.hal)
-
-
-            return True
-        self.add(Stage(stage, "reset odom w/ limelight"))
         return self
