@@ -22,10 +22,10 @@ class StateMachine():
     SPEED_SMOOTH_SCALAR = 0.1
     AIM_SMOOTH_SCALAR = 0.05
 
-    # 0 is target aim, 1 is target speeds, 2 is cam
-    ampSetpoint = (1.7, 100, 0)
-    podiumSetpoint = (0, 0, 3)
-    subwooferSetpoint = (0, 250, 0)
+    # 0 is target aim, 1 is target speeds, 2 is cam, 3 is speed threshold to fire (rads/s)
+    ampSetpoint = (1.7, 100, 0, 100000)
+    podiumSetpoint = (0, 0, 3, 8)
+    subwooferSetpoint = (0, 250, 0, 10)
 
     def __init__(self):
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
@@ -41,9 +41,7 @@ class StateMachine():
         self.table.putNumber("podiumSpeed", 250)
         self.table.putNumber("podiumCam", 0.0)
 
-        self.aimSetpoint = 0
-        self.speedSetpoint = 0
-        self.camSetpoint = 0
+        self.setpoint = (0, 0, 0, 0)
         self.PIDspeedSetpoint = 0
         self.PIDaimSetpoint = 0
         self.PIDcamSetpoint = 0
@@ -74,11 +72,11 @@ class StateMachine():
 
     def publishInfo(self):
         self.table.putNumber("state", self.state)
-        self.table.putNumber("targetSpeed", self.speedSetpoint)
+        self.table.putNumber("targetSpeed", self.setpoint[1])
         self.table.putNumber("targetSpeedSmoothed", self.PIDspeedSetpoint)
-        self.table.putNumber("targetAim", self.aimSetpoint)
+        self.table.putNumber("targetAim", self.setpoint[0])
         self.table.putNumber("targetAimSmoothed", self.PIDaimSetpoint)
-        self.table.putNumber("targetCam", self.camSetpoint)
+        self.table.putNumber("targetCam", self.setpoint[2])
         self.table.putBoolean("onTarget", self.onTarget)
 
 
@@ -88,30 +86,25 @@ class StateMachine():
         self.table.putNumber("inputRev", float(self.inputRev))
         self.table.putNumber("inputAim", self.inputAim.value)
 
-        self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0), self.table.getNumber("podiumCam", 0.0))
+        self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0), self.table.getNumber("podiumCam", 0.0), self.podiumSetpoint[3])
 
         if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):
-                self.aimSetpoint = self.ampSetpoint[0]
-                self.speedSetpoint = self.ampSetpoint[1]
-                self.camSetpoint = self.ampSetpoint[2]
+                self.setpoint = self.ampSetpoint
             elif(self.inputAim == ShooterTarget.PODIUM):
-                self.aimSetpoint = self.podiumSetpoint[0]
-                self.speedSetpoint = self.podiumSetpoint[1]
-                self.camSetpoint = self.podiumSetpoint[2]
+                self.setpoint = self.podiumSetpoint
             elif(self.inputAim == ShooterTarget.SUBWOOFER):
-                self.aimSetpoint = self.subwooferSetpoint[0]
-                self.speedSetpoint = self.subwooferSetpoint[1]
-                self.camSetpoint = self.subwooferSetpoint[2]
+                self.setpoint = self.subwooferSetpoint
 
         self.onTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:
-            self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 10
+            self.onTarget = abs(hal.shooterAimPos - self.setpoint[0]) < 0.1 and \
+                            abs(hal.shooterAngVelocityMeasured - self.setpoint[1]) < self.setpoint[3]
 
         if(self.state == self.READY_FOR_RING):
             aimTarget = 0
             speedTarget = 0
-            camTarget = self.camSetpoint
+            camTarget = self.setpoint[2]
 
             if(self.inputFeed and hal.intakeSensor):
                 self.state = self.FEEDING
@@ -122,7 +115,7 @@ class StateMachine():
             camTarget = 0
             hal.shooterIntakeSpeed = 0.1
             hal.intakeSpeeds[1] = 0.1
-            camTarget = self.camSetpoint
+            camTarget = self.setpoint[2]
             if hal.shooterSensor:
                 self.state = self.STORED_IN_SHOOTER
 
@@ -131,25 +124,25 @@ class StateMachine():
             hal.intakeSpeeds[1] = 0
             aimTarget = 0
             speedTarget = 0
-            camTarget = self.camSetpoint
+            camTarget = self.setpoint[2]
             if self.inputAim != ShooterTarget.NONE:
                 self.state = self.AIMING
 
         elif(self.state == self.AIMING):
-            aimTarget = self.aimSetpoint
+            aimTarget = self.setpoint[0]
             speedTarget = 0
-            camTarget = self.camSetpoint
+            camTarget = self.setpoint[2]
             if self.inputRev:
-                speedTarget = self.speedSetpoint
+                speedTarget = self.setpoint[1]
             if self.inputShoot:
                 if self.onTarget:
                     self.state = self.SHOOTING
                     self.time = time
 
         elif(self.state == self.SHOOTING):
-            aimTarget = self.aimSetpoint
-            speedTarget = self.speedSetpoint
-            camTarget = self.camSetpoint
+            aimTarget = self.setpoint[0]
+            speedTarget = self.setpoint[1]
+            camTarget = self.setpoint[2]
             hal.shooterIntakeSpeed = 0.4
             hal.intakeSpeeds[1] = 0.4
             if(time - self.time > 1.0):
@@ -158,7 +151,7 @@ class StateMachine():
         else:
             aimTarget = 0
             speedTarget = 0
-            camTarget = self.camSetpoint
+            camTarget = self.setpoint[2]
 
         self.PIDaimSetpoint = (aimTarget - self.PIDaimSetpoint) * self.AIM_SMOOTH_SCALAR + self.PIDaimSetpoint
         hal.shooterAimSpeed = self.aimPID.tick(self.PIDaimSetpoint, hal.shooterAimPos, dt)
