@@ -23,7 +23,7 @@ class StateMachine():
     AIM_SMOOTH_SCALAR = 0.05
 
     # 0 is target aim, 1 is target speeds, 2 is cam, 3 is speed threshold to fire (rads/s)
-    ampSetpoint = (1.7, 100, 0, 100000)
+    ampSetpoint = (1.7, 100, 0, 1000000)
     podiumSetpoint = (0, 0, 3, 8)
     subwooferSetpoint = (0, 250, 0, 10)
 
