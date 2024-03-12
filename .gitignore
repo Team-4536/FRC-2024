@@ -22,3 +22,5 @@ ctre_sim/*.dat
 
 # virtualenv
 .venv/
+
+.coverage

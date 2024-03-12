@@ -1,3 +1,6 @@
+[[pipfile]]
+sort_pipfile = true
+
 [[source]]
 url = "https://pypi.org/simple"
 verify_ssl = true
