@@ -11,13 +11,13 @@ permissions:
   pull-requests: write
 
 jobs:
-  build:
+  Preflight:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
     - uses: actions/checkout@v4
-    - name: remove-action-comments
+    - name: Remove bot comments
       uses: actions/github-script@v7
       with:
         script: |
