@@ -31,7 +31,7 @@ jobs:
             console.log("user.name:", c.user.name);
             console.log("user.login:", c.user.login);
             console.log("user.id:", c.user.id);
-            if (user.login == 'github-actions[bot]') {
+            if (c.user.login == 'github-actions[bot]') {
               github.rest.issues.deleteComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
