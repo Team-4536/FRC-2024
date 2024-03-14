@@ -148,6 +148,7 @@ AUTO_FAR_MIDDLE = 'go from subwoofer to far middle ring'
 AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
 AUTO_SIDEUPPER_V02 = 'Side uper routine version 2'
 AUTO_SIDEUPPER_3PC = 'no podium 3 pc chicken McNugget'
+AUTO_TROLL = 'mess up middle rings'
 
 # Light animations, unused because they ovveride manual controls of lights
 # strobeAnim  = StrobeAnimation(255, 255, 255, 0, 3, 200, 8)
@@ -200,6 +201,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_SIDEUPPER_V02, AUTO_SIDEUPPER_V02)
         self.autoChooser.addOption(AUTO_SIDEUPPER_3PC, AUTO_SIDEUPPER_3PC)
         self.autoChooser.addOption(AUTO_GET_ALL_PODIUM, AUTO_GET_ALL_PODIUM)
+        self.autoChooser.addOption(AUTO_TROLL, AUTO_TROLL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
         self.odomField = wpilib.Field2d()
@@ -460,13 +462,19 @@ class Robot(wpilib.TimedRobot):
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             self.auto.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
-            self.table.putNumber("stage#", 1)
             self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
-            self.table.putNumber("stage#", 2)
             self.auto.addShooterFireStage()
-            self.table.putNumber("stage#", 3)
             self.auto.addSequence(centerRing)
-            self.table.putNumber("stage#", 4)
+
+        elif self.autoChooser.getSelected() == AUTO_TROLL:
+            traj = self.loadTrajectory("troll", self.onRedSide)
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            self.auto.addTelemetryStage(AUTO_TROLL)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addPathStage(traj)
+
+           
 
         elif self.autoChooser.getSelected() == AUTO_GET_ALL:
             traj = self.loadTrajectory("middle", self.onRedSide)
