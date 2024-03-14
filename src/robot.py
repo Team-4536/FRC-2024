@@ -87,7 +87,6 @@ class RobotInputs():
 
         self.gyroReset = self.driveCtrlr.getStartButtonPressed()
         self.absToggle = self.driveCtrlr.getBackButtonPressed()
-        NetworkTableInstance.getDefault().getTable("AH").putNumber("ABS TOGGLE", self.absToggle)
 
         self.angleTarget = self.TARGET_NONE
         if self.driveCtrlr.getAButton(): #down
