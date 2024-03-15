@@ -218,6 +218,10 @@ class Robot(wpilib.TimedRobot):
         self.LEDPrevTrigger = False
         self.LEDTrigger = False
 
+        self.table.putNumber("ctrl/SWERVE ADDED X", 0.0)
+        self.table.putNumber("ctrl/SWERVE ADDED Y", 0.0)
+        self.table.putNumber("ctrl/SWERVE ADDED R", 0.0)
+
     def robotPeriodic(self) -> None:
         profiler.start()
 
@@ -269,7 +273,7 @@ class Robot(wpilib.TimedRobot):
 
         if self.LEDFlashTimer > 0:
             self.LEDFlashTimer -= self.time.dt
-            brightnessArray = [0, 255, 0, 255]
+            brightnessArray = [255, 0, 255, 0]
             if (self.time.timeSinceInit - self.lastLEDTransition > 0.2):
                 self.lastLEDTransition = self.time.timeSinceInit
                 self.hardware.setLEDs(brightnessArray[self.LEDAnimationFrame],
@@ -337,6 +341,17 @@ class Robot(wpilib.TimedRobot):
 
         else:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+
+        time = self.table.getNumber("ctrl/SWERVE TEST TIME", 0.0)
+        time -= self.time.dt
+        self.table.putNumber("ctrl/SWERVE TEST TIME", time)
+        if time > 0:
+            s = Translation2d(self.table.getNumber("ctrl/SWERVE ADDED X", 0.0), self.table.getNumber("ctrl/SWERVE ADDED Y", 0.0))
+            s = s.rotateBy(Rotation2d((-self.hal.yaw + self.driveGyroYawOffset)))
+            speed.vx += s.X()
+            speed.vy += s.Y()
+            speed.omega += self.table.getNumber("ctrl/SWERVE ADDED R", 0.0)
+        self.table.putNumber("ctrl/applied omega", speed.omega)
 
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")

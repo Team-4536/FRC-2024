@@ -34,7 +34,7 @@ class SwerveDrive():
         self.odometry = SwerveDrive4Odometry(self.kinematics, angle, tuple(wheelStates), pose) #type: ignore // because of tuple type mismatch, which is assert gaurded
 
         prefs = ["FL", "FR", "BL", "BR"]
-        self.turningPIDs = [PIDController(prefs[i] + "Turning", 0.3) for i in range(4)]
+        self.turningPIDs = [PIDController(prefs[i] + "Turning", 0.4) for i in range(4)]
         self.drivePIDs = [PIDController(prefs[i] + "Drive", 0.03, 0, 0, 0.2) for i in range(4)]
 
     def resetOdometry(self, pose: Pose2d, hal):
