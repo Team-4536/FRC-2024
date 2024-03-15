@@ -7,7 +7,7 @@ from autos import AutoBuilder
 from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
-from pathplannerlib.path import PathPlannerPath
+from pathplannerlib.path import PathPlannerPath 
 from pathplannerlib.trajectory import PathPlannerTrajectory
 from phoenix5.led import (
     ColorFlowAnimation,
@@ -282,7 +282,7 @@ class Robot(wpilib.TimedRobot):
         if(not self.onRedSide):
             #blue side
             self.subwooferLineupPipeline = 2
-
+    
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
         self.input.update()
@@ -335,6 +335,9 @@ class Robot(wpilib.TimedRobot):
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
 
+        def systemCheckForwardDrive():
+            speed = ChassisSpeeds(0.05, 0, 0)
+            self.drive.update(self.time.dt, self.hal, speed)
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
