@@ -524,7 +524,6 @@ class Robot(wpilib.TimedRobot):
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
             
-            
 
 
         elif self.autoChooser.getSelected() == AUTO_EXIT:
@@ -584,6 +583,31 @@ class Robot(wpilib.TimedRobot):
                         .addPathStage(self.loadTrajectory("side-upper-back-v02", self.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
+
+        elif self.autoChooser.getSelected() == AUTO_SIDEUPPER_3PC:
+            traj = self.loadTrajectory("side-upper-v02", self.onRedSide)
+
+            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            self.auto.addTelemetryStage(AUTO_SIDE_UPPER)
+            self.auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
+            self.auto.addShooterFireStage()
+            self.auto.addIntakeStage().triggerAlongPath(0.5, traj)
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
+
+                        .addPathStage(self.loadTrajectory("side-upper-back-v02", self.onRedSide)) \
+
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            self.auto.addShooterFireStage()
+            traj = self.loadTrajectory("sideFar-upper-v02", self.onRedSide)
+            self.auto.addIntakeStage().triggerAlongPath(0.5, traj)
+            self.auto.addIntakeStage()
+            self.auto.addStageSet(AutoBuilder() \
+
+                        .addPathStage(self.loadTrajectory("sideFar-upper-back-v02", self.onRedSide)) \
+                        .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
+            self.auto.addShooterFireStage()
+
 
         elif self.autoChooser.getSelected() == AUTO_SIDEUPPER_3PC:
             traj = self.loadTrajectory("side-upper-v02", self.onRedSide)

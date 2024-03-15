@@ -227,6 +227,7 @@ class AutoBuilder:
             robotPoseTable.putNumber("limeYaw", visionPose[5])
             if (not (visionPose[0] == 0 and visionPose[1] == 0 and visionPose[5] == 0)):  
                 visionPose2D:Pose2d = Pose2d(visionPose[0], visionPose[1], math.radians(visionPose[5]))
+
                 #X, Y, & Yaw are updated correctly
                 r.drive.resetOdometry(visionPose2D, r.hal)
                 return True
