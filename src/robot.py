@@ -258,6 +258,9 @@ class Robot(wpilib.TimedRobot):
                 self.onRedSide = True
             else:
                 self.onRedSide = False
+        
+        if self.input.absToggle:
+            self.abs = not self.abs
 
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
@@ -304,10 +307,6 @@ class Robot(wpilib.TimedRobot):
 
         if self.input.gyroReset:
             self.driveGyroYawOffset = self.hal.yaw
-
-        if self.input.absToggle:
-            self.abs = not self.abs
-
 
         profiler.start()
         speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
