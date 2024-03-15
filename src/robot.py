@@ -149,6 +149,11 @@ AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
 AUTO_SIDEUPPER_V02 = 'Side uper routine version 2'
 AUTO_SIDEUPPER_3PC = 'no podium 3 pc chicken McNugget'
 
+#Pipeline definitions
+ODOMETRY_RESET_PIPELINE = 0
+SUBWOOFER_LINEUP_RED_PIPLINE = 1
+SUBWOOFER_LINEUP_BLUE_PIPLINE = 2
+
 # Light animations, unused because they ovveride manual controls of lights
 # strobeAnim  = StrobeAnimation(255, 255, 255, 0, 3, 200, 8)
 # rainbowAnim = RainbowAnimation(1, .3, 200, False, 8)
@@ -209,6 +214,7 @@ class Robot(wpilib.TimedRobot):
         self.turnPID = PIDController("turnPID", 3, 0, 0)
 
         self.frontLimelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
+        self.robotPoseTable = NetworkTableInstance.getDefault().getTable("robot pose")
 
         self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
@@ -515,6 +521,8 @@ class Robot(wpilib.TimedRobot):
                         .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
+            
+            self.auto.addOdometryResetWithLimelightStage(self, ODOMETRY_RESET_PIPELINE)
 
 
         elif self.autoChooser.getSelected() == AUTO_EXIT:
