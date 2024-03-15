@@ -32,7 +32,7 @@ class StateMachine():
         self.table.putNumber("kff", 0.00181)
         self.table.putNumber("kp", 0.0008)
 
-        self.aimPID = PIDControllerForArm("aim", 0.8, 0, 0, 0, 0.02, 0.1)
+        self.aimPID = PIDControllerForArm("aim", 0.6, 0, 0, 0, 0.02, 0.1)
         self.camPID = PIDController("cam", 0.06)
         self.shooterPID = PIDController("shooter", 0.0008, 0, 0, 0.00181)
 

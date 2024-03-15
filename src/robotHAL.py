@@ -69,8 +69,6 @@ class RobotHALBuffer():
 
         self.debugBool: bool = False
 
-        
-
     def resetEncoders(self) -> None:
         # swerve encoders
         for i in range(4):
@@ -248,31 +246,6 @@ class RobotHAL():
         for i in range(0, 4):
             e = self.steerEncoders[i]
             buf.steeringPositions[i] = math.radians(e.get_position().value_as_double * 360)
-        profiler.end("drive updates")
-
-        profiler.start()
-        for m, s in zip(self.intakeMotors, buf.intakeSpeeds):
-            m.set(s)
-        profiler.end("steer updates")
-
-        # for i in range(0, 2):
-        #     e = self.intakeEncoders[i]
-        #     buf.intakePositions[i] = e.getPosition()
-
-        profiler.start()
-        self.shooterTopMotor.set(buf.shooterSpeed) # bottom shooter motor is on follower mode
-        self.shooterAimMotor.set(buf.shooterAimSpeed)
-        self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
-
-        buf.shooterAngVelocityMeasured = (self.shooterTopEncoder.getVelocity()/60)*math.pi*2
-        buf.shooterAimPos = self.shooterAimEncoder.getPosition() * math.pi * 2 / 45
-
-        self.camMotor.set(buf.camSpeed)
-        buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
-        profiler.end("shooter motor encoder updates")
-
-        profiler.start()
-
         profiler.end("drive updates")
 
         profiler.start()
