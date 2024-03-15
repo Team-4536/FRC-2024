@@ -140,7 +140,7 @@ AUTO_SIDE_FMS = "FMS side"
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
-AUTO_GET_ALL = "three piece chicken nugget happy meal"
+AUTO_GET_ALL = "get all"
 AUTO_GET_ALL_PODIUM = 'get all, podium first'
 AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
 AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
@@ -285,7 +285,7 @@ class Robot(wpilib.TimedRobot):
                 self.LEDAnimationFrame %= len(brightnessArray)
         else:
             self.LEDFlashTimer = 0.0
-            self.hardware.setLEDs(0, 0, 0)
+            self.hardware.setLEDs(0, 0, 0) 
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
@@ -480,6 +480,8 @@ class Robot(wpilib.TimedRobot):
             self.auto.addShooterFireStage()
             self.auto.addSequence(centerRing)
 
+            self.auto.addOdometryResetWithLimelightStage(self, ODOMETRY_RESET_PIPELINE)
+
             # UPPER RING
 
             self.auto.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", self.onRedSide))
@@ -507,6 +509,7 @@ class Robot(wpilib.TimedRobot):
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
 
+            
             traj = self.loadTrajectory("middle", self.onRedSide)
             
             self.auto.addTelemetryStage(AUTO_GET_ALL)
@@ -521,7 +524,7 @@ class Robot(wpilib.TimedRobot):
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
             
-            self.auto.addOdometryResetWithLimelightStage(self, ODOMETRY_RESET_PIPELINE)
+            
 
 
         elif self.autoChooser.getSelected() == AUTO_EXIT:
