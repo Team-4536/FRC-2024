@@ -14,11 +14,10 @@ class ShooterTarget(Enum):
 
 class StateMachine():
     START = 0
-    INTAKING = 1
-    FEEDING = 2
-    STORED_IN_SHOOTER = 3
-    AIMING = 4
-    SHOOTING = 5
+    FEEDING = 1
+    STORED_IN_SHOOTER = 2
+    AIMING = 3
+    SHOOTING = 4
 
     SPEED_SMOOTH_SCALAR = 0.1
     AIM_SMOOTH_SCALAR = 0.05

@@ -275,19 +275,7 @@ class Robot(wpilib.TimedRobot):
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
-        profiler.start()
-
-        if(not self.input.overideIntakeStateMachine):
-            self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
-        else:
-            if(self.input.intake):
-                self.hal.intakeSpeeds = [0.4, 0.4]
-            if(self.input.intakeReverse):
-                self.hal.intakeSpeeds = [-0.4, -0.4]
-            self.shooterStateMachine.state = 0
-
-        profiler.end("intake state machine")
-
+        
         profiler.start()
 
         if(self.input.aimEncoderReset):
@@ -306,6 +294,10 @@ class Robot(wpilib.TimedRobot):
             self.shooterStateMachine.state = 0
             self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
             self.hal.shooterAimSpeed += self.input.shooterAimManual * 0.2
+            if(self.input.intake):
+                self.hal.intakeSpeeds = [0.4, 0.4]
+            if(self.input.intakeReverse):
+                self.hal.intakeSpeeds = [-0.4, -0.4]
 
 
             if(self.input.manualFeed):
