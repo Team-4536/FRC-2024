@@ -338,7 +338,16 @@ class Robot(wpilib.TimedRobot):
         def systemCheckForwardDrive():
             speed = ChassisSpeeds(0.05, 0, 0)
             self.drive.update(self.time.dt, self.hal, speed)
+        def systemCheckLeftDrive():
+            speed = ChassisSpeeds(0.05, 0, -0.5)
+            self.drive.update(self.time.dt, self.hal, speed)
+        def systemCheckRightDrive():
+            speed = ChassisSpeeds(0.05, 0, 0.5)
+            self.drive.update(self.time.dt, self.hal, speed)
+        def systemCheckRingIntake():
 
+        
+        
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
         profiler.start()
