@@ -172,6 +172,8 @@ class RobotHAL():
         self.intakeMotors = [rev.CANSparkMax(9, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
         self.intakeMotors[1].setInverted(True)
+        self.intakeMotors[0].setSmartCurrentLimit(30)
+        self.intakeMotors[1].setSmartCurrentLimit(30)
 
         # self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
         # for k in self.intakeMotors:
@@ -250,6 +252,7 @@ class RobotHAL():
             e = self.steerEncoders[i]
             buf.steeringPositions[i] = math.radians(e.get_position().value_as_double * 360)
             buf.steerSpeedMeasured[i] = math.radians(e.get_velocity().value_as_double * 360)
+
         profiler.end("drive updates")
 
         profiler.start()
