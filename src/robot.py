@@ -221,6 +221,8 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/SWERVE ADDED X", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED Y", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED R", 0.0)
+        self.table.putNumber("ctrl/SWERVE ADDED DRIVE", 0)
+        self.table.putNumber("ctrl/SWERVE ADDED STEER", 0)
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -351,7 +353,10 @@ class Robot(wpilib.TimedRobot):
             speed.vx += s.X()
             speed.vy += s.Y()
             speed.omega += self.table.getNumber("ctrl/SWERVE ADDED R", 0.0)
-        self.table.putNumber("ctrl/applied omega", speed.omega)
+            # for i in range(4):
+            #     self.hal.driveVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED DRIVE", 0)
+            #     self.hal.steeringVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED STEER", 0)
+
 
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
