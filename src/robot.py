@@ -141,13 +141,13 @@ AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
 AUTO_GET_ALL = "grab all"
-AUTO_GET_ALL_PODIUM = 'get all, podium first'
-AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
-AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
-AUTO_FAR_MIDDLE = 'go from subwoofer to far middle ring'
+AUTO_GET_ALL_PODIUM = 'grab all, podium first'
+AUTO_SIDE_UPPER = 'speaker side to upper ring'
+AUTO_SIDE_LOWER = 'speaker side to lower ring'
+AUTO_FAR_MIDDLE = 'speaker center to far middle ring'
 AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
-AUTO_SIDEUPPER_V02 = 'Side uper routine version 2'
-AUTO_SIDEUPPER_3PC = 'no podium 3 pc chicken McNugget'
+AUTO_SIDEUPPER_V02 = 'Side upper routine version 2'
+AUTO_SIDEUPPER_3PC = 'side upper 3pc, no podium'
 AUTO_TROLL = 'mess up middle rings'
 
 # Light animations, unused because they ovveride manual controls of lights
