@@ -37,7 +37,7 @@ class SwerveDrive():
         self.turningPIDs = [PIDController(prefs[i] + "Turning", 0.3) for i in range(4)]
         self.drivePIDs = [PIDController(prefs[i] + "Drive", 0.03, 0, 0, 0.2) for i in range(4)]
 
-    def resetOdometry(self, pose: Pose2d, hal):
+    def resetOdometry(self, pose: Pose2d, hal: robotHAL.RobotHALBuffer):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         self.odometry.resetPosition(Rotation2d(hal.yaw), (wheelPositions[0], wheelPositions[1], wheelPositions[2], wheelPositions[3]), pose)
 
