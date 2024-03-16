@@ -27,7 +27,7 @@ class SwerveDrive():
 
     def __init__(self, angle: Rotation2d, pose: Pose2d, wheelStates: list[SwerveModulePosition]) -> None:
 
-        self.maxSpeed = 5.0 # meters per sec // we measured this its not BS
+        self.maxSpeed = 4.0 # meters per sec // we measured this its not BS
         self.maxSteerSpeed = 1.0 # CCW rads
 
         self.kinematics = SwerveDrive4Kinematics(*self.modulePositions)

@@ -285,7 +285,7 @@ class Robot(wpilib.TimedRobot):
                 self.LEDAnimationFrame %= len(brightnessArray)
         else:
             self.LEDFlashTimer = 0.0
-            self.hardware.setLEDs(0, 0, 0) 
+            self.hardware.setLEDs(0, 0, 0)
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
