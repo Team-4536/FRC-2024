@@ -140,7 +140,7 @@ AUTO_SIDE_FMS = "FMS side"
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
-AUTO_GET_ALL = "get all"
+AUTO_GET_ALL = "three piece chicken nugget happy meal"
 AUTO_GET_ALL_PODIUM = 'get all, podium first'
 AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
 AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
@@ -224,6 +224,12 @@ class Robot(wpilib.TimedRobot):
         self.LEDPrevTrigger = False
         self.LEDTrigger = False
 
+        self.table.putNumber("ctrl/SWERVE ADDED X", 0.0)
+        self.table.putNumber("ctrl/SWERVE ADDED Y", 0.0)
+        self.table.putNumber("ctrl/SWERVE ADDED R", 0.0)
+        self.table.putNumber("ctrl/SWERVE ADDED DRIVE", 0)
+        self.table.putNumber("ctrl/SWERVE ADDED STEER", 0)
+
     def robotPeriodic(self) -> None:
         profiler.start()
 
@@ -275,7 +281,7 @@ class Robot(wpilib.TimedRobot):
 
         if self.LEDFlashTimer > 0:
             self.LEDFlashTimer -= self.time.dt
-            brightnessArray = [0, 255, 0, 255]
+            brightnessArray = [255, 0, 255, 0]
             if (self.time.timeSinceInit - self.lastLEDTransition > 0.2):
                 self.lastLEDTransition = self.time.timeSinceInit
                 self.hardware.setLEDs(brightnessArray[self.LEDAnimationFrame],
@@ -343,6 +349,20 @@ class Robot(wpilib.TimedRobot):
 
         else:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turning * turnScalar)
+
+        time = self.table.getNumber("ctrl/SWERVE TEST TIME", 0.0)
+        time -= self.time.dt
+        self.table.putNumber("ctrl/SWERVE TEST TIME", time)
+        if time > 0:
+            s = Translation2d(self.table.getNumber("ctrl/SWERVE ADDED X", 0.0), self.table.getNumber("ctrl/SWERVE ADDED Y", 0.0))
+            s = s.rotateBy(Rotation2d((-self.hal.yaw + self.driveGyroYawOffset)))
+            speed.vx += s.X()
+            speed.vy += s.Y()
+            speed.omega += self.table.getNumber("ctrl/SWERVE ADDED R", 0.0)
+            # for i in range(4):
+            #     self.hal.driveVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED DRIVE", 0)
+            #     self.hal.steeringVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED STEER", 0)
+
 
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
@@ -509,7 +529,6 @@ class Robot(wpilib.TimedRobot):
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
 
-            
             traj = self.loadTrajectory("middle", self.onRedSide)
             
             self.auto.addTelemetryStage(AUTO_GET_ALL)
@@ -523,8 +542,6 @@ class Robot(wpilib.TimedRobot):
                         .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
-            
-
 
         elif self.autoChooser.getSelected() == AUTO_EXIT:
             traj = self.loadTrajectory("exit", self.onRedSide)
@@ -594,9 +611,7 @@ class Robot(wpilib.TimedRobot):
             self.auto.addIntakeStage().triggerAlongPath(0.5, traj)
             self.auto.addIntakeStage()
             self.auto.addStageSet(AutoBuilder() \
-
                         .addPathStage(self.loadTrajectory("side-upper-back-v02", self.onRedSide)) \
-
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
             traj = self.loadTrajectory("sideFar-upper-v02", self.onRedSide)
@@ -607,6 +622,7 @@ class Robot(wpilib.TimedRobot):
                         .addPathStage(self.loadTrajectory("sideFar-upper-back-v02", self.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
+
 
 
         elif self.autoChooser.getSelected() == AUTO_SIDEUPPER_3PC:

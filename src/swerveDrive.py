@@ -43,22 +43,25 @@ class SwerveDrive():
 
     # speed tuple is x (m/s), y (m/s), anglular speed (CCWR/s)
     def update(self, dt: float, hal: robotHAL.RobotHALBuffer, speed: ChassisSpeeds):
+        for i in range(4):
+            self.turningPIDs[i].kp = self.turningPIDs[0].kp
+
+        speed = ChassisSpeeds.discretize(speed.vx, speed.vy, speed.omega, dt)
 
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         targetStates = self.kinematics.toSwerveModuleStates(speed)
-        SwerveDrive4Kinematics.desaturateWheelSpeeds(targetStates, self.maxSpeed)
-        # TODO: Why does the example discretize velocity?
+        targetStates = SwerveDrive4Kinematics.desaturateWheelSpeeds(targetStates, self.maxSpeed)
 
         telemetryTable = NetworkTableInstance.getDefault().getTable("telemetry")
         prefs = ["FL", "FR", "BL", "BR"]
         for i in range(4):
             state = self.optimizeTarget(targetStates[i], wheelPositions[i].angle)
-            hal.driveSpeeds[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
+            hal.driveVolts[i] = self.drivePIDs[i].tick(state.speed, hal.driveSpeedMeasured[i], dt)
 
             telemetryTable.putNumber(prefs[i] + "targetAngle", state.angle.radians())
             telemetryTable.putNumber(prefs[i] + "targetSpeed", state.speed)
             steeringError = angleWrap(state.angle.radians() - wheelPositions[i].angle.radians())
-            hal.steeringSpeeds[i] = self.turningPIDs[i].tickErr(steeringError, state.angle.radians(), dt)
+            hal.steeringVolts[i] = self.turningPIDs[i].tickErr(steeringError, state.angle.radians(), dt)
 
     def updateOdometry(self, hal: robotHAL.RobotHALBuffer):
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
