@@ -9,12 +9,6 @@ from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
-from phoenix5.led import (
-     ColorFlowAnimation,
-     FireAnimation,
-     RainbowAnimation,
-     StrobeAnimation,
- )
 from PIDController import PIDController, PIDControllerForArm, updatePIDsInNT
 from real import angleWrap, lerp
 from shooterStateMachine import ShooterTarget, StateMachine
@@ -24,6 +18,7 @@ from timing import TimeData
 from utils import CircularScalar, Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
+from lightControl import flashCheck, flashLEDsWhite, setLights
 
 
 class RobotInputs():
@@ -72,6 +67,7 @@ class RobotInputs():
 
 
         self.climb: float = 0.0 # - is trigger in, + is reverse pressed, range goes -1 to 1
+        self.climbEncoderReset: bool = False
 
         self.lineUpWithSubwoofer: bool = False
 
@@ -118,6 +114,7 @@ class RobotInputs():
 
 
         self.climb = float(self.armCtrlr.getRightBumper()) - self.armCtrlr.getRightTriggerAxis()
+        self.climbEncoderReset = self.armCtrlr.getYButtonPressed()
 
         # manual mode controls
         if(self.armCtrlr.getYButtonPressed()):
@@ -209,8 +206,10 @@ class Robot(wpilib.TimedRobot):
         self.LEDAnimationFrame = 0
         self.LEDLastTransition = 0
         self.LEDFlashTimer = 0.0
-        self.LEDPrevTrigger = False
         self.LEDTrigger = False
+        self.LEDPrevTrigger = False
+        self.intakeLEDTrigger = False
+        self.climberLEDTrigger = False
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -238,7 +237,10 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
         
         self.table.putBoolean("ledPrevTrigger", self.LEDPrevTrigger)
-        self.table.putBoolean("ledTrigger", self.LEDTrigger)
+        self.table.putBoolean("intake ledTrigger", self.intakeLEDTrigger)
+        self.table.putBoolean("climber ledTrigger", self.climberLEDTrigger)
+        
+        self.table.putNumber("climb encoder", self.hal.climbPos)
 
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
@@ -250,27 +252,15 @@ class Robot(wpilib.TimedRobot):
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
         profiler.end("robotPeriodic")
-
-        self.LEDTrigger |= self.hal.intakeSensor
-        if self.LEDTrigger and not self.LEDPrevTrigger:
-            self.LEDFlashTimer = 2.0
-            self.lastLEDTransition = self.time.timeSinceInit
-        self.LEDPrevTrigger = self.LEDTrigger
-        self.LEDTrigger = False
-
-        if self.LEDFlashTimer > 0:
-            self.LEDFlashTimer -= self.time.dt
-            brightnessArray = [0, 255, 0, 255]
-            if (self.time.timeSinceInit - self.lastLEDTransition > 0.2):
-                self.lastLEDTransition = self.time.timeSinceInit
-                self.hardware.setLEDs(brightnessArray[self.LEDAnimationFrame],
-                                        brightnessArray[self.LEDAnimationFrame],
-                                        brightnessArray[self.LEDAnimationFrame], 0, 0, 200)
-                self.LEDAnimationFrame += 1
-                self.LEDAnimationFrame %= len(brightnessArray)
+        
+        if self.hal.climbPos > 20:
+            climberHigh = True
         else:
-            self.LEDFlashTimer = 0.0
-            self.hardware.setLEDs(0, 0, 0)
+            climberHigh = False
+            
+        flashCheck(self, self.hal.intakeSensor)
+        flashCheck(self, climberHigh)
+        flashLEDsWhite(self)
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
@@ -295,6 +285,9 @@ class Robot(wpilib.TimedRobot):
 
         if self.input.absToggle:
             self.abs = not self.abs
+            
+        if self.input.climbEncoderReset:
+            self.hal.climbPos = 0
 
 
         profiler.start()
@@ -361,7 +354,7 @@ class Robot(wpilib.TimedRobot):
             self.hardware.resetCamEncoderPos(0)
 
         if(not self.input.overideShooterStateMachine):
-            self.shooterStateMachine.feed(self.input.feed) #untested
+            self.shooterStateMachine.feed(self.input.feed)
             self.shooterStateMachine.aim(self.input.aim)
             self.shooterStateMachine.rev(self.input.rev)
             self.shooterStateMachine.shoot(self.input.shoot)
