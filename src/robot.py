@@ -1,6 +1,7 @@
 import math
 
 import profiler
+import robotAutos
 import robotHAL
 import wpilib
 from autos import AutoBuilder
@@ -137,8 +138,10 @@ SUBWOOFER_LINEUP_BLUE_PIPLINE = 2
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.time = TimeData(None)
-        self.hal = robotHAL.RobotHALBuffer()
+        self.table = NetworkTableInstance.getDefault().getTable("telemetry")
+        self.input = RobotInputs()
 
+        self.hal = robotHAL.RobotHALBuffer()
         self.hardware: robotHAL.RobotHAL | RobotSimHAL
         if self.isSimulation():
             self.hardware = RobotSimHAL()
@@ -146,24 +149,20 @@ class Robot(wpilib.TimedRobot):
             self.hardware = robotHAL.RobotHAL()
         self.hardware.update(self.hal, self.time)
 
-        self.table = NetworkTableInstance.getDefault().getTable("telemetry")
-
-        self.input = RobotInputs()
-
         self.autoSideChooser = wpilib.SendableChooser()
         self.autoSideChooser.setDefaultOption(AUTO_SIDE_FMS, AUTO_SIDE_FMS)
         self.autoSideChooser.addOption(AUTO_SIDE_RED, AUTO_SIDE_RED)
         self.autoSideChooser.addOption(AUTO_SIDE_BLUE, AUTO_SIDE_BLUE)
         wpilib.SmartDashboard.putData('auto side chooser', self.autoSideChooser)
 
+        self.autoSubsys = robotAutos.RobotAutos()
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
+        self.intakeStateMachine = IntakeStateMachine()
+        self.shooterStateMachine = StateMachine()
 
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
-
-        self.intakeStateMachine = IntakeStateMachine()
-        self.shooterStateMachine = StateMachine()
 
         self.odomField = wpilib.Field2d()
         wpilib.SmartDashboard.putData("odom", self.odomField)
@@ -409,6 +408,8 @@ class Robot(wpilib.TimedRobot):
             PIDConstants(self.turnPID.kp, self.turnPID.ki, self.turnPID.kd,),
             5.0,
             self.drive.modulePositions[0].distance(Translation2d()))
+
+        self.auto, initialPose = self.autoSubsys.autoInit(self)
 
         self.driveGyroYawOffset = initialPose.rotation().radians()
         self.hardware.resetGyroToAngle(initialPose.rotation().radians())
