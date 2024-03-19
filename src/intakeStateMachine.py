@@ -18,7 +18,7 @@ class IntakeStateMachine:
                 self.state = self.INTAKING
 
         elif(self.state == self.INTAKING):
-            hal.intakeSpeeds = [0.4, 0.4]
+            hal.intakeSpeeds = [0.7, 0.7]
             if(not beIntaking):
                 self.state = self.START
             if(hal.intakeSensor):

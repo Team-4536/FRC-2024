@@ -34,8 +34,8 @@ class RobotSimHAL():
         # UPDATE WHEEL VELOCITIES
         prefs = ["FL", "FR", "BL", "BR"]
         for i in range(4):
-            self.driveVels[i] = lerp(self.driveVels[i], buf.driveSpeeds[i] * 1/0.2, 0.2)
-            self.steerVels[i] = lerp(self.steerVels[i], buf.steeringSpeeds[i] * 20, 0.3)
+            self.driveVels[i] = lerp(self.driveVels[i], buf.driveVolts[i] * 1/0.2, 0.2)
+            self.steerVels[i] = lerp(self.steerVels[i], buf.steeringVolts[i] * 20, 0.3)
             self.table.putNumber(prefs[i] + "SimSteerVel", self.steerVels[i])
             self.table.putNumber(prefs[i] + "SimDriveVel", self.driveVels[i])
 
