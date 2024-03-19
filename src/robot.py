@@ -135,6 +135,16 @@ ODOMETRY_RESET_PIPELINE = 0
 SUBWOOFER_LINEUP_RED_PIPLINE = 1
 SUBWOOFER_LINEUP_BLUE_PIPLINE = 2
 
+
+# Light animations, unused because they ovveride manual controls of lights
+# strobeAnim  = StrobeAnimation(255, 255, 255, 0, 3, 200, 8)
+# rainbowAnim = RainbowAnimation(1, .3, 200, False, 8)
+# offAnim = FireAnimation(0, 0, 200, 0, 0, False, 8)
+# colorFlowAnim = ColorFlowAnimation(255, 0, 255, 0, .2, 54)
+
+LIGHTS_OFF = "off"
+LIGHTS_ON = "on"
+
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.time = TimeData(None)
