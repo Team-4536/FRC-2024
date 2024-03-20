@@ -19,6 +19,7 @@ AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
 AUTO_SIDEUPPER_V02 = 'Side upper routine version 2'
 AUTO_SIDEUPPER_3PC = 'side upper 3pc, no podium'
 AUTO_TROLL = 'mess up middle rings'
+AUTO_SYSTEM_CHECK = 'system check'
 
 """
 A small class to remove the functionality of auto choosers and construction from robot.py.
@@ -41,7 +42,13 @@ class RobotAutos():
         self.autoChooser.addOption(AUTO_SIDEUPPER_3PC, AUTO_SIDEUPPER_3PC)
         self.autoChooser.addOption(AUTO_GET_ALL_PODIUM, AUTO_GET_ALL_PODIUM)
         self.autoChooser.addOption(AUTO_TROLL, AUTO_TROLL)
+        self.autoChooser.addOption(AUTO_SYSTEM_CHECK, AUTO_SYSTEM_CHECK)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
+
+        self.systemCheckStage = 0
+        self.systemCheckRunIntake = False
+        self.systemCheckStopIntaking = False
+        self.systemCheckStopClimbing = False
 
     # NOTE: filename is *just* the title of the file, with no extension and no path
     # filename is directly passed to pathplanner.loadPath
@@ -69,6 +76,9 @@ class RobotAutos():
 
         if self.autoChooser.getSelected() == AUTO_NONE:
             pass
+
+        elif self.autoChooser.getSelected() == AUTO_SYSTEM_CHECK:
+            auto.add(self.systemCheck)
 
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
             initialPose = traj.getInitialState().getTargetHolonomicPose()
@@ -221,8 +231,6 @@ class RobotAutos():
             auto.addShooterFireStage()
             auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
 
-
-
         elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
             traj = self.loadTrajectory('side-lower', r.onRedSide)
 
@@ -241,3 +249,84 @@ class RobotAutos():
             assert(False)
 
         return auto, initialPose
+
+    def systemCheck(self):
+        if self.input.armCtrlr.getAButton:
+            self.systemCheckStage += 1
+        IntakeStateMachine.update(self.intakeStateMachine,self.hal, self.systemCheckRunIntake)
+        
+        if self.systemCheckStage == 4 and self.systemCheckStopIntaking == True or self.systemCheckStage == 5:
+            self.systemCheckRunIntake = True
+        else:
+            self.systemCheckRunIntake = False   
+
+        if self.systemCheckStage == 1:
+            speed = ChassisSpeeds(0.05, 0, 0)
+            self.drive.update(self.time.dt, self.hal, speed)
+        elif self.systemCheckStage == 2:  
+            speed = ChassisSpeeds(0.05, 0, -0.5)
+            self.drive.update(self.time.dt, self.hal, speed)
+        elif self.systemCheckStage == 3:
+            speed = ChassisSpeeds(0.05, 0, 0.5)
+            self.drive.update(self.time.dt, self.hal, speed)
+        elif self.systemCheckStage == 4:
+            if self.intakeSensor == True:
+                self.systemCheckStopIntaking = False
+                StateMachine.feed(self.shooterStateMachine, True)
+            if self.hal.shooterSensor == True:
+                StateMachine.rev(self.shooterStateMachine, True)
+                StateMachine.aim(self.shooterStateMachine, ShooterTarget.AMP)
+            if self.shooterStateMachine.onTarget == True and self.input.armCtrlr.getXButton and self.hal.shooterSensor == True:
+                StateMachine.shoot(self.shooterStateMachine, True)
+            if self.hal.shooterSensor == False:
+                StateMachine.aim(self.shooterStateMachine, ShooterTarget.NONE)
+                if not hasattr(self, "resetTimer"):
+                    self.resetTimer = self.time.timeSinceInit
+                self.currentTime = self.time.timeSinceInit
+                if self.currentTime - 0.9 > self.resetTimer:
+                    self.systemCheckStage +=1
+        elif self.systemCheckStage == 5: 
+            if self.intakeSensor == True:
+                StateMachine.feed(self.shooterStateMachine, True)
+            if self.hal.shooterSensor == True:
+                StateMachine.rev(self.shooterStateMachine, True)
+                StateMachine.aim(self.shooterStateMachine, ShooterTarget.SUBWOOFER)
+            if self.shooterStateMachine.onTarget == True and self.input.armCtrlr.getXButton and self.hal.shooterSensor == True:
+                StateMachine.shoot(self.shooterStateMachine, True)
+            if self.hal.shooterSensor == False:
+                self.systemCheckStage += 1
+        elif self.systemCheckStage == 6:
+            if self.systemCheckStopClimbing == True:
+                self.hal.climberSpeed = 0.1
+            if not hasattr(self, "climbTimer"):
+                self.climbTimer = self.time.timeSinceInit
+            self.currentTime = self.time.timeSinceInit
+            if self.currentTime - 0.9 > self.climbTimer:
+                self.systemCheckStopClimbing = True
+                self.hal.climberSpeed = 0
+        elif self.systemCheckStage == 7:
+            self.hal.climberSpeed = -0.1
+            if self.hal.climberLimitPressed == True:
+                self.hal.climberSpeed = 0
+                self.systemCheckStage = 0
+
+
+    def systemCheckForwardDrive(self):
+        speed = ChassisSpeeds(0.05, 0, 0)
+        self.drive.update(self.time.dt, self.hal, speed)
+    def systemCheckLeftDrive(self):
+        speed = ChassisSpeeds(0.05, 0, -0.5)
+        self.drive.update(self.time.dt, self.hal, speed)
+    def systemCheckRightDrive(self):
+        speed = ChassisSpeeds(0.05, 0, 0.5)
+        self.drive.update(self.time.dt, self.hal, speed)
+    def systemCheckRingIntake(self):
+            pass
+
+
+
+                
+        
+
+
+

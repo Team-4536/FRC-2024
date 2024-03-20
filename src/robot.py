@@ -130,8 +130,6 @@ AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
 AUTO_SIDE_FMS = "FMS side"
 
-AUTO_SYSTEM_CHECK = 'system check'
-
 #Pipeline definitions
 ODOMETRY_RESET_PIPELINE = 0
 SUBWOOFER_LINEUP_RED_PIPLINE = 1
@@ -166,8 +164,6 @@ class Robot(wpilib.TimedRobot):
         self.autoSideChooser.addOption(AUTO_SIDE_BLUE, AUTO_SIDE_BLUE)
         wpilib.SmartDashboard.putData('auto side chooser', self.autoSideChooser)
 
-        self.autoChooser.addOption(AUTO_SYSTEM_CHECK, AUTO_SYSTEM_CHECK)
-
         self.autoSubsys = robotAutos.RobotAutos()
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
@@ -193,12 +189,6 @@ class Robot(wpilib.TimedRobot):
         self.LEDFlashTimer = 0.0
         self.LEDPrevTrigger = False
         self.LEDTrigger = False
-
-        fix
-        self.systemCheckStage = 0
-        self.systemCheckRunIntake = False
-        self.systemCheckStopIntaking = False
-        self.systemCheckStopClimbing = False
 
         self.table.putNumber("ctrl/SWERVE ADDED X", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED Y", 0.0)
@@ -269,72 +259,6 @@ class Robot(wpilib.TimedRobot):
             self.LEDFlashTimer = 0.0
             self.hardware.setLEDs(0, 0, 0)
         self.intakeSensor = self.hal.intakeSensor 
-    def systemCheck(self):
-        if self.input.armCtrlr.getAButton:
-            self.systemCheckStage += 1
-        IntakeStateMachine.update(self.intakeStateMachine,self.hal, self.systemCheckRunIntake)
-        
-        if self.systemCheckStage == 4 and self.systemCheckStopIntaking == True or self.systemCheckStage == 5:
-            self.systemCheckRunIntake = True
-        else:
-            self.systemCheckRunIntake = False   
-
-        if self.systemCheckStage == 1:
-            speed = ChassisSpeeds(0.05, 0, 0)
-            self.drive.update(self.time.dt, self.hal, speed)
-        elif self.systemCheckStage == 2:  
-            speed = ChassisSpeeds(0.05, 0, -0.5)
-            self.drive.update(self.time.dt, self.hal, speed)
-        elif self.systemCheckStage == 3:
-            speed = ChassisSpeeds(0.05, 0, 0.5)
-            self.drive.update(self.time.dt, self.hal, speed)
-        elif self.systemCheckStage == 4:
-            if self.intakeSensor == True:
-                self.systemCheckStopIntaking = False
-                StateMachine.feed(self.shooterStateMachine, True)
-            if self.hal.shooterSensor == True:
-                StateMachine.rev(self.shooterStateMachine, True)
-                StateMachine.aim(self.shooterStateMachine, ShooterTarget.AMP)
-            if self.shooterStateMachine.onTarget == True and self.input.armCtrlr.getXButton and self.hal.shooterSensor == True:
-                StateMachine.shoot(self.shooterStateMachine, True)
-            if self.hal.shooterSensor == False:
-                StateMachine.aim(self.shooterStateMachine, ShooterTarget.NONE)
-                if not hasattr(self, "resetTimer"):
-                    self.resetTimer = self.time.timeSinceInit
-                self.currentTime = self.time.timeSinceInit
-                if self.currentTime - 0.9 > self.resetTimer:
-                    self.systemCheckStage +=1
-        elif self.systemCheckStage == 5: 
-            if self.intakeSensor == True:
-                StateMachine.feed(self.shooterStateMachine, True)
-            if self.hal.shooterSensor == True:
-                StateMachine.rev(self.shooterStateMachine, True)
-                StateMachine.aim(self.shooterStateMachine, ShooterTarget.SUBWOOFER)
-            if self.shooterStateMachine.onTarget == True and self.input.armCtrlr.getXButton and self.hal.shooterSensor == True:
-                StateMachine.shoot(self.shooterStateMachine, True)
-            if self.hal.shooterSensor == False:
-                self.systemCheckStage += 1
-        elif self.systemCheckStage == 6:
-            if self.systemCheckStopClimbing == True:
-                self.hal.climberSpeed = 0.1
-            if not hasattr(self, "climbTimer"):
-                self.climbTimer = self.time.timeSinceInit
-            self.currentTime = self.time.timeSinceInit
-            if self.currentTime - 0.9 > self.climbTimer:
-                self.systemCheckStopClimbing = True
-                self.hal.climberSpeed = 0
-        elif self.systemCheckStage == 7:
-            self.hal.climberSpeed = -0.1
-            if self.hal.climberLimitPressed == True:
-                self.hal.climberSpeed = 0
-                self.systemCheckStage = 0
-
-
-
-                
-        
-
-
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
@@ -409,20 +333,6 @@ class Robot(wpilib.TimedRobot):
 
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
-        
-        another fix here
-
-        def systemCheckForwardDrive():
-            speed = ChassisSpeeds(0.05, 0, 0)
-            self.drive.update(self.time.dt, self.hal, speed)
-        def systemCheckLeftDrive():
-            speed = ChassisSpeeds(0.05, 0, -0.5)
-            self.drive.update(self.time.dt, self.hal, speed)
-        def systemCheckRightDrive():
-            speed = ChassisSpeeds(0.05, 0, 0.5)
-            self.drive.update(self.time.dt, self.hal, speed)
-        def systemCheckRingIntake():
-            pass
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
@@ -509,9 +419,6 @@ class Robot(wpilib.TimedRobot):
             self.drive.modulePositions[0].distance(Translation2d()))
 
         self.auto, initialPose = self.autoSubsys.autoInit(self)
-
-        elif self.autoChooser.getSelected() == AUTO_SYSTEM_CHECK:
-            self.systemCheck()
 
         self.driveGyroYawOffset = initialPose.rotation().radians()
         self.hardware.resetGyroToAngle(initialPose.rotation().radians())
