@@ -144,7 +144,7 @@ AUTO_GET_ALL = "grab all"
 AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
 AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
 AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
-
+AUTO_SYSTEM_CHECK = 'system check'
 # Light animations, unused because they ovveride manual controls of lights
 # strobeAnim  = StrobeAnimation(255, 255, 255, 0, 3, 200, 8)
 # rainbowAnim = RainbowAnimation(1, .3, 200, False, 8)
@@ -192,6 +192,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_SIDE_UPPER, AUTO_SIDE_UPPER)
         self.autoChooser.addOption(AUTO_SIDE_LOWER, AUTO_SIDE_LOWER)
         self.autoChooser.addOption(AUTO_SHOOT_PRELOADED, AUTO_SHOOT_PRELOADED)
+        self.autoChooser.addOption(AUTO_SYSTEM_CHECK, AUTO_SYSTEM_CHECK)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
         self.odomField = wpilib.Field2d()
@@ -209,7 +210,12 @@ class Robot(wpilib.TimedRobot):
         self.LEDFlashTimer = 0.0
         self.LEDPrevTrigger = False
         self.LEDTrigger = False
-
+        self.systemCheckStage = 0
+        self.systemCheckRunIntake = False
+        self.systemCheckStopIntaking = False
+        self.systemCheckStopClimbing = False
+    
+    
     def robotPeriodic(self) -> None:
         profiler.start()
 
@@ -269,6 +275,73 @@ class Robot(wpilib.TimedRobot):
         else:
             self.LEDFlashTimer = 0.0
             self.hardware.setLEDs(0, 0, 0)
+        self.intakeSensor = self.hal.intakeSensor 
+    def systemCheck(self):
+        if self.input.armCtrlr.getAButton:
+            self.systemCheckStage += 1
+        IntakeStateMachine.update(self.intakeStateMachine,self.hal, self.systemCheckRunIntake)
+        
+        if self.systemCheckStage == 4 and self.systemCheckStopIntaking == True or self.systemCheckStage == 5:
+            self.systemCheckRunIntake = True
+        else:
+            self.systemCheckRunIntake = False   
+
+        if self.systemCheckStage == 1:
+            speed = ChassisSpeeds(0.05, 0, 0)
+            self.drive.update(self.time.dt, self.hal, speed)
+        elif self.systemCheckStage == 2:  
+            speed = ChassisSpeeds(0.05, 0, -0.5)
+            self.drive.update(self.time.dt, self.hal, speed)
+        elif self.systemCheckStage == 3:
+            speed = ChassisSpeeds(0.05, 0, 0.5)
+            self.drive.update(self.time.dt, self.hal, speed)
+        elif self.systemCheckStage == 4:
+            if self.intakeSensor == True:
+                self.systemCheckStopIntaking = False
+                StateMachine.feed(self.shooterStateMachine, True)
+            if self.hal.shooterSensor == True:
+                StateMachine.rev(self.shooterStateMachine, True)
+                StateMachine.aim(self.shooterStateMachine, ShooterTarget.AMP)
+            if self.shooterStateMachine.onTarget == True and self.input.armCtrlr.getXButton and self.hal.shooterSensor == True:
+                StateMachine.shoot(self.shooterStateMachine, True)
+            if self.hal.shooterSensor == False:
+                StateMachine.aim(self.shooterStateMachine, ShooterTarget.NONE)
+                if not hasattr(self, "resetTimer"):
+                    self.resetTimer = self.time.timeSinceInit
+                self.currentTime = self.time.timeSinceInit
+                if self.currentTime - 0.9 > self.resetTimer:
+                    self.systemCheckStage +=1
+        elif self.systemCheckStage == 5: 
+            if self.intakeSensor == True:
+                StateMachine.feed(self.shooterStateMachine, True)
+            if self.hal.shooterSensor == True:
+                StateMachine.rev(self.shooterStateMachine, True)
+                StateMachine.aim(self.shooterStateMachine, ShooterTarget.SUBWOOFER)
+            if self.shooterStateMachine.onTarget == True and self.input.armCtrlr.getXButton and self.hal.shooterSensor == True:
+                StateMachine.shoot(self.shooterStateMachine, True)
+            if self.hal.shooterSensor == False:
+                self.systemCheckStage += 1
+        elif self.systemCheckStage == 6:
+            if self.systemCheckStopClimbing == True:
+                self.hal.climberSpeed = 0.1
+            if not hasattr(self, "climbTimer"):
+                self.climbTimer = self.time.timeSinceInit
+            self.currentTime = self.time.timeSinceInit
+            if self.currentTime - 0.9 > self.climbTimer:
+                self.systemCheckStopClimbing = True
+                self.hal.climberSpeed = 0
+        elif self.systemCheckStage == 7:
+            self.hal.climberSpeed = -0.1
+            if self.hal.climberLimitPressed == True:
+                self.hal.climberSpeed = 0
+                self.systemCheckStage = 0
+
+
+
+                
+        
+
+
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
@@ -293,7 +366,7 @@ class Robot(wpilib.TimedRobot):
 
         if self.input.absToggle:
             self.abs = not self.abs
-
+        
 
         profiler.start()
         speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
@@ -334,18 +407,9 @@ class Robot(wpilib.TimedRobot):
 
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
-
-        def systemCheckForwardDrive():
-            speed = ChassisSpeeds(0.05, 0, 0)
-            self.drive.update(self.time.dt, self.hal, speed)
-        def systemCheckLeftDrive():
-            speed = ChassisSpeeds(0.05, 0, -0.5)
-            self.drive.update(self.time.dt, self.hal, speed)
-        def systemCheckRightDrive():
-            speed = ChassisSpeeds(0.05, 0, 0.5)
-            self.drive.update(self.time.dt, self.hal, speed)
-        def systemCheckRingIntake():
-
+    
+            
+        
         
         
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
@@ -428,7 +492,7 @@ class Robot(wpilib.TimedRobot):
             p = p.flipPath()
         t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
         return t
-
+    
     def autonomousInit(self) -> None:
         # when simulating, initalize sim to have a preloaded ring
         if isinstance(self.hardware, RobotSimHAL):
@@ -520,6 +584,9 @@ class Robot(wpilib.TimedRobot):
                         .addPathStage(self.loadTrajectory("upperBack", self.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             self.auto.addShooterFireStage()
+
+        elif self.autoChooser.getSelected() == AUTO_SYSTEM_CHECK:
+            self.systemCheck()
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
             traj = self.loadTrajectory('side-lower', self.onRedSide)
