@@ -11,6 +11,7 @@ class ShooterTarget(Enum):
     AMP = 1
     PODIUM = 2
     SUBWOOFER = 3
+    
 
 class StateMachine():
     READY_FOR_RING = 0
@@ -18,6 +19,10 @@ class StateMachine():
     STORED_IN_SHOOTER = 2
     AIMING = 3
     SHOOTING = 4
+    
+
+    READY_FOR_SOURCE = 5
+    SOURCE_FEEDING = 6
 
     SPEED_SMOOTH_SCALAR = 0.1
     AIM_SMOOTH_SCALAR = 0.05
@@ -26,6 +31,7 @@ class StateMachine():
     ampSetpoint = (1.7, 100, 0)
     podiumSetpoint = (0, 0, 3)
     subwooferSetpoint = (0, 250, 0)
+    
 
     def __init__(self):
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
@@ -103,6 +109,11 @@ class StateMachine():
                 self.aimSetpoint = self.subwooferSetpoint[0]
                 self.speedSetpoint = self.subwooferSetpoint[1]
                 self.camSetpoint = self.subwooferSetpoint[2]
+            
+                
+
+
+
 
         self.onTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:
@@ -154,6 +165,24 @@ class StateMachine():
             hal.intakeSpeeds[1] = 0.4
             if(time - self.time > 1.0):
                 self.state = self.READY_FOR_RING
+
+        elif(self.state == self.READY_FOR_SOURCE):
+            aimTarget = 1.7
+            speedTarget = 0
+            camTarget = 0
+            hal.shooterIntakeSpeed = -0.1
+            if hal.shooterSensor:
+                self.state = self.SOURCE_FEEDING
+                 
+
+        elif(self.state == self.SOURCE_FEEDING):
+            aimTarget = 0
+            speedTarget = 0
+            camTarget = 0
+            hal.shooterIntakeSpeed = -0.1
+            hal.intakeSpeeds[1] = -0.4
+            if hal.shooterSensor:
+                self.state = self.STORED_IN_SHOOTER
 
         else:
             aimTarget = 0
