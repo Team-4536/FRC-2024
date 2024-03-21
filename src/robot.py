@@ -1,5 +1,6 @@
 import math
 
+import cProfile
 import profiler
 import robotHAL
 import wpilib
@@ -231,6 +232,12 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/SWERVE ADDED STEER", 0)
 
     def robotPeriodic(self) -> None:
+        if self.isSimulation():
+            cProfile.runctx('self.realRobotPeriodic()', globals(), locals())
+        else:
+            self.realRobotPeriodic()
+
+    def realRobotPeriodic(self) -> None:
         profiler.start()
 
         self.time = TimeData(self.time)
