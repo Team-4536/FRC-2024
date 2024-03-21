@@ -2,7 +2,7 @@ import math
 from enum import Enum
 
 from ntcore import NetworkTableInstance
-from PIDController import PIDController, PIDControllerForArm
+from PIDController import PIDController, PIDControllerForArm, PIDControllerForCam
 from robotHAL import RobotHALBuffer
 
 
@@ -33,7 +33,7 @@ class StateMachine():
         self.table.putNumber("kp", 0.0008)
 
         self.aimPID = PIDControllerForArm("aim", 0.6, 0, 0, 0, 0.02, 0.1)
-        self.camPID = PIDController("cam", 0.06)
+        self.camPID = PIDControllerForCam("cam", 0.06, 0.0, 0.0)
         self.shooterPID = PIDController("shooter", 0.0008, 0, 0, 0.00181)
 
 
