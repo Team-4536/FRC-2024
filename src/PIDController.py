@@ -65,6 +65,24 @@ class PIDControllerForArm(PIDController):
             self.kg = t.getNumber("Kg", 0)
         super()._publish()
 
+class PIDControllerForCam(PIDController):
+    def __init__(self, name: str, kp: float = 0, ki: float = 0, ks: float = 0) -> None:
+        super().__init__(name = name, kp = kp, ki = ki, kd = 0, kff = 0)
+        self.ks = ks
+
+    def tick(self, target: float, position: float, dt: float) -> float:
+        out = super().tick(target, position, dt)
+        out += self.ks
+        return out
+
+    def _publish(self) -> None:
+        t = pidTable.getSubTable(self.name)
+        if t.getNumber("Kp", None) is None:
+            t.putNumber("Ks", self.ks)
+        else:
+            self.ks = t.getNumber("Ks", 0)
+        super()._publish()
+
 def updatePIDsInNT():
     for c in createdControllers:
         c._publish()
