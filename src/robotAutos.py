@@ -1,11 +1,16 @@
 import robot
 import wpilib
-from autos import AutoBuilder
+from autos import AutoBuilder, Stage
 from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
 from wpimath.geometry import Pose2d
 from wpimath.kinematics import ChassisSpeeds
+from intakeStateMachine import IntakeStateMachine
+from shooterStateMachine import StateMachine
+import robot
+
+
 
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
@@ -78,7 +83,17 @@ class RobotAutos():
             pass
 
         elif self.autoChooser.getSelected() == AUTO_SYSTEM_CHECK:
-            auto.add(self.systemCheck)
+            self.systemCheckStopClimbing = False
+            auto.add(Stage(self.driveChassis, "driveForward"))
+            auto.add(Stage(self.driveChassisLeft, "driveLeft"))
+            auto.add(Stage(self.driveChassisRight, "driveRight"))
+            auto.add(Stage(self.systemCheckIntake, "intake"))
+            auto.add(Stage(self.systemCheckAmp, "amp"))
+            auto.add(Stage(self.systemCheckIntake, "intake"))
+            auto.add(Stage(self.systemCheckShooter, "shooter"))
+            auto.add(Stage(self.systemCheckClimbUp, "climb up"))
+            auto.add(Stage(self.systemCheckClimbDown, "climb down"))
+
 
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
             initialPose = traj.getInitialState().getTargetHolonomicPose()
@@ -198,7 +213,6 @@ class RobotAutos():
             auto.addIntakeStage().triggerAlongPath(0.5, traj)
             auto.addIntakeStage()
             auto.addStageSet(AutoBuilder() \
-
                         .addPathStage(self.loadTrajectory("side-upper-back-v02", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
@@ -250,78 +264,129 @@ class RobotAutos():
 
         return auto, initialPose
 
-    def systemCheck(self):
-        if self.input.armCtrlr.getAButton:
-            self.systemCheckStage += 1
-        IntakeStateMachine.update(self.intakeStateMachine,self.hal, self.systemCheckRunIntake)
-        
-        if self.systemCheckStage == 4 and self.systemCheckStopIntaking == True or self.systemCheckStage == 5:
-            self.systemCheckRunIntake = True
-        else:
-            self.systemCheckRunIntake = False   
-
-        if self.systemCheckStage == 1:
-            speed = ChassisSpeeds(0.05, 0, 0)
-            self.drive.update(self.time.dt, self.hal, speed)
-        elif self.systemCheckStage == 2:  
-            speed = ChassisSpeeds(0.05, 0, -0.5)
-            self.drive.update(self.time.dt, self.hal, speed)
-        elif self.systemCheckStage == 3:
-            speed = ChassisSpeeds(0.05, 0, 0.5)
-            self.drive.update(self.time.dt, self.hal, speed)
-        elif self.systemCheckStage == 4:
-            if self.intakeSensor == True:
-                self.systemCheckStopIntaking = False
-                StateMachine.feed(self.shooterStateMachine, True)
-            if self.hal.shooterSensor == True:
-                StateMachine.rev(self.shooterStateMachine, True)
-                StateMachine.aim(self.shooterStateMachine, ShooterTarget.AMP)
-            if self.shooterStateMachine.onTarget == True and self.input.armCtrlr.getXButton and self.hal.shooterSensor == True:
-                StateMachine.shoot(self.shooterStateMachine, True)
-            if self.hal.shooterSensor == False:
-                StateMachine.aim(self.shooterStateMachine, ShooterTarget.NONE)
-                if not hasattr(self, "resetTimer"):
-                    self.resetTimer = self.time.timeSinceInit
-                self.currentTime = self.time.timeSinceInit
-                if self.currentTime - 0.9 > self.resetTimer:
-                    self.systemCheckStage +=1
-        elif self.systemCheckStage == 5: 
-            if self.intakeSensor == True:
-                StateMachine.feed(self.shooterStateMachine, True)
-            if self.hal.shooterSensor == True:
-                StateMachine.rev(self.shooterStateMachine, True)
-                StateMachine.aim(self.shooterStateMachine, ShooterTarget.SUBWOOFER)
-            if self.shooterStateMachine.onTarget == True and self.input.armCtrlr.getXButton and self.hal.shooterSensor == True:
-                StateMachine.shoot(self.shooterStateMachine, True)
-            if self.hal.shooterSensor == False:
-                self.systemCheckStage += 1
-        elif self.systemCheckStage == 6:
-            if self.systemCheckStopClimbing == True:
-                self.hal.climberSpeed = 0.1
-            if not hasattr(self, "climbTimer"):
-                self.climbTimer = self.time.timeSinceInit
-            self.currentTime = self.time.timeSinceInit
-            if self.currentTime - 0.9 > self.climbTimer:
-                self.systemCheckStopClimbing = True
-                self.hal.climberSpeed = 0
-        elif self.systemCheckStage == 7:
-            self.hal.climberSpeed = -0.1
-            if self.hal.climberLimitPressed == True:
-                self.hal.climberSpeed = 0
-                self.systemCheckStage = 0
-
-
-    def systemCheckForwardDrive(self):
+    def driveChassis(self, r: 'robot.Robot') -> bool | None:
         speed = ChassisSpeeds(0.05, 0, 0)
-        self.drive.update(self.time.dt, self.hal, speed)
-    def systemCheckLeftDrive(self):
+        r.drive.update(r.time.dt, r.hal, speed)
+        return r.input.armCtrlr.getAButtonPressed()
+    def driveChassisLeft(self, r: 'robot.Robot') -> bool | None:
         speed = ChassisSpeeds(0.05, 0, -0.5)
-        self.drive.update(self.time.dt, self.hal, speed)
-    def systemCheckRightDrive(self):
+        r.drive.update(r.time.dt, r.hal, speed)
+        return r.input.armCtrlr.getAButtonPressed()
+    def driveChassisRight(self, r: 'robot.Robot') -> bool | None:
         speed = ChassisSpeeds(0.05, 0, 0.5)
-        self.drive.update(self.time.dt, self.hal, speed)
-    def systemCheckRingIntake(self):
-            pass
+        r.drive.update(r.time.dt, r.hal, speed)
+        return r.input.armCtrlr.getAButtonPressed()
+    def systemCheckIntake(self, r: 'robot.Robot') -> bool | None:   
+        IntakeStateMachine.update(r.intakeStateMachine,r.hal, True)
+        if r.intakeSensor == True:
+                StateMachine.feed(r.shooterStateMachine, True)
+        return r.input.armCtrlr.getAButtonPressed()
+    def systemCheckAmp(self, r: 'robot.Robot') -> bool | None: 
+        if r.hal.shooterSensor == True:
+            StateMachine.rev(r.shooterStateMachine, True)
+            StateMachine.aim(r.shooterStateMachine, ShooterTarget.AMP)
+        if r.shooterStateMachine.onTarget == True and r.input.armCtrlr.getXButton and r.hal.shooterSensor == True:
+            StateMachine.shoot(r.shooterStateMachine, True)
+        if r.hal.shooterSensor == False:
+            StateMachine.aim(r.shooterStateMachine, ShooterTarget.NONE)
+        return r.input.armCtrlr.getAButtonPressed()
+    def systemCheckShooter(self, r: 'robot.Robot') -> bool | None: 
+        if r.hal.shooterSensor == True:
+            StateMachine.rev(r.shooterStateMachine, True)
+            StateMachine.aim(r.shooterStateMachine, ShooterTarget.SUBWOOFER)
+        if r.shooterStateMachine.onTarget == True and r.input.armCtrlr.getXButton and r.hal.shooterSensor == True:
+            StateMachine.shoot(r.shooterStateMachine, True)
+        return r.input.armCtrlr.getAButtonPressed()
+    def systemCheckClimbUp(self, r: 'robot.Robot') -> bool | None: 
+        if self.systemCheckStopClimbing == False:
+            r.hal.climberSpeed = 0.1
+        if not hasattr(self, "climbTimer"):
+            self.climbTimer = r.time.timeSinceInit
+        self.currentTime = r.time.timeSinceInit
+        if self.currentTime - 0.9 > self.climbTimer:
+            self.systemCheckStopClimbing = True
+            r.hal.climberSpeed = 0
+        return r.input.armCtrlr.getAButtonPressed()
+    def systemCheckClimbDown(self, r: 'robot.Robot') -> bool | None:
+        r.hal.climberSpeed = -0.1
+        if r.hal.climberLimitPressed == True:
+            r.hal.climberSpeed = 0
+            self.systemCheckStage = 0
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # def systemCheck(self, r: 'robot.Robot') -> bool | None:
+    #     if r.input.armCtrlr.getAButtonPressed():
+    #         self.systemCheckStage += 1
+    #     IntakeStateMachine.update(r.intakeStateMachine,r.hal, self.systemCheckRunIntake)
+        
+    #     if self.systemCheckStage == 4 and self.systemCheckStopIntaking == True or self.systemCheckStage == 5:
+    #         self.systemCheckRunIntake = True
+    #     else:
+    #         self.systemCheckRunIntake = False   
+
+    #     if self.systemCheckStage == 1:
+    #         speed = ChassisSpeeds(0.05, 0, 0)
+    #         r.drive.update(r.time.dt, r.hal, speed)
+    #     elif self.systemCheckStage == 2:  
+    #         speed = ChassisSpeeds(0.05, 0, -0.5)
+    #         r.drive.update(r.time.dt, r.hal, speed)
+    #     elif self.systemCheckStage == 3:
+    #         speed = ChassisSpeeds(0.05, 0, 0.5)
+    #         r.drive.update(r.time.dt, r.hal, speed)
+    #     elif self.systemCheckStage == 4:
+    #         if r.intakeSensor == True:
+    #             self.systemCheckStopIntaking = False
+    #             StateMachine.feed(r.shooterStateMachine, True)
+    #         if r.hal.shooterSensor == True:
+    #             StateMachine.rev(r.shooterStateMachine, True)
+    #             StateMachine.aim(r.shooterStateMachine, ShooterTarget.AMP)
+    #         if r.shooterStateMachine.onTarget == True and r.input.armCtrlr.getXButton and r.hal.shooterSensor == True:
+    #             StateMachine.shoot(r.shooterStateMachine, True)
+    #         if r.hal.shooterSensor == False:
+    #             StateMachine.aim(r.shooterStateMachine, ShooterTarget.NONE)
+    #             if not hasattr(self, "resetTimer"):
+    #                 self.resetTimer = r.time.timeSinceInit
+    #             self.currentTime = r.time.timeSinceInit
+    #             if self.currentTime - 0.9 > self.resetTimer:
+    #                 self.systemCheckStage +=1
+    #     elif self.systemCheckStage == 5: 
+    #         if r.intakeSensor == True:
+    #             StateMachine.feed(r.shooterStateMachine, True)
+    #         if r.hal.shooterSensor == True:
+    #             StateMachine.rev(r.shooterStateMachine, True)
+    #             StateMachine.aim(r.shooterStateMachine, ShooterTarget.SUBWOOFER)
+    #         if r.shooterStateMachine.onTarget == True and r.input.armCtrlr.getXButton and r.hal.shooterSensor == True:
+    #             StateMachine.shoot(r.shooterStateMachine, True)
+    #         if r.hal.shooterSensor == False:
+    #             self.systemCheckStage += 1
+    #     elif self.systemCheckStage == 6:
+    #         if self.systemCheckStopClimbing == True:
+    #             r.hal.climberSpeed = 0.1
+    #         if not hasattr(self, "climbTimer"):
+    #             self.climbTimer = r.time.timeSinceInit
+    #         self.currentTime = r.time.timeSinceInit
+    #         if self.currentTime - 0.9 > self.climbTimer:
+    #             self.systemCheckStopClimbing = True
+    #             r.hal.climberSpeed = 0
+    #     elif self.systemCheckStage == 7:
+    #         r.hal.climberSpeed = -0.1
+    #         if r.hal.climberLimitPressed == True:
+    #             r.hal.climberSpeed = 0
+    #             self.systemCheckStage = 0
+
+
 
 
 
