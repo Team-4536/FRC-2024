@@ -18,7 +18,7 @@ from timing import TimeData
 from utils import CircularScalar, Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-from lightControl import flashCheck, flashLEDsWhite, setLights
+from lightControl import LightControl
 
 
 class RobotInputs():
@@ -137,7 +137,7 @@ AUTO_SIDE_FMS = "FMS side"
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
 AUTO_EXIT = "exit"
-AUTO_GET_ALL = "three piece chicken nugget happy meal"
+AUTO_GET_ALL = "three piece chicken mcnugget happy meal"
 AUTO_SIDE_UPPER = 'go from speaker side to upper ring'
 AUTO_SIDE_LOWER = 'go from side of speaker and get lower ring'
 AUTO_FAR_MIDDLE = 'go from subwoofer to far middle ring'
@@ -149,19 +149,18 @@ AUTO_SHOOT_PRELOADED = 'shoot preloaded ring'
 # offAnim = FireAnimation(0, 0, 200, 0, 0, False, 8)
 # colorFlowAnim = ColorFlowAnimation(255, 0, 255, 0, .2, 54)
 
-LIGHTS_OFF = "off"
-LIGHTS_ON = "on"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
-
+        
         self.hardware: robotHAL.RobotHAL | RobotSimHAL
         if self.isSimulation():
             self.hardware = RobotSimHAL()
         else:
             self.hardware = robotHAL.RobotHAL()
+        self.lights = LightControl(self.hardware)
         self.hardware.update(self.hal, self.time)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
@@ -192,7 +191,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_SHOOT_PRELOADED, AUTO_SHOOT_PRELOADED)
         self.autoChooser.addOption(AUTO_FAR_MIDDLE, AUTO_FAR_MIDDLE)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
-
+        
         self.odomField = wpilib.Field2d()
         wpilib.SmartDashboard.putData("odom", self.odomField)
 
@@ -203,13 +202,6 @@ class Robot(wpilib.TimedRobot):
 
         self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
-        self.LEDAnimationFrame = 0
-        self.LEDLastTransition = 0
-        self.LEDFlashTimer = 0.0
-        self.LEDTrigger = False
-        self.LEDPrevTrigger = False
-        self.intakeLEDTrigger = False
-        self.climberLEDTrigger = False
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -220,6 +212,7 @@ class Robot(wpilib.TimedRobot):
         self.shooterStateMachine.publishInfo()
 
         self.drive.updateOdometry(self.hal)
+        
 
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
@@ -231,17 +224,8 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
-        self.table.putNumber("LEDAnimationFrame", self.LEDAnimationFrame)
-        self.table.putNumber("LEDFlashTimer", self.LEDFlashTimer)
-        self.table.putNumber("timesinceinit", self.time.timeSinceInit)
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
         
-        self.table.putBoolean("ledPrevTrigger", self.LEDPrevTrigger)
-        self.table.putBoolean("intake ledTrigger", self.intakeLEDTrigger)
-        self.table.putBoolean("climber ledTrigger", self.climberLEDTrigger)
-        
-        self.table.putNumber("climb encoder", self.hal.climbPos)
-
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
             if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
@@ -249,18 +233,12 @@ class Robot(wpilib.TimedRobot):
             else:
                 self.onRedSide = False
 
+        self.lights.updateLED(self.table, self.time)
+        
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
         profiler.end("robotPeriodic")
         
-        if self.hal.climbPos > 20:
-            climberHigh = True
-        else:
-            climberHigh = False
-            
-        flashCheck(self, self.hal.intakeSensor)
-        flashCheck(self, climberHigh)
-        flashLEDsWhite(self)
 
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
