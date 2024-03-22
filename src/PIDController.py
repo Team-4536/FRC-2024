@@ -72,7 +72,7 @@ class PIDControllerForCam(PIDController):
 
     def tick(self, target: float, position: float, dt: float) -> float:
         out = super().tick(target, position, dt)
-        out += self.ks
+        out += self.ks  # TODO: This should be ks*signum(target) eventually
         return out
 
     def _publish(self) -> None:
