@@ -46,11 +46,13 @@ class PIDController:
             t.putNumber("Ki", self.ki)
             t.putNumber("Kd", self.kd)
             t.putNumber("Kff", self.kff)
+            t.putNumber("Ktest", self.ktest)
         else:
             self.kp = t.getNumber("Kp", 0)
             self.ki = t.getNumber("Ki", 0)
             self.kd = t.getNumber("Kd", 0)
             self.kff = t.getNumber("Kff", 0)
+            self.ktest = t.getNumber("Ktest", 0)
 
 class PIDControllerForArm(PIDController):
     def __init__(self, name: str, kp: float = 0, ki: float = 0, kd: float = 0, kff: float = 0, kg: float = 0, balanceAngle: float = 0.1) -> None:
@@ -58,8 +60,8 @@ class PIDControllerForArm(PIDController):
         self.balanceAngle = balanceAngle
         self.kg = kg
 
-    def tick(self, target: float, position: float, dt: float) -> float:
-        out = super().tick(target, position, dt)
+    def _tick(self, error: float, target: float, position: float, dt: float) -> float:
+        out = super()._tick(error, target, position, dt)
         out += self.kg * math.cos(position + self.balanceAngle)
         return out
 
@@ -76,9 +78,9 @@ class PIDControllerForCam(PIDController):
         super().__init__(name = name, kp = kp, ki = ki, kd = 0, kff = 0)
         self.ks = ks
 
-    def tick(self, target: float, position: float, dt: float) -> float:
-        out = super().tick(target, position, dt)
-        out += self.ks * signum()
+    def _tick(self, error: float, target: float, position: float, dt: float) -> float:
+        out = super()._tick(error, target, position, dt)
+        out += self.ks * signum(error)
         return out
 
     def _publish(self) -> None:
