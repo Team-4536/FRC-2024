@@ -31,7 +31,7 @@ class PIDController:
     def _tick(self, error: float, target: float, position: float, dt: float) -> float:
         derivative = (error - self.prevErr) / dt
         self.integral += error * dt
-        out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target)
+        out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target) + self.ktest
         self.prevErr = error
         return out
 
