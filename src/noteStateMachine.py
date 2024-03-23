@@ -123,7 +123,7 @@ class NoteStateMachine():
 
         elif(self.state == self.INTAKING):
             hal.intakeSpeeds = [0.7, 0.7]
-            hal.shooterIntakeSpeed = 0.1
+            hal.shooterIntakeSpeed = 0.05
             aimTarget = 0
             speedTarget = 0
             camTarget = self.camSetpoint
