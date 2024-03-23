@@ -41,6 +41,7 @@ class PIDController:
 
     def _publish(self) -> None:
         t = pidTable.getSubTable(self.name)
+        t.putNumber("integral", self.integral)
         if t.getNumber("Kp", None) is None:
             t.putNumber("Kp", self.kp)
             t.putNumber("Ki", self.ki)
