@@ -179,5 +179,6 @@ class NoteStateMachine():
         self.inputRev = False
         self.inputShoot = False
         self.inputFeed = False
+        self.beIntaking = False
 
         return self.state
