@@ -1,6 +1,7 @@
 import math
 
 from ntcore import NetworkTable, NetworkTableInstance
+from real import signum
 
 createdControllers: list['PIDController'] = []
 pidTable: NetworkTable = NetworkTableInstance.getDefault().getTable("pid")
@@ -12,6 +13,7 @@ class PIDController:
         self.ki: float = ki
         self.kd: float = kd
         self.kff: float = kff
+        self.ktest: float = 0
         self.integral: float = 0
         self.prevErr: float = 0
         createdControllers.append(self)
@@ -23,6 +25,10 @@ class PIDController:
 
     # output will be the same sign as the input error
     def tickErr(self, error: float, target: float, dt: float) -> float:
+        return self._tick(error, target, target - error, dt)
+
+    # this is the funcion that inheriting classes should override, touching the other ones can cause problems
+    def _tick(self, error: float, target: float, position: float, dt: float) -> float:
         derivative = (error - self.prevErr) / dt
         self.integral += error * dt
         out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target)
@@ -72,7 +78,7 @@ class PIDControllerForCam(PIDController):
 
     def tick(self, target: float, position: float, dt: float) -> float:
         out = super().tick(target, position, dt)
-        out += self.ks  # TODO: This should be ks*signum(target) eventually
+        out += self.ks * signum()
         return out
 
     def _publish(self) -> None:
