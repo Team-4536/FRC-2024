@@ -10,6 +10,8 @@ from intakeStateMachine import IntakeStateMachine
 from shooterStateMachine import StateMachine
 import robot
 from ntcore import NetworkTableInstance
+from ntcore import NetworkTable
+
 
 
 
@@ -36,7 +38,7 @@ Class construction publishes choosers to the dashboard
 
 class RobotAutos():
     def __init__(self) -> None:
-        self.systemCheckNWT = NetworkTableInstance.getDefault
+        self.systemCheckNWT = NetworkTable()
         
         self.autoChooser = wpilib.SendableChooser()
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
@@ -269,7 +271,7 @@ class RobotAutos():
         return auto, initialPose
 
     def driveChassis(self, r: 'robot.Robot') -> bool | None:
-        self.systemCheckNWT.putNumber("forward drive active", 1)
+        self.systemCheckNWT.putNumber('forward drive active', 1)
         speed = ChassisSpeeds(0.05, 0, 0)
         r.drive.update(r.time.dt, r.hal, speed)
         return r.input.armCtrlr.getAButtonPressed()
