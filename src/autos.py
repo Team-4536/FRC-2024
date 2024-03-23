@@ -4,7 +4,10 @@ from typing import TYPE_CHECKING, Callable
 
 from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
-from shooterStateMachine import ShooterTarget
+from noteStateMachine import ShooterTarget
+
+import math
+from wpimath.geometry import Pose2d
 
 if TYPE_CHECKING:
     from robot import Robot
@@ -117,8 +120,8 @@ class AutoBuilder:
 
     def addIntakeStage(self) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
-            r.intakeStateMachine.update(r.hal, True)
-            return (r.intakeStateMachine.state == r.intakeStateMachine.STORING)
+            r.noteStateMachine.intake(True)
+            return (r.noteStateMachine.state == r.noteStateMachine.STORED_IN_SHOOTER)
         self.add(Stage(func, "intake ring"))
         return self
 
@@ -141,17 +144,17 @@ class AutoBuilder:
     # ends when state is on target
     def addShooterPrepStage(self, target: ShooterTarget, rev: bool) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
-            r.shooterStateMachine.feed(True)
-            r.shooterStateMachine.aim(target)
-            r.shooterStateMachine.rev(rev)
-            return r.shooterStateMachine.onTarget
+            r.noteStateMachine.feed(True)
+            r.noteStateMachine.aim(target)
+            r.noteStateMachine.rev(rev)
+            return r.noteStateMachine.onTarget
         self.add(Stage(func, f"shooter aim at {target.name}, revved: {rev}"))
         return self
 
     def addShooterFireStage(self) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
-            r.shooterStateMachine.shoot(True)
-            return r.shooterStateMachine.state == r.shooterStateMachine.READY_FOR_RING
+            r.noteStateMachine.shoot(True)
+            return r.noteStateMachine.state == r.noteStateMachine.START
         self.add(Stage(func, "fire shooter"))
         return self
 
@@ -207,4 +210,28 @@ class AutoBuilder:
         self.currentBuildStage.name = f"{stg.name} with timeout"
         self.currentBuildStage.func = func
         self.currentBuildStage.abortStage = None
+        return self
+    
+    def addOdometryResetWithLimelightStage(self, r: 'Robot', pipeline: int) -> 'AutoBuilder':
+        limelightTable = r.frontLimelightTable
+        robotPoseTable = r.robotPoseTable
+
+        def func(r: 'Robot') -> bool:
+            if(limelightTable.getNumber("getPipe", -1) != pipeline):
+                limelightTable.putNumber("pipeline", pipeline)
+            #gets the pos from limelight
+            visionPose = limelightTable.getNumberArray("botpose_wpiblue", [0,0,0,0,0,0,0])
+            #debug values
+            robotPoseTable.putNumber("limeXPos", visionPose[0])
+            robotPoseTable.putNumber("limeYPos", visionPose[1])
+            robotPoseTable.putNumber("limeYaw", visionPose[5])
+            if (not (visionPose[0] == 0 and visionPose[1] == 0 and visionPose[5] == 0)):  
+                visionPose2D:Pose2d = Pose2d(visionPose[0], visionPose[1], math.radians(visionPose[5]))
+
+                #X, Y, & Yaw are updated correctly
+                r.drive.resetOdometry(visionPose2D, r.hal)
+                return True
+            return False
+        
+        self.add(Stage(func, "reset odom with limelight"))
         return self
