@@ -39,7 +39,7 @@ class RobotHALBuffer():
         self.climberLimitPressed: bool = False
         self.climbCurrent = 0.0
         self.climbTemp = 0.0
-
+        self.climbPos = 0.0
 
         self.lowerShooterLimitSwitch: bool = False
         self.upperShooterLimitSwitch: bool = False
@@ -171,6 +171,7 @@ class RobotHAL():
         # intake motors and encoders
         self.intakeMotors = [rev.CANSparkMax(9, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
+        self.intakeMotors[0].setInverted(False)
         self.intakeMotors[1].setInverted(True)
         self.intakeMotors[0].setSmartCurrentLimit(30)
         self.intakeMotors[1].setSmartCurrentLimit(30)
@@ -198,6 +199,8 @@ class RobotHAL():
         self.camEncoder.setPosition(0)
 
         self.climbingMotor = rev.CANSparkMax(16, rev.CANSparkMax.MotorType.kBrushless)
+        self.climbEncoder = self.climbingMotor.getEncoder()
+        self.climbEncoder.setPosition(0)
 
         self.climbingMotor.setInverted(False)
         self.climbSensor = self.climbingMotor.getReverseLimitSwitch(rev.SparkLimitSwitch.Type.kNormallyOpen)
@@ -276,6 +279,7 @@ class RobotHAL():
         buf.camPos = self.camEncoder.getPosition() * math.pi * 2 / 4
 
         self.climbingMotor.set(buf.climberSpeed)
+        buf.climbPos = self.climbEncoder.getPosition()
 
         buf.climberLimitPressed = self.climbSensor.get()
         buf.climbCurrent = self.climbingMotor.getOutputCurrent()
