@@ -16,6 +16,7 @@ class PIDController:
         self.ktest: float = 0
         self.integral: float = 0
         self.prevErr: float = 0
+        self.integralZone: float = 0
         createdControllers.append(self)
 
     # function returns the recommended force towards the target
@@ -31,6 +32,7 @@ class PIDController:
     def _tick(self, error: float, target: float, position: float, dt: float) -> float:
         derivative = (error - self.prevErr) / dt
         self.integral += error * dt
+        self.integral = min(max(-self.integralZone, self.integral), self.integralZone)
         out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target) + self.ktest
         self.prevErr = error
         return out
@@ -48,12 +50,14 @@ class PIDController:
             t.putNumber("Kd", self.kd)
             t.putNumber("Kff", self.kff)
             t.putNumber("Ktest", self.ktest)
+            t.putNumber("integralZone", self.integralZone)
         else:
             self.kp = t.getNumber("Kp", 0)
             self.ki = t.getNumber("Ki", 0)
             self.kd = t.getNumber("Kd", 0)
             self.kff = t.getNumber("Kff", 0)
             self.ktest = t.getNumber("Ktest", 0)
+            self.integralZone = t.getNumber("integralZone", 0)
 
 class PIDControllerForArm(PIDController):
     def __init__(self, name: str, kp: float = 0, ki: float = 0, kd: float = 0, kff: float = 0, kg: float = 0, balanceAngle: float = 0.1) -> None:
