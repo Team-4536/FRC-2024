@@ -171,6 +171,7 @@ class RobotHAL():
         # intake motors and encoders
         self.intakeMotors = [rev.CANSparkMax(9, rev.CANSparkMax.MotorType.kBrushless),
                             rev.CANSparkMax(10, rev.CANSparkMax.MotorType.kBrushless)]
+        self.intakeMotors[0].setInverted(False)
         self.intakeMotors[1].setInverted(True)
         self.intakeMotors[0].setSmartCurrentLimit(30)
         self.intakeMotors[1].setSmartCurrentLimit(30)
