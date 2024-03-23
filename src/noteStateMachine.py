@@ -12,12 +12,14 @@ class ShooterTarget(Enum):
     PODIUM = 2
     SUBWOOFER = 3
 
-class StateMachine():
-    READY_FOR_RING = 0
-    FEEDING = 1
-    STORED_IN_SHOOTER = 2
-    AIMING = 3
-    SHOOTING = 4
+class NoteStateMachine():
+    START = 0
+    INTAKING = 1
+    STORING = 2
+    FEEDING = 3
+    STORED_IN_SHOOTER = 4
+    AIMING = 5
+    SHOOTING = 6
 
     SPEED_SMOOTH_SCALAR = 0.1
     AIM_SMOOTH_SCALAR = 0.05
@@ -47,7 +49,7 @@ class StateMachine():
         self.PIDspeedSetpoint = 0
         self.PIDaimSetpoint = 0
         self.PIDcamSetpoint = 0
-        self.state = self.READY_FOR_RING
+        self.state = self.START
 
         self.onTarget: bool = False # variable for autos to check in on this, as well as for not firing to early
 
@@ -55,6 +57,7 @@ class StateMachine():
         self.inputRev: bool = False
         self.inputShoot: bool = False
         self.inputFeed: bool = False
+        self.beIntaking: bool = False
 
         self.inputProfile: float = 0.0
 
@@ -71,6 +74,9 @@ class StateMachine():
     def feed(self, feed: bool):
         self.table.putBoolean("feeding (shooter)", feed) #untested
         self.inputFeed = feed
+    def intake(self, feed: bool):
+        self.table.putBoolean("intaking", feed)
+        self.beIntaking = feed
 
     def publishInfo(self):
         self.table.putNumber("state", self.state)
@@ -108,12 +114,33 @@ class StateMachine():
         if self.state == self.AIMING or self.state == self.SHOOTING:
             self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 10
 
-        if(self.state == self.READY_FOR_RING):
+        if(self.state == self.START):
+            hal.shooterIntakeSpeed = 0
+            hal.intakeSpeeds = [0, 0]
             aimTarget = 0
             speedTarget = 0
             camTarget = self.camSetpoint
+            if(self.beIntaking):
+                self.state = self.INTAKING
 
-            if(self.inputFeed and hal.intakeSensor):
+        elif(self.state == self.INTAKING):
+            hal.intakeSpeeds = [0.7, 0.7]
+            hal.shooterIntakeSpeed = 0
+            aimTarget = 0
+            speedTarget = 0
+            camTarget = self.camSetpoint
+            if(not self.beIntaking):
+                self.state = self.START
+            if(hal.intakeSensor):
+                self.state = self.STORING
+
+        elif(self.state == self.STORING):
+            hal.shooterIntakeSpeed = 0
+            hal.intakeSpeeds = [0, 0]
+            aimTarget = 0
+            speedTarget = 0
+            camTarget = self.camSetpoint
+            if self.inputFeed:
                 self.state = self.FEEDING
 
         elif(self.state == self.FEEDING):
@@ -123,6 +150,8 @@ class StateMachine():
             hal.shooterIntakeSpeed = 0.1
             hal.intakeSpeeds[1] = 0.1
             camTarget = self.camSetpoint
+            if not self.inputFeed:
+                self.state = self.STORING
             if hal.shooterSensor:
                 self.state = self.STORED_IN_SHOOTER
 
@@ -153,7 +182,7 @@ class StateMachine():
             hal.shooterIntakeSpeed = 0.4
             hal.intakeSpeeds[1] = 0.4
             if(time - self.time > 1.0):
-                self.state = self.READY_FOR_RING
+                self.state = self.START
 
         else:
             aimTarget = 0

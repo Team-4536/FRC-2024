@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Callable
 
 from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
-from shooterStateMachine import ShooterTarget
+from noteStateMachine import ShooterTarget
 
 import math
 from wpimath.geometry import Pose2d
@@ -120,8 +120,8 @@ class AutoBuilder:
 
     def addIntakeStage(self) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
-            r.intakeStateMachine.update(r.hal, True)
-            return (r.intakeStateMachine.state == r.intakeStateMachine.STORING)
+            r.noteStateMachine.intake(True)
+            return (r.noteStateMachine.state == r.noteStateMachine.STORING)
         self.add(Stage(func, "intake ring"))
         return self
 
@@ -144,17 +144,17 @@ class AutoBuilder:
     # ends when state is on target
     def addShooterPrepStage(self, target: ShooterTarget, rev: bool) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
-            r.shooterStateMachine.feed(True)
-            r.shooterStateMachine.aim(target)
-            r.shooterStateMachine.rev(rev)
-            return r.shooterStateMachine.onTarget
+            r.noteStateMachine.feed(True)
+            r.noteStateMachine.aim(target)
+            r.noteStateMachine.rev(rev)
+            return r.noteStateMachine.onTarget
         self.add(Stage(func, f"shooter aim at {target.name}, revved: {rev}"))
         return self
 
     def addShooterFireStage(self) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
-            r.shooterStateMachine.shoot(True)
-            return r.shooterStateMachine.state == r.shooterStateMachine.READY_FOR_RING
+            r.noteStateMachine.shoot(True)
+            return r.noteStateMachine.state == r.noteStateMachine.STORING
         self.add(Stage(func, "fire shooter"))
         return self
 
