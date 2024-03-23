@@ -8,12 +8,6 @@ from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
-from phoenix5.led import (
-     ColorFlowAnimation,
-     FireAnimation,
-     RainbowAnimation,
-     StrobeAnimation,
- )
 from PIDController import PIDController, PIDControllerForArm, updatePIDsInNT
 from real import angleWrap, lerp
 from simHAL import RobotSimHAL
@@ -22,6 +16,8 @@ from timing import TimeData
 from utils import CircularScalar, Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
+from lightControl import LightControl
+
 from noteStateMachine import ShooterTarget, NoteStateMachine
 
 class RobotInputs():
@@ -61,6 +57,7 @@ class RobotInputs():
         self.camTemp: float = 0.0
 
         self.overideNoteStateMachine: bool = False
+        self.overrideWasPressed: bool = False # NOTE: (Rob, 3/23/24) this is done completely as a hack, trying the WPI getYButtonPressed was not working as intended (even though other ones weres). 
 
         self.shooterAimManual: float = 0
         self.aimEncoderReset: bool = False
@@ -69,6 +66,7 @@ class RobotInputs():
 
 
         self.climb: float = 0.0 # - is trigger in, + is reverse pressed, range goes -1 to 1
+        self.climbEncoderReset: bool = False
 
         self.lineUpWithSubwoofer: bool = False
 
@@ -115,10 +113,12 @@ class RobotInputs():
 
 
         self.climb = float(self.armCtrlr.getRightBumper()) - self.armCtrlr.getRightTriggerAxis()
+        self.climbEncoderReset = self.armCtrlr.getYButtonPressed()
 
         # manual mode controls
-        if(self.armCtrlr.getYButtonPressed()):
+        if(self.armCtrlr.getYButton() and not self.overrideWasPressed):
             self.overideNoteStateMachine = not self.overideNoteStateMachine
+        self.overrideWasPressed = self.armCtrlr.getYButton()
 
         self.shooterAimManual = self.manualAimScalar(-self.armCtrlr.getLeftY())
         self.intakeReverse = self.armCtrlr.getBButton()
@@ -156,19 +156,18 @@ SUBWOOFER_LINEUP_BLUE_PIPLINE = 2
 # offAnim = FireAnimation(0, 0, 200, 0, 0, False, 8)
 # colorFlowAnim = ColorFlowAnimation(255, 0, 255, 0, .2, 54)
 
-LIGHTS_OFF = "off"
-LIGHTS_ON = "on"
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
-
+        
         self.hardware: robotHAL.RobotHAL | RobotSimHAL
         if self.isSimulation():
             self.hardware = RobotSimHAL()
         else:
             self.hardware = robotHAL.RobotHAL()
+        self.lights = LightControl()
         self.hardware.update(self.hal, self.time)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
@@ -201,7 +200,7 @@ class Robot(wpilib.TimedRobot):
         self.autoChooser.addOption(AUTO_SIDEUPPER_3PC, AUTO_SIDEUPPER_3PC)
         self.autoChooser.addOption(AUTO_GET_ALL_PODIUM, AUTO_GET_ALL_PODIUM)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
-
+        
         self.odomField = wpilib.Field2d()
         wpilib.SmartDashboard.putData("odom", self.odomField)
 
@@ -213,11 +212,6 @@ class Robot(wpilib.TimedRobot):
 
         self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
-        self.LEDAnimationFrame = 0
-        self.LEDLastTransition = 0
-        self.LEDFlashTimer = 0.0
-        self.LEDPrevTrigger = False
-        self.LEDTrigger = False
 
         self.table.putNumber("ctrl/SWERVE ADDED X", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED Y", 0.0)
@@ -234,6 +228,7 @@ class Robot(wpilib.TimedRobot):
         self.noteStateMachine.publishInfo()
 
         self.drive.updateOdometry(self.hal)
+        
 
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
@@ -244,15 +239,9 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
-        self.table.putBoolean("ctrl/manualMode", self.input.overideNoteStateMachine)
-        self.table.putNumber("LEDAnimationFrame", self.LEDAnimationFrame)
-        self.table.putNumber("LEDFlashTimer", self.LEDFlashTimer)
-        self.table.putNumber("timesinceinit", self.time.timeSinceInit)
+        self.table.putBoolean("ctrl/noteStateMachineOveride", self.input.overideNoteStateMachine)
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
         
-        self.table.putBoolean("ledPrevTrigger", self.LEDPrevTrigger)
-        self.table.putBoolean("ledTrigger", self.LEDTrigger)
-
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
             if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
@@ -263,30 +252,12 @@ class Robot(wpilib.TimedRobot):
         if self.input.absToggle:
             self.abs = not self.abs
 
+        self.lights.updateLED(self.table, self.time, self.hal, self.hardware)
+        
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
         profiler.end("robotPeriodic")
-
-        self.LEDTrigger |= self.hal.intakeSensor
-        if self.LEDTrigger and not self.LEDPrevTrigger:
-            self.LEDFlashTimer = 2.0
-            self.lastLEDTransition = self.time.timeSinceInit
-        self.LEDPrevTrigger = self.LEDTrigger
-        self.LEDTrigger = False
-
-        if self.LEDFlashTimer > 0:
-            self.LEDFlashTimer -= self.time.dt
-            brightnessArray = [255, 0, 255, 0]
-            if (self.time.timeSinceInit - self.lastLEDTransition > 0.2):
-                self.lastLEDTransition = self.time.timeSinceInit
-                self.hardware.setLEDs(brightnessArray[self.LEDAnimationFrame],
-                                        brightnessArray[self.LEDAnimationFrame],
-                                        brightnessArray[self.LEDAnimationFrame], 0, 0, 200)
-                self.LEDAnimationFrame += 1
-                self.LEDAnimationFrame %= len(brightnessArray)
-        else:
-            self.LEDFlashTimer = 0.0
-            self.hardware.setLEDs(0, 0, 0)
+        
 
     def teleopInit(self) -> None:
         self.noteStateMachine.state = self.noteStateMachine.START
@@ -414,11 +385,6 @@ class Robot(wpilib.TimedRobot):
 
         if(self.input.camEncoderReset):
             self.hardware.resetCamEncoderPos(0)
-
-
-        self.table.putBoolean("NoteStateMachineOveride", self.input.overideNoteStateMachine)
-
-        self.table.putNumber("ShooterAimManual", self.input.shooterAimManual)
 
         profiler.end("note state machine")
 
