@@ -5,18 +5,16 @@ from phoenix5.led import CANdle  #only use for LEDs
 from timing import TimeData
 import robotHAL
 from simHAL import RobotSimHAL
+from robotHAL import RobotHALBuffer
 import wpilib
 
 LIGHTS_OFF = "off"
 LIGHTS_ON = "on"
 
 class LightControl():
-    def __init__(self, hardware) -> None:
+    def __init__(self) -> None:
         self.hardware: robotHAL.RobotHAL | RobotSimHAL
-        self.hardware = hardware
-        self.time = TimeData(None)
-        self.hal = robotHAL.RobotHALBuffer()
-        self.hardware.update(self.hal, self.time)
+    
         
         self.totalLights = 8
         self.numHeaderLights = 1
@@ -80,13 +78,16 @@ class LightControl():
             self.blue = blue
             self.duration = duration
         
-    def updateLED(self, table: ntcore.NetworkTable, time: TimeData) -> None:
+    def updateLED(self, table: ntcore.NetworkTable, time: TimeData, hal: RobotHALBuffer, hardware) -> None:
+        self.hal = hal
+        self.hardware = hardware
         self.time = time
         table.putNumber("LEDAnimationFrame", self.LEDAnimationFrame)
         table.putBoolean("LEDTrigger", self.LEDTrigger)
         table.putNumber("LEDFlashTimer", self.LEDFlashTimer)
         table.putBoolean("ledPrevTrigger", self.LEDPrevTrigger)
         table.putBoolean("intake ledTrigger", self.intakeLEDTrigger)
+        table.putBoolean("intakeledPrevTrigger", self.intakeLEDPrevTrigger)
         table.putBoolean("climber ledTrigger", self.climberLEDTrigger)
         if self.lightToggle.getSelected() == LIGHTS_ON: #test pickers can be deleted later once debugged
             self.lightTriggerBool = True
@@ -109,12 +110,18 @@ class LightControl():
             climbTrigger = True
         else:
             climbTrigger = False
+            
+        if self.hal.intakeSensor:
+            print("goofy")
+            self.intakeLEDTrigger = True
+        else:
+            self.intakeLEDTrigger = False
         
         self.flashLEDs(climbTrigger, self.climberLEDPrevTrigger, 255, 247, 0, 0.2) #yellow on high climb
         self.climberLEDPrevTrigger = climbTrigger
         
-        self.flashLEDs(self.hal.intakeSensor, self.intakeLEDPrevTrigger, 255, 255, 255, 0.2)  #white on pickup
-        self.intakeLEDPrevTrigger = self.hal.intakeSensor
+        self.flashLEDs(self.intakeLEDTrigger, self.intakeLEDPrevTrigger, 255, 255, 255, 0.2)  #white on pickup
+        self.intakeLEDPrevTrigger = self.intakeLEDTrigger
         
         self.flashLEDs(self.lightTriggerBool, self.lightTestLEDPrevTrigger, 0, 255, 255, 0.2) #test 
         self.lightTestLEDPrevTrigger = self.lightTriggerBool

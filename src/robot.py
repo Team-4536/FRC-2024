@@ -160,7 +160,7 @@ class Robot(wpilib.TimedRobot):
             self.hardware = RobotSimHAL()
         else:
             self.hardware = robotHAL.RobotHAL()
-        self.lights = LightControl(self.hardware)
+        self.lights = LightControl()
         self.hardware.update(self.hal, self.time)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
@@ -233,7 +233,7 @@ class Robot(wpilib.TimedRobot):
             else:
                 self.onRedSide = False
 
-        self.lights.updateLED(self.table, self.time)
+        self.lights.updateLED(self.table, self.time, self.hal, self.hardware)
         
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
