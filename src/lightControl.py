@@ -13,9 +13,7 @@ LIGHTS_ON = "on"
 class LightControl():
     def __init__(self, hardware) -> None:
         self.hardware: robotHAL.RobotHAL | RobotSimHAL
-        
         self.hardware = hardware
-        
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
         self.hardware.update(self.hal, self.time)
@@ -39,8 +37,10 @@ class LightControl():
         self.lightTestLEDPrevTrigger2 = False
         
         self.lightTestBool = False
-        self.funnyTestNumber = 0
-        self.funnyTestNumber-=10000
+        
+        self.red = 0
+        self.green = 0
+        self.blue = 0
         
         self.lightToggle = wpilib.SendableChooser()
         self.lightToggle.setDefaultOption(LIGHTS_OFF, LIGHTS_OFF)
@@ -49,10 +49,6 @@ class LightControl():
         self.lightToggle2 = wpilib.SendableChooser()
         self.lightToggle2.setDefaultOption(LIGHTS_OFF, LIGHTS_OFF)
         self.lightToggle2.addOption(LIGHTS_ON, LIGHTS_ON)
-        
-        self.red = 0
-        self.green = 0
-        self.blue = 0
         
         self.duration = 0
         
@@ -76,19 +72,14 @@ class LightControl():
 
     def flashLEDs(self, trigger: bool, prevTrigger: bool, red: int, green: int, blue: int, duration: float, ):
 
-            if trigger and not prevTrigger:
-                print("hi")
-                self.LEDFlashTimer = 2.0
-                self.lastLEDTransition = self.time.timeSinceInit
-            
-            self.funnyTestNumber+=1
-            
+        if trigger and not prevTrigger:
+            self.LEDFlashTimer = 2.0
+            self.lastLEDTransition = self.time.timeSinceInit
             self.red = red
             self.green = green
             self.blue = blue
-        
             self.duration = duration
-            
+        
     def updateLED(self, table: ntcore.NetworkTable, time: TimeData) -> None:
         self.time = time
         table.putNumber("LEDAnimationFrame", self.LEDAnimationFrame)
@@ -97,8 +88,7 @@ class LightControl():
         table.putBoolean("ledPrevTrigger", self.LEDPrevTrigger)
         table.putBoolean("intake ledTrigger", self.intakeLEDTrigger)
         table.putBoolean("climber ledTrigger", self.climberLEDTrigger)
-        table.putNumber("funny test number", self.funnyTestNumber)
-        if self.lightToggle.getSelected() == LIGHTS_ON:
+        if self.lightToggle.getSelected() == LIGHTS_ON: #test pickers can be deleted later once debugged
             self.lightTriggerBool = True
         else:
             self.lightTriggerBool = False
@@ -107,25 +97,32 @@ class LightControl():
             self.lightTriggerBool2 = True
         else:
             self.lightTriggerBool2 = False
-            
+
+        table.putBoolean("light trigger bool", self.lightTriggerBool)
+        table.putBoolean("light trigger bool 2", self.lightTriggerBool2)
+        table.putBoolean("light prev trigger", self.lightTestLEDPrevTrigger)
+        table.putBoolean("light prev trigger 2", self.lightTestLEDPrevTrigger2)
+        
         table.putBoolean("light trigger bool", self.lightTriggerBool)
         table.putBoolean("light trigger bool 2", self.lightTriggerBool2)
         if self.hal.climbPos > 20:
             climbTrigger = True
         else:
             climbTrigger = False
-
-        self.flashLEDs(self.hal.intakeSensor, self.intakeLEDPrevTrigger, 194, 54, 201, 0.2)  #barney purple on pickup
-        self.intakeLEDPrevTrigger = self.hal.intakeSensor
+        
         self.flashLEDs(climbTrigger, self.climberLEDPrevTrigger, 255, 247, 0, 0.2) #yellow on high climb
         self.climberLEDPrevTrigger = climbTrigger
-        self.flashLEDs(self.lightTriggerBool, self.lightTestLEDPrevTrigger, 255, 255, 255, 0.2)
+        
+        self.flashLEDs(self.hal.intakeSensor, self.intakeLEDPrevTrigger, 194, 54, 201, 0.2)  #barney purple on pickup
+        self.intakeLEDPrevTrigger = self.hal.intakeSensor
+        
+        self.flashLEDs(self.lightTriggerBool, self.lightTestLEDPrevTrigger, 0, 255, 255, 0.2) #test 
         self.lightTestLEDPrevTrigger = self.lightTriggerBool
-        self.flashLEDs(self.lightTriggerBool2, self.lightTestLEDPrevTrigger2, 255, 255, 255, 0.2)
+        
+        self.flashLEDs(self.lightTriggerBool2, self.lightTestLEDPrevTrigger2, 255, 0, 100, 0.1)
         self.lightTestLEDPrevTrigger2 = self.lightTriggerBool2
         
         if self.LEDFlashTimer > 0:
-            
             self.LEDFlashTimer -= self.time.dt
             redBrightnessArray = [0, self.red, 0, self.red]
             greenBrightnessArray = [0, self.green, 0, self.green]
@@ -134,16 +131,21 @@ class LightControl():
             if (self.time.timeSinceInit - self.lastLEDTransition > self.duration):
                 self.lastLEDTransition = self.time.timeSinceInit
                 self.hardware.setLEDs(redBrightnessArray[self.LEDAnimationFrame],
-                                        greenBrightnessArray[self.LEDAnimationFrame],
-                                        blueBrightnessArray[self.LEDAnimationFrame], 0, 0, 200)
+                                    greenBrightnessArray[self.LEDAnimationFrame],
+                                    blueBrightnessArray[self.LEDAnimationFrame], 0, 0, 200)
                 
                 self.LEDAnimationFrame += 1
                 self.LEDAnimationFrame %= len(redBrightnessArray)
                 
-                if redBrightnessArray[self.LEDAnimationFrame] > 0 or greenBrightnessArray[self.LEDAnimationFrame] > 0 or blueBrightnessArray[self.LEDAnimationFrame] > 0:
+                if (redBrightnessArray[self.LEDAnimationFrame] > 0 #RGB brightness check
+                or greenBrightnessArray[self.LEDAnimationFrame] > 0
+                or blueBrightnessArray[self.LEDAnimationFrame] > 0):
                     self.lightTestBool = True
                 else:
                     self.lightTestBool = False
+                table.putNumber("LED R value", redBrightnessArray[self.LEDAnimationFrame])
+                table.putNumber("LED G value", greenBrightnessArray[self.LEDAnimationFrame])
+                table.putNumber("LED B value", blueBrightnessArray[self.LEDAnimationFrame])
 
         else:
             self.LEDFlashTimer = 0.0
