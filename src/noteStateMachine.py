@@ -15,11 +15,9 @@ class ShooterTarget(Enum):
 class NoteStateMachine():
     START = 0
     INTAKING = 1
-    STORING = 2
-    FEEDING = 3
-    STORED_IN_SHOOTER = 4
-    AIMING = 5
-    SHOOTING = 6
+    STORED_IN_SHOOTER = 2
+    AIMING = 3
+    SHOOTING = 4
 
     SPEED_SMOOTH_SCALAR = 0.1
     AIM_SMOOTH_SCALAR = 0.05
@@ -125,34 +123,13 @@ class NoteStateMachine():
 
         elif(self.state == self.INTAKING):
             hal.intakeSpeeds = [0.7, 0.7]
-            hal.shooterIntakeSpeed = 0
+            hal.shooterIntakeSpeed = 0.1
             aimTarget = 0
             speedTarget = 0
             camTarget = self.camSetpoint
             if(not self.beIntaking):
                 self.state = self.START
-            if(hal.intakeSensor):
-                self.state = self.STORING
-
-        elif(self.state == self.STORING):
-            hal.shooterIntakeSpeed = 0
-            hal.intakeSpeeds = [0, 0]
-            aimTarget = 0
-            speedTarget = 0
-            camTarget = self.camSetpoint
-            if self.inputFeed:
-                self.state = self.FEEDING
-
-        elif(self.state == self.FEEDING):
-            aimTarget = 0
-            speedTarget = 0
-            camTarget = 0
-            hal.shooterIntakeSpeed = 0.1
-            hal.intakeSpeeds[1] = 0.1
-            camTarget = self.camSetpoint
-            if not self.inputFeed:
-                self.state = self.STORING
-            if hal.shooterSensor:
+            if(hal.shooterSensor):
                 self.state = self.STORED_IN_SHOOTER
 
         elif(self.state == self.STORED_IN_SHOOTER):

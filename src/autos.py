@@ -121,7 +121,7 @@ class AutoBuilder:
     def addIntakeStage(self) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
             r.noteStateMachine.intake(True)
-            return (r.noteStateMachine.state == r.noteStateMachine.STORING)
+            return (r.noteStateMachine.state == r.noteStateMachine.STORED_IN_SHOOTER)
         self.add(Stage(func, "intake ring"))
         return self
 
@@ -154,7 +154,7 @@ class AutoBuilder:
     def addShooterFireStage(self) -> 'AutoBuilder':
         def func(r: 'Robot') -> bool | None:
             r.noteStateMachine.shoot(True)
-            return r.noteStateMachine.state == r.noteStateMachine.STORING
+            return r.noteStateMachine.state == r.noteStateMachine.START
         self.add(Stage(func, "fire shooter"))
         return self
 
