@@ -4,7 +4,6 @@ import profiler
 import robotAutos
 import robotHAL
 import wpilib
-from autos import AutoBuilder
 from lightControl import LightControl
 from noteStateMachine import NoteStateMachine, ShooterTarget
 from ntcore import NetworkTableInstance

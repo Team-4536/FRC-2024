@@ -1,9 +1,9 @@
 import robot
 import wpilib
 from autos import AutoBuilder
+from noteStateMachine import ShooterTarget
 from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
-from shooterStateMachine import ShooterTarget
 from wpimath.geometry import Pose2d
 from wpimath.kinematics import ChassisSpeeds
 
