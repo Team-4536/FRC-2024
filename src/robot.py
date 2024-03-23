@@ -4,7 +4,6 @@ import profiler
 import robotHAL
 import wpilib
 from autos import AutoBuilder
-from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from pathplannerlib.path import PathPlannerPath
@@ -17,14 +16,13 @@ from phoenix5.led import (
  )
 from PIDController import PIDController, PIDControllerForArm, updatePIDsInNT
 from real import angleWrap, lerp
-from shooterStateMachine import ShooterTarget, StateMachine
 from simHAL import RobotSimHAL
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from utils import CircularScalar, Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-
+from noteStateMachine import ShooterTarget, NoteStateMachine
 
 class RobotInputs():
     TARGET_NONE = 0
@@ -64,8 +62,7 @@ class RobotInputs():
 
         self.camTemp: float = 0.0
 
-        self.overideShooterStateMachine: bool = False
-        self.overideIntakeStateMachine: bool = False
+        self.overideNoteStateMachine: bool = False
 
         self.shooterAimManual: float = 0
         self.aimEncoderReset: bool = False
@@ -123,8 +120,7 @@ class RobotInputs():
 
         # manual mode controls
         if(self.armCtrlr.getYButtonPressed()):
-            self.overideShooterStateMachine = not self.overideShooterStateMachine
-            self.overideIntakeStateMachine = self.overideShooterStateMachine
+            self.overideNoteStateMachine = not self.overideNoteStateMachine
 
         self.shooterAimManual = self.manualAimScalar(-self.armCtrlr.getLeftY())
         self.intakeReverse = self.armCtrlr.getBButton()
@@ -187,8 +183,7 @@ class Robot(wpilib.TimedRobot):
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
 
-        self.intakeStateMachine = IntakeStateMachine()
-        self.shooterStateMachine = StateMachine()
+        self.noteStateMachine: NoteStateMachine = NoteStateMachine()
 
         self.autoSideChooser = wpilib.SendableChooser()
         self.autoSideChooser.setDefaultOption(AUTO_SIDE_FMS, AUTO_SIDE_FMS)
@@ -239,7 +234,7 @@ class Robot(wpilib.TimedRobot):
         self.time = TimeData(self.time)
 
         self.hal.publish(self.table)
-        self.shooterStateMachine.publishInfo()
+        self.noteStateMachine.publishInfo()
 
         self.drive.updateOdometry(self.hal)
 
@@ -252,9 +247,11 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
+        self.table.putBoolean("ctrl/manualMode", self.input.overideNoteStateMachine)
         self.table.putNumber("ctrl/turningX", self.input.turningX)
         self.table.putNumber("ctrl/turningY", self.input.turningY)
         self.table.putBoolean("ctrl/manualMode", self.input.overideIntakeStateMachine)
+     
         self.table.putNumber("LEDAnimationFrame", self.LEDAnimationFrame)
         self.table.putNumber("LEDFlashTimer", self.LEDFlashTimer)
         self.table.putNumber("timesinceinit", self.time.timeSinceInit)
@@ -300,7 +297,7 @@ class Robot(wpilib.TimedRobot):
             self.hardware.setLEDs(0, 0, 0)
 
     def teleopInit(self) -> None:
-        self.shooterStateMachine.state = 0
+        self.noteStateMachine.state = self.noteStateMachine.START
         self.manualAimPID = PIDControllerForArm("ManualAim", 0, 0, 0, 0, 0.04, 0)
         self.manualShooterPID = PIDController("ManualShoot", 0, 0, 0, 0.2)
         self.PIDspeedSetpoint = 0
@@ -415,36 +412,24 @@ class Robot(wpilib.TimedRobot):
 
         profiler.start()
 
-        if(not self.input.overideIntakeStateMachine):
-            self.intakeStateMachine.update(self.hal, self.input.intake)
+        if not self.input.overideNoteStateMachine:
+            self.noteStateMachine.intake(self.input.intake)
+            self.noteStateMachine.feed(self.input.feed) #untested
+            self.noteStateMachine.aim(self.input.aim)
+            self.noteStateMachine.rev(self.input.rev)
+            self.noteStateMachine.shoot(self.input.shoot)
+            self.noteStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
         else:
+            self.noteStateMachine.state = self.noteStateMachine.START
+            #overides for intaking
             if(self.input.intake):
                 self.hal.intakeSpeeds = [0.4, 0.4]
             if(self.input.intakeReverse):
                 self.hal.intakeSpeeds = [-0.4, -0.4]
-            self.intakeStateMachine.state = 0
 
-        profiler.end("intake state machine")
-
-        profiler.start()
-
-        if(self.input.aimEncoderReset):
-            self.hardware.resetAimEncoderPos(0)
-
-        if(self.input.camEncoderReset):
-            self.hardware.resetCamEncoderPos(0)
-
-        if(not self.input.overideShooterStateMachine):
-            self.shooterStateMachine.feed(self.input.feed) #untested
-            self.shooterStateMachine.aim(self.input.aim)
-            self.shooterStateMachine.rev(self.input.rev)
-            self.shooterStateMachine.shoot(self.input.shoot)
-            self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
-        else:
-            self.shooterStateMachine.state = 0
+            #overides for lower shooter motor and upper intake
             self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
             self.hal.shooterAimSpeed += self.input.shooterAimManual * 0.2
-
 
             if(self.input.manualFeed):
                 self.hal.intakeSpeeds[1] += 0.4
@@ -453,6 +438,7 @@ class Robot(wpilib.TimedRobot):
                 self.hal.intakeSpeeds[1] -= 0.4
                 self.hal.shooterIntakeSpeed -= 0.4
 
+            #overid for shooting
             # TODO: this is moving to fast
             speedTarget = 0
             if(self.input.rev):
@@ -460,19 +446,26 @@ class Robot(wpilib.TimedRobot):
             self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * 0.1 + self.PIDspeedSetpoint
             self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
             if(self.input.shoot):
-                self.hal.shooterIntakeSpeed = 0.
+                self.hal.shooterIntakeSpeed = 0
+        
 
-            # TODO: manual cam drive
-            # camTarget = self.shooterStateMachine.table.getNumber('targetCam', 0)
-            # self.shooterStateMachine.camPID.kp = self.shooterStateMachine.table.getNumber("cam kp", 0)
-            # self.hal.camSpeed = self.shooterStateMachine.camPID.tick(camTarget, self.hal.camPos, self.time.dt)
+        # TODO: manual cam drive
+        # camTarget = self.shooterStateMachine.table.getNumber('targetCam', 0)
+        # self.shooterStateMachine.camPID.kp = self.shooterStateMachine.table.getNumber("cam kp", 0)
+        # self.hal.camSpeed = self.shooterStateMachine.camPID.tick(camTarget, self.hal.camPos, self.time.dt)
 
-        self.table.putBoolean("ShooterStateMachineOveride", self.input.overideShooterStateMachine)
-        self.table.putBoolean("IntakeStateMachineOveride", self.input.overideIntakeStateMachine)
+        if(self.input.aimEncoderReset):
+            self.hardware.resetAimEncoderPos(0)
+
+        if(self.input.camEncoderReset):
+            self.hardware.resetCamEncoderPos(0)
+
+
+        self.table.putBoolean("NoteStateMachineOveride", self.input.overideNoteStateMachine)
 
         self.table.putNumber("ShooterAimManual", self.input.shooterAimManual)
 
-        profiler.end("shooter state machine")
+        profiler.end("note state machine")
 
         # self.hal.camSpeed = self.input.camTemp * 0.2
         self.hal.climberSpeed = self.input.climb * 0.6
@@ -718,7 +711,7 @@ class Robot(wpilib.TimedRobot):
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
         self.auto.run(self)
-        self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
+        self.noteStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
         self.hardware.update(self.hal, self.time)
 
     def disabledInit(self) -> None:
