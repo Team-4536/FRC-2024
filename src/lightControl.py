@@ -112,7 +112,6 @@ class LightControl():
             climbTrigger = False
             
         if self.hal.intakeSensor:
-            print("goofy")
             self.intakeLEDTrigger = True
         else:
             self.intakeLEDTrigger = False

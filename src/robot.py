@@ -57,6 +57,7 @@ class RobotInputs():
         self.camTemp: float = 0.0
 
         self.overideNoteStateMachine: bool = False
+        self.overrideWasPressed: bool = False # NOTE: (Rob, 3/23/24) this is done completely as a hack, trying the WPI getYButtonPressed was not working as intended (even though other ones weres). 
 
         self.shooterAimManual: float = 0
         self.aimEncoderReset: bool = False
@@ -115,8 +116,9 @@ class RobotInputs():
         self.climbEncoderReset = self.armCtrlr.getYButtonPressed()
 
         # manual mode controls
-        if(self.armCtrlr.getYButtonPressed()):
+        if(self.armCtrlr.getYButton() and not self.overrideWasPressed):
             self.overideNoteStateMachine = not self.overideNoteStateMachine
+        self.overrideWasPressed = self.armCtrlr.getYButton()
 
         self.shooterAimManual = self.manualAimScalar(-self.armCtrlr.getLeftY())
         self.intakeReverse = self.armCtrlr.getBButton()
@@ -237,7 +239,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
-        self.table.putBoolean("ctrl/manualMode", self.input.overideNoteStateMachine)
+        self.table.putBoolean("ctrl/noteStateMachineOveride", self.input.overideNoteStateMachine)
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
         
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
@@ -383,11 +385,6 @@ class Robot(wpilib.TimedRobot):
 
         if(self.input.camEncoderReset):
             self.hardware.resetCamEncoderPos(0)
-
-
-        self.table.putBoolean("NoteStateMachineOveride", self.input.overideNoteStateMachine)
-
-        self.table.putNumber("ShooterAimManual", self.input.shooterAimManual)
 
         profiler.end("note state machine")
 
