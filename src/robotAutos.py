@@ -9,6 +9,7 @@ from wpimath.kinematics import ChassisSpeeds
 from intakeStateMachine import IntakeStateMachine
 from shooterStateMachine import StateMachine
 import robot
+from ntcore import NetworkTableInstance
 
 
 
@@ -32,8 +33,11 @@ This was done to prevent large conflicts, and make it easy to change chooser opt
 This class is only intended to be used once in robotInit in robot.py, not anywhere else.
 Class construction publishes choosers to the dashboard
 """
+
 class RobotAutos():
     def __init__(self) -> None:
+        self.systemCheckNWT = NetworkTableInstance.getDefault
+        
         self.autoChooser = wpilib.SendableChooser()
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
         self.autoChooser.addOption(AUTO_INTAKE_CENTER_RING, AUTO_INTAKE_CENTER_RING)
@@ -265,23 +269,28 @@ class RobotAutos():
         return auto, initialPose
 
     def driveChassis(self, r: 'robot.Robot') -> bool | None:
+        self.systemCheckNWT.putNumber("forward drive active", 1)
         speed = ChassisSpeeds(0.05, 0, 0)
         r.drive.update(r.time.dt, r.hal, speed)
         return r.input.armCtrlr.getAButtonPressed()
     def driveChassisLeft(self, r: 'robot.Robot') -> bool | None:
+        self.systemCheckNWT.putNumber("left drive active", 1)
         speed = ChassisSpeeds(0.05, 0, -0.5)
         r.drive.update(r.time.dt, r.hal, speed)
         return r.input.armCtrlr.getAButtonPressed()
     def driveChassisRight(self, r: 'robot.Robot') -> bool | None:
+        self.systemCheckNWT.putNumber("right drive active", 1)
         speed = ChassisSpeeds(0.05, 0, 0.5)
         r.drive.update(r.time.dt, r.hal, speed)
         return r.input.armCtrlr.getAButtonPressed()
-    def systemCheckIntake(self, r: 'robot.Robot') -> bool | None:   
+    def systemCheckIntake(self, r: 'robot.Robot') -> bool | None: 
+        self.systemCheckNWT.putNumber("intake active", 1)  
         IntakeStateMachine.update(r.intakeStateMachine,r.hal, True)
         if r.intakeSensor == True:
                 StateMachine.feed(r.shooterStateMachine, True)
         return r.input.armCtrlr.getAButtonPressed()
     def systemCheckAmp(self, r: 'robot.Robot') -> bool | None: 
+        self.systemCheckNWT.putNumber("amp active", 1)
         if r.hal.shooterSensor == True:
             StateMachine.rev(r.shooterStateMachine, True)
             StateMachine.aim(r.shooterStateMachine, ShooterTarget.AMP)
@@ -290,7 +299,8 @@ class RobotAutos():
         if r.hal.shooterSensor == False:
             StateMachine.aim(r.shooterStateMachine, ShooterTarget.NONE)
         return r.input.armCtrlr.getAButtonPressed()
-    def systemCheckShooter(self, r: 'robot.Robot') -> bool | None: 
+    def systemCheckShooter(self, r: 'robot.Robot') -> bool | None:
+        self.systemCheckNWT.putNumber("shooter active", 1) 
         if r.hal.shooterSensor == True:
             StateMachine.rev(r.shooterStateMachine, True)
             StateMachine.aim(r.shooterStateMachine, ShooterTarget.SUBWOOFER)
@@ -298,6 +308,7 @@ class RobotAutos():
             StateMachine.shoot(r.shooterStateMachine, True)
         return r.input.armCtrlr.getAButtonPressed()
     def systemCheckClimbUp(self, r: 'robot.Robot') -> bool | None: 
+        self.systemCheckNWT.putNumber("climb up active", 1)
         if self.systemCheckStopClimbing == False:
             r.hal.climberSpeed = 0.1
         if not hasattr(self, "climbTimer"):
@@ -308,6 +319,7 @@ class RobotAutos():
             r.hal.climberSpeed = 0
         return r.input.armCtrlr.getAButtonPressed()
     def systemCheckClimbDown(self, r: 'robot.Robot') -> bool | None:
+        self.systemCheckNWT.putNumber("climb down active", 1)
         r.hal.climberSpeed = -0.1
         if r.hal.climberLimitPressed == True:
             r.hal.climberSpeed = 0
