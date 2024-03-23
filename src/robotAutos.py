@@ -73,6 +73,7 @@ class RobotAutos():
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
+            auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
             auto.addSequence(centerRing)
@@ -81,6 +82,7 @@ class RobotAutos():
             traj = self.loadTrajectory("troll", r.onRedSide)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_TROLL)
+            auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
             auto.addPathStage(traj)
@@ -90,6 +92,7 @@ class RobotAutos():
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_GET_ALL)
             auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
+            auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
             auto.addSequence(centerRing)
@@ -147,6 +150,7 @@ class RobotAutos():
         elif self.autoChooser.getSelected() == AUTO_SHOOT_PRELOADED:
             initialPose = Pose2d()
             auto.addTelemetryStage(AUTO_SHOOT_PRELOADED)
+            auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
 
@@ -154,12 +158,12 @@ class RobotAutos():
             traj = self.loadTrajectory("far-middle", r.onRedSide)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_FAR_MIDDLE)
+            auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
             auto.addIntakeStage().triggerAlongPath(0.7, traj)
             auto.addIntakeStage()
             auto.addStageSet(AutoBuilder() \
-
                         .addPathStage(self.loadTrajectory("far-middle-back", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
@@ -169,6 +173,7 @@ class RobotAutos():
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_SIDE_UPPER)
+            auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
             auto.addIntakeStage().triggerAlongPath(0.5, traj)
@@ -183,6 +188,7 @@ class RobotAutos():
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_SIDE_UPPER)
+            auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
             auto.addIntakeStage().triggerAlongPath(0.5, traj)
@@ -198,6 +204,7 @@ class RobotAutos():
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_SIDE_UPPER)
+            auto.addIntakeStage()
             auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
@@ -228,6 +235,7 @@ class RobotAutos():
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_SIDE_LOWER)
+            auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
             auto.addIntakeStage().triggerAlongPath(0.5, traj)
