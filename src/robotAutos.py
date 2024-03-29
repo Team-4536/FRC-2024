@@ -8,6 +8,7 @@ from wpimath.geometry import Pose2d
 from wpimath.kinematics import ChassisSpeeds
 from intakeStateMachine import IntakeStateMachine
 from shooterStateMachine import StateMachine
+from ntcore import NetworkTable
 
 
 
@@ -32,10 +33,11 @@ This was done to prevent large conflicts, and make it easy to change chooser opt
 This class is only intended to be used once in robotInit in robot.py, not anywhere else.
 Class construction publishes choosers to the dashboard
 """
-
+#systemCheckDriveStage = NetworkTable.getInstance(self)
 class RobotAutos():
     def __init__(self) -> None:
-        
+        self.systemCheckStopClimbing = False
+        self.turn = 0
         
         self.autoChooser = wpilib.SendableChooser()
         self.autoChooser.setDefaultOption(AUTO_NONE, AUTO_NONE)
@@ -86,10 +88,7 @@ class RobotAutos():
             pass
 
         elif self.autoChooser.getSelected() == AUTO_SYSTEM_CHECK:
-            self.systemCheckStopClimbing = False
-            auto.add(Stage(self.driveChassis, "driveForward"))
-            auto.add(Stage(self.driveChassisLeft, "driveLeft"))
-            auto.add(Stage(self.driveChassisRight, "driveRight"))
+            auto.add(Stage(self.systemCheckDrive, "drive"))
             auto.add(Stage(self.systemCheckIntake, "intake"))
             auto.add(Stage(self.systemCheckAmp, "amp"))
             auto.add(Stage(self.systemCheckIntake, "intake"))
@@ -267,16 +266,14 @@ class RobotAutos():
 
         return auto, initialPose
 
-    def driveChassis(self, r: 'robot.Robot') -> bool | None:
-        speed = ChassisSpeeds(0.05, 0, 0)
-        r.drive.update(r.time.dt, r.hal, speed)
-        return r.input.armCtrlr.getAButtonPressed()
-    def driveChassisLeft(self, r: 'robot.Robot') -> bool | None:
-        speed = ChassisSpeeds(0.05, 0, -0.5)
-        r.drive.update(r.time.dt, r.hal, speed)
-        return r.input.armCtrlr.getAButtonPressed()
-    def driveChassisRight(self, r: 'robot.Robot') -> bool | None:
-        speed = ChassisSpeeds(0.05, 0, 0.5)
+    def systemCheckDrive(self,r: 'robot.Robot'):
+        if r.input.armCtrlr.getBButtonPressed():
+            self.turn = 0
+        if r.input.armCtrlr.getXButtonPressed():
+            self.turn = 0.05
+        if r.input.armCtrlr.getYButtonPressed():
+            self.turn = -0.05
+        speed = ChassisSpeeds(0.05, 0, self.turn)
         r.drive.update(r.time.dt, r.hal, speed)
         return r.input.armCtrlr.getAButtonPressed()
     def systemCheckIntake(self, r: 'robot.Robot') -> bool | None: 
