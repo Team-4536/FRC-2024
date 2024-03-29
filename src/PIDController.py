@@ -31,9 +31,10 @@ class PIDController:
     # this is the funcion that inheriting classes should override, touching the other ones can cause problems
     def _tick(self, error: float, target: float, position: float, dt: float) -> float:
         derivative = (error - self.prevErr) / dt
-        self.integral += error * dt
-        self.integral = min(max(-self.integralZone, self.integral), self.integralZone)
-        out = (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative) + (self.kff * target) + self.ktest
+        self.integral += self.ki * error * dt
+        if abs(self.integral) > self.integralZone:
+            self.integral = (self.integralZone * signum(self.integral))
+        out = (self.kp * error) + (self.integral) + (self.kd * derivative) + (self.kff * target) + self.ktest
         self.prevErr = error
         return out
 
@@ -79,9 +80,10 @@ class PIDControllerForArm(PIDController):
         super()._publish()
 
 class PIDControllerForCam(PIDController):
-    def __init__(self, name: str, kp: float = 0, ki: float = 0, ks: float = 0) -> None:
+    def __init__(self, name: str, kp: float = 0, ki: float = 0, ks: float = 0, intigralZone: float = 0) -> None:
         super().__init__(name = name, kp = kp, ki = ki, kd = 0, kff = 0)
         self.ks = ks
+        self.integralZone = intigralZone
 
     def _tick(self, error: float, target: float, position: float, dt: float) -> float:
         out = super()._tick(error, target, position, dt)

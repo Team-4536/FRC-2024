@@ -24,7 +24,7 @@ class NoteStateMachine():
 
     # 0 is target aim, 1 is target speeds, 2 is cam
     ampSetpoint = (1.7, 100, 0)
-    podiumSetpoint = (0, 0, 3)
+    podiumSetpoint = (0.286, 350, 1.9)
     subwooferSetpoint = (0, 250, 0)
 
     def __init__(self):
@@ -33,7 +33,7 @@ class NoteStateMachine():
         self.table.putNumber("kp", 0.0008)
 
         self.aimPID = PIDControllerForArm("aim", 0.6, 0, 0, 0, 0.02, 0.1)
-        self.camPID = PIDControllerForCam("cam", 0.06, 0.0, 0.0)
+        self.camPID = PIDControllerForCam("cam", 0.06, 0.032, 0.0, 0.1)
         self.shooterPID = PIDController("shooter", 0.0008, 0, 0, 0.00181)
 
 
@@ -92,8 +92,6 @@ class NoteStateMachine():
         self.table.putNumber("inputRev", float(self.inputRev))
         self.table.putNumber("inputAim", self.inputAim.value)
 
-        self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0), self.table.getNumber("podiumCam", 0.0))
-
         if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):
                 self.aimSetpoint = self.ampSetpoint[0]
@@ -117,7 +115,7 @@ class NoteStateMachine():
             hal.intakeSpeeds = [0, 0]
             aimTarget = 0
             speedTarget = 0
-            camTarget = self.camSetpoint
+            camTarget = 0
             if(self.beIntaking):
                 self.state = self.INTAKING
 
@@ -126,7 +124,7 @@ class NoteStateMachine():
             hal.shooterIntakeSpeed = 0.05
             aimTarget = 0
             speedTarget = 0
-            camTarget = self.camSetpoint
+            camTarget = 0
             if(not self.beIntaking):
                 self.state = self.START
             if(hal.shooterSensor):
@@ -134,10 +132,10 @@ class NoteStateMachine():
 
         elif(self.state == self.STORED_IN_SHOOTER):
             hal.shooterIntakeSpeed = 0
-            hal.intakeSpeeds[1] = 0
+            hal.intakeSpeeds = [0, 0]
             aimTarget = 0
             speedTarget = 0
-            camTarget = self.camSetpoint
+            camTarget = 0
             if self.inputAim != ShooterTarget.NONE:
                 self.state = self.AIMING
 
@@ -164,7 +162,7 @@ class NoteStateMachine():
         else:
             aimTarget = 0
             speedTarget = 0
-            camTarget = self.camSetpoint
+            camTarget = 0
 
         self.PIDaimSetpoint = (aimTarget - self.PIDaimSetpoint) * self.AIM_SMOOTH_SCALAR + self.PIDaimSetpoint
         hal.shooterAimSpeed = self.aimPID.tick(self.PIDaimSetpoint, hal.shooterAimPos, dt)
