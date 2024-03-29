@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import math
 
 
@@ -19,3 +20,5 @@ def angleWrap(a: float) -> float:
         a += math.pi * 2
     return a
 
+def signum(x: float) -> float:
+ return float((x > 0) - (x < 0))
