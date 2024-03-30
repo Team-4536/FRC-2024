@@ -37,10 +37,6 @@ class NoteStateMachine():
         self.shooterPID = PIDController("shooter", 0.0008, 0, 0, 0.00181)
 
 
-        self.table.putNumber("podiumAim", math.radians(18))
-        self.table.putNumber("podiumSpeed", 250)
-        self.table.putNumber("podiumCam", 0.0)
-
         self.aimSetpoint = 0
         self.speedSetpoint = 0
         self.camSetpoint = 0
@@ -58,6 +54,10 @@ class NoteStateMachine():
         self.beIntaking: bool = False
 
         self.inputProfile: float = 0.0
+
+        self.table.putNumber("podium target aim", self.podiumSetpoint[0])
+        self.table.putNumber("podium target speed", self.podiumSetpoint[1])
+        self.table.putNumber("podium target cam", self.podiumSetpoint[2])
 
     # none will not change currently targeted pos
     def aim(self, target: ShooterTarget):
@@ -91,6 +91,9 @@ class NoteStateMachine():
     def update(self, hal: RobotHALBuffer, time: float, dt: float):
         self.table.putNumber("inputRev", float(self.inputRev))
         self.table.putNumber("inputAim", self.inputAim.value)
+
+        self.podiumSetpoint = (self.table.getNumber("podium target aim", 0), self.table.getNumber("podium target speed", 0),\
+                               self.table.getNumber("podium target cam", 0))
 
         if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):

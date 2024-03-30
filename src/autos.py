@@ -1,13 +1,15 @@
 
+import math
 from copy import copy
 from typing import TYPE_CHECKING, Callable
 
+from noteStateMachine import ShooterTarget
 from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerTrajectory
-from noteStateMachine import ShooterTarget
-
-import math
-from wpimath.geometry import Pose2d
+from PIDController import PIDController
+from real import angleWrap
+from wpimath.geometry import Pose2d, Translation2d
+from wpimath.kinematics import ChassisSpeeds
 
 if TYPE_CHECKING:
     from robot import Robot
@@ -234,4 +236,27 @@ class AutoBuilder:
             return False
         
         self.add(Stage(func, "reset odom with limelight"))
+        return self
+    
+    def addLimelightLineUpStage(self, r: 'Robot', pipeline: int):
+        frontLimelightTable = r.frontLimelightTable
+        subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
+        def func(r: 'Robot') -> bool:
+            if(frontLimelightTable.getNumber("getpipe", 0) != pipeline):
+                frontLimelightTable.putNumber("pipeline", pipeline)
+            tx = frontLimelightTable.getNumber("tx", None)
+            ty = frontLimelightTable.getNumber('ty', None)
+
+
+            if ty is not None and tx is not None:
+                speed = ChassisSpeeds(subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, r.time.dt), \
+                        0, \
+                        r.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, r.time.dt))
+                r.drive.update(r.time.dt, r.hal, speed)
+
+                if abs(ty) < 1 and abs(tx) < 1:
+                    return True
+            return False
+        
+        self.add(Stage(func, "lineUpWithLimeLight"))
         return self
