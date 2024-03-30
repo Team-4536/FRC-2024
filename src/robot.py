@@ -1,5 +1,7 @@
 import math
 
+from magicbot import state
+
 import profiler
 import robotHAL
 import wpilib
@@ -18,7 +20,7 @@ from phoenix5.led import (
 from PIDController import PIDController, PIDControllerForArm, updatePIDsInNT
 from real import angleWrap, lerp
 from shooterStateMachine import ShooterTarget, StateMachine
-from simHAL import RobotSimHAL
+from simHAL import RobotSimHAL, RingLocation
 from swerveDrive import SwerveDrive
 from timing import TimeData
 from utils import CircularScalar, Scalar
@@ -167,6 +169,7 @@ class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
+        self.chosenFeed = 0
 
         self.hardware: robotHAL.RobotHAL | RobotSimHAL
         if self.isSimulation():
@@ -452,7 +455,7 @@ class Robot(wpilib.TimedRobot):
     def autonomousInit(self) -> None:
         # when simulating, initalize sim to have a preloaded ring
         if isinstance(self.hardware, RobotSimHAL):
-            self.hardware.ringPos = 1
+            self.hardware.ringPos = RingLocation.insideIntake
             self.hardware.ringTransitionStart = -1
 
         self.holonomicController = PPHolonomicDriveController(
@@ -626,7 +629,10 @@ class Robot(wpilib.TimedRobot):
 
 
         elif self.autoChooser.getSelected() == AUTO_SIDEUPPER_3PC:
-            traj = self.loadTrajectory("side-upper-v02", self.onRedSide)
+            self.chosenFeed = 1
+            self.shooterStateMachine.feed(True)
+
+            """traj = self.loadTrajectory("side-upper-v02", self.onRedSide)
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             self.auto.addTelemetryStage(AUTO_SIDE_UPPER)
@@ -646,11 +652,16 @@ class Robot(wpilib.TimedRobot):
 
                         .addPathStage(self.loadTrajectory("sideFar-upper-back-v02", self.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
-            self.auto.addShooterFireStage()
+            self.auto.addShooterFireStage()"""
 
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
-            traj = self.loadTrajectory('side-lower', self.onRedSide)
+            
+            print('im doing what im supposed to at first!!')
+            self.shooterStateMachine.source(True)
+
+            
+            """traj = self.loadTrajectory('side-lower', self.onRedSide)
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             self.auto.addTelemetryStage(AUTO_SIDE_LOWER)
@@ -661,7 +672,7 @@ class Robot(wpilib.TimedRobot):
             self.auto.addStageSet(AutoBuilder() \
                         .addPathStage(self.loadTrajectory('side-lower-back', self.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
-            self.auto.addShooterFireStage()
+            self.auto.addShooterFireStage()"""
 
         else:
             assert(False)

@@ -3,7 +3,9 @@ from enum import Enum
 
 from ntcore import NetworkTableInstance
 from PIDController import PIDController, PIDControllerForArm
-from robotHAL import RobotHALBuffer
+from robotHAL import RobotHAL, RobotHALBuffer
+import robotHAL
+
 
 
 class ShooterTarget(Enum):
@@ -42,6 +44,8 @@ class StateMachine():
         self.camPID = PIDController("cam", 0.06)
         self.shooterPID = PIDController("shooter", 0.0008, 0, 0, 0.00181)
 
+        buf = RobotHALBuffer
+
 
         self.table.putNumber("podiumAim", math.radians(18))
         self.table.putNumber("podiumSpeed", 250)
@@ -61,6 +65,7 @@ class StateMachine():
         self.inputRev: bool = False
         self.inputShoot: bool = False
         self.inputFeed: bool = False
+        self.inputGetSource: bool = False
 
         self.inputProfile: float = 0.0
 
@@ -77,6 +82,10 @@ class StateMachine():
     def feed(self, feed: bool):
         self.table.putBoolean("feeding (shooter)", feed) #untested
         self.inputFeed = feed
+    def source(self, source: bool):
+        self.table.putBoolean("source intaking", source)
+        print('this function is working!!!')
+        self.inputGetSource = source
 
     def publishInfo(self):
         self.table.putNumber("state", self.state)
@@ -93,6 +102,7 @@ class StateMachine():
     def update(self, hal: RobotHALBuffer, time: float, dt: float):
         self.table.putNumber("inputRev", float(self.inputRev))
         self.table.putNumber("inputAim", self.inputAim.value)
+        
 
         self.podiumSetpoint = (self.table.getNumber("podiumAim", 0.0), self.table.getNumber("podiumSpeed", 0.0), self.table.getNumber("podiumCam", 0.0))
 
@@ -114,10 +124,15 @@ class StateMachine():
 
 
 
-
         self.onTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:
             self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 10
+
+
+        
+    
+               
+                
 
         if(self.state == self.READY_FOR_RING):
             aimTarget = 0
@@ -126,8 +141,15 @@ class StateMachine():
 
             if(self.inputFeed and hal.intakeSensor):
                 self.state = self.FEEDING
+            
+            if self.inputGetSource == True:
+                print('input get source is true')
+                self.state = self.READY_FOR_SOURCE
+                self.inputGetSource = False
+            
 
         elif(self.state == self.FEEDING):
+            print("feeding")
             aimTarget = 0
             speedTarget = 0
             camTarget = 0
@@ -138,6 +160,7 @@ class StateMachine():
                 self.state = self.STORED_IN_SHOOTER
 
         elif(self.state == self.STORED_IN_SHOOTER):
+            print('stored in shooter')
             hal.shooterIntakeSpeed = 0
             hal.intakeSpeeds[1] = 0
             aimTarget = 0
@@ -147,6 +170,7 @@ class StateMachine():
                 self.state = self.AIMING
 
         elif(self.state == self.AIMING):
+            print('aiming')
             aimTarget = self.aimSetpoint
             speedTarget = 0
             camTarget = self.camSetpoint
@@ -158,6 +182,7 @@ class StateMachine():
                     self.time = time
 
         elif(self.state == self.SHOOTING):
+            print("shooting")
             aimTarget = self.aimSetpoint
             speedTarget = self.speedSetpoint
             camTarget = self.camSetpoint
@@ -167,21 +192,25 @@ class StateMachine():
                 self.state = self.READY_FOR_RING
 
         elif(self.state == self.READY_FOR_SOURCE):
+            print("ready for source")
             aimTarget = 1.7
             speedTarget = 0
             camTarget = 0
-            hal.shooterIntakeSpeed = -0.1
+            hal.shooterSpeed = -0.1
+            print(hal.shooterSpeed)
             if hal.shooterSensor:
                 self.state = self.SOURCE_FEEDING
                  
 
         elif(self.state == self.SOURCE_FEEDING):
+            self.time = time
+            print('source feeding')
             aimTarget = 0
             speedTarget = 0
             camTarget = 0
-            hal.shooterIntakeSpeed = -0.1
-            hal.intakeSpeeds[1] = -0.4
+            hal.shooterSpeed = -0.1
             if hal.shooterSensor:
+             if (time - self.time) > 0.1:
                 self.state = self.STORED_IN_SHOOTER
 
         else:
