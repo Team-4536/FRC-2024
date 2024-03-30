@@ -242,7 +242,7 @@ class AutoBuilder:
         frontLimelightTable = r.frontLimelightTable
         subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
         def func(r: 'Robot') -> bool:
-            if(frontLimelightTable.getNumber("getpipe", 0) != pipeline):
+            if(frontLimelightTable.getNumber("getpipe", -1) != pipeline):
                 frontLimelightTable.putNumber("pipeline", pipeline)
             tx = frontLimelightTable.getNumber("tx", None)
             ty = frontLimelightTable.getNumber('ty', None)

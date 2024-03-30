@@ -312,7 +312,7 @@ class Robot(wpilib.TimedRobot):
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)), self.ang, self.time.dt))
         #limelight lineup
         elif self.input.lineUpWithSubwoofer:
-            if(self.frontLimelightTable.getNumber("getpipe", 0) != self.subwooferLineupPipeline):
+            if(self.frontLimelightTable.getNumber("getpipe", -1) != self.subwooferLineupPipeline):
                 self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
             tx = self.frontLimelightTable.getNumber("tx", 0)
             ty = self.frontLimelightTable.getNumber('ty', 0)
