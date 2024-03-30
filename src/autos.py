@@ -248,13 +248,13 @@ class AutoBuilder:
             ty = frontLimelightTable.getNumber('ty', None)
 
 
-            if ty is not None and tx is not None:
+            if tx is not None:
                 speed = ChassisSpeeds(subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, r.time.dt), \
                         0, \
                         r.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, r.time.dt))
                 r.drive.update(r.time.dt, r.hal, speed)
 
-                if abs(ty) < 1 and abs(tx) < 1:
+                if abs(tx) < 1:
                     return True
             return False
         
