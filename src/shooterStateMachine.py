@@ -196,7 +196,7 @@ class StateMachine():
             aimTarget = 1.7
             speedTarget = 0
             camTarget = 0
-            hal.shooterSpeed = -0.1
+            hal.shooterSpeed = -0.4
             print(hal.shooterSpeed)
             if hal.shooterSensor:
                 self.state = self.SOURCE_FEEDING

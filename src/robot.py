@@ -1,5 +1,5 @@
 import math
-
+import shooterStateMachine
 from magicbot import state
 
 import profiler
@@ -170,6 +170,7 @@ class Robot(wpilib.TimedRobot):
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
         self.chosenFeed = 0
+        self.s = shooterStateMachine.StateMachine()
 
         self.hardware: robotHAL.RobotHAL | RobotSimHAL
         if self.isSimulation():
@@ -454,9 +455,9 @@ class Robot(wpilib.TimedRobot):
 
     def autonomousInit(self) -> None:
         # when simulating, initalize sim to have a preloaded ring
-        if isinstance(self.hardware, RobotSimHAL):
-            self.hardware.ringPos = RingLocation.insideIntake
-            self.hardware.ringTransitionStart = -1
+        # if isinstance(self.hardware, RobotSimHAL):
+            # self.hardware.ringPos = RingLocation.insideIntake
+            # self.hardware.ringTransitionStart = -1
 
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),
