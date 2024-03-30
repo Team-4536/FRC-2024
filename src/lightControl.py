@@ -106,18 +106,25 @@ class LightControl():
         
         table.putBoolean("light trigger bool", self.lightTriggerBool)
         table.putBoolean("light trigger bool 2", self.lightTriggerBool2)
-        if self.hal.climbPos*(1.15/2) > 12: #TODO: change values later 12 = inches trollface
+        
+        table.putNumber("climbPos", self.hal.climbPos)
+    
+        if self.hal.climbPos > 150: 
             climbTrigger = True
         else:
             climbTrigger = False
+            
+
+        table.putBoolean("low climbTrigger", climbTrigger)
             
         if self.hal.intakeSensor:
             self.intakeLEDTrigger = True
         else:
             self.intakeLEDTrigger = False
         
-        self.flashLEDs(climbTrigger, self.climberLEDPrevTrigger, 255, 247, 0, 0.2) #yellow on high climb
+        self.flashLEDs(climbTrigger, self.climberLEDPrevTrigger, 255, 247, 0, 0.2) 
         self.climberLEDPrevTrigger = climbTrigger
+        
         
         self.flashLEDs(self.intakeLEDTrigger, self.intakeLEDPrevTrigger, 255, 255, 255, 0.2)  #white on pickup
         self.intakeLEDPrevTrigger = self.intakeLEDTrigger

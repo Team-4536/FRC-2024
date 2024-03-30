@@ -114,7 +114,7 @@ class RobotInputs():
 
 
         self.climb = float(self.armCtrlr.getRightBumper()) - self.armCtrlr.getRightTriggerAxis()
-        self.climbEncoderReset = self.armCtrlr.getYButtonPressed()
+        self.climbEncoderReset = self.armCtrlr.getXButtonPressed()
 
         # manual mode controls
         if(self.armCtrlr.getYButton() and not self.overrideWasPressed):
@@ -168,7 +168,8 @@ class Robot(wpilib.TimedRobot):
 
         self.abs = True
         self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
-
+        self.hardware.resetClimbEncoderPos(0)
+        
         self.noteStateMachine: NoteStateMachine = NoteStateMachine()
 
         self.autoSideChooser = wpilib.SendableChooser()
@@ -396,6 +397,9 @@ class Robot(wpilib.TimedRobot):
 
         if(self.input.camEncoderReset):
             self.hardware.resetCamEncoderPos(0)
+            
+        if(self.input.climbEncoderReset):
+            self.hardware.resetClimbEncoderPos(0)
 
         profiler.end("note state machine")
 

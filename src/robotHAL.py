@@ -231,6 +231,9 @@ class RobotHAL():
 
     def resetAimEncoderPos(self, nPos: float) -> None:
         self.shooterAimEncoder.setPosition(nPos)
+        
+    def resetClimbEncoderPos(self, nPos: float) -> None:
+        self.climbEncoder.setPosition(nPos)
 
     def setLEDs(self, r: int, g: int, b: int, w: int = 0, startIdx: int = 0, count: int = 512) -> None:
         self.ledController.setLEDs(r, g, b, w, startIdx, count)
@@ -284,7 +287,6 @@ class RobotHAL():
         buf.climberLimitPressed = self.climbSensor.get()
         buf.climbCurrent = self.climbingMotor.getOutputCurrent()
         buf.climbTemp = self.climbingMotor.getMotorTemperature()
-
 
         profiler.end("other motor encoder updates")
 

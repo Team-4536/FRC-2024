@@ -124,6 +124,9 @@ class RobotSimHAL():
     def resetCamEncoderPos(self, nPos: float) -> None:
         pass
 
+    def resetClimbEncoderPos(self, nPos: float) -> None:
+        pass
+    
     def resetAimEncoderPos(self, nPos: float) -> None:
         pass
 
