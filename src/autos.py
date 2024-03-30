@@ -215,7 +215,6 @@ class AutoBuilder:
     def addOdometryResetWithLimelightStage(self, r: 'Robot', pipeline: int) -> 'AutoBuilder':
         limelightTable = r.frontLimelightTable
         robotPoseTable = r.robotPoseTable
-
         def func(r: 'Robot') -> bool:
             if(limelightTable.getNumber("getPipe", -1) != pipeline):
                 limelightTable.putNumber("pipeline", pipeline)
@@ -230,6 +229,8 @@ class AutoBuilder:
 
                 #X, Y, & Yaw are updated correctly
                 r.drive.resetOdometry(visionPose2D, r.hal)
+                return True
+            elif (r.time.timeSinceInit - r.auto.stageStart) > 2:
                 return True
             return False
         

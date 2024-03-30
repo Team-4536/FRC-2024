@@ -76,15 +76,14 @@ class RobotAutos():
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
             auto.addSequence(centerRing)
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
 
         elif self.autoChooser.getSelected() == AUTO_TROLL:
             traj = self.loadTrajectory("troll", r.onRedSide)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_TROLL)
-            auto.addIntakeStage()
-            auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
-            auto.addShooterFireStage()
             auto.addPathStage(traj)
 
         elif self.autoChooser.getSelected() == AUTO_GET_ALL:
@@ -125,13 +124,16 @@ class RobotAutos():
                         .addPathStage(self.loadTrajectory("lowerBack", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
 
             traj = self.loadTrajectory("middle", r.onRedSide)
 
             auto.addTelemetryStage(AUTO_GET_ALL)
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
             auto.addSequence(centerRing)
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
 
             auto.addIntakeStage().triggerAlongPath(0.6, self.loadTrajectory("upper", r.onRedSide))
             auto.addIntakeStage()
@@ -139,6 +141,7 @@ class RobotAutos():
                         .addPathStage(self.loadTrajectory("upperBack", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
 
         elif self.autoChooser.getSelected() == AUTO_EXIT:
             traj = self.loadTrajectory("exit", r.onRedSide)
@@ -161,12 +164,14 @@ class RobotAutos():
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
             auto.addIntakeStage().triggerAlongPath(0.7, traj)
             auto.addIntakeStage()
             auto.addStageSet(AutoBuilder() \
                         .addPathStage(self.loadTrajectory("far-middle-back", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_UPPER:
             traj = self.loadTrajectory("side-upper", r.onRedSide)
@@ -176,12 +181,14 @@ class RobotAutos():
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
             auto.addIntakeStage().triggerAlongPath(0.5, traj)
             auto.addIntakeStage()
             auto.addStageSet(AutoBuilder() \
                         .addPathStage(self.loadTrajectory("side-upper-back", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
 
         elif self.autoChooser.getSelected() == AUTO_SIDEUPPER_V02:
             traj = self.loadTrajectory("side-upper-v02", r.onRedSide)
@@ -191,6 +198,7 @@ class RobotAutos():
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
             auto.addIntakeStage().triggerAlongPath(0.5, traj)
             auto.addIntakeStage()
             auto.addStageSet(AutoBuilder() \
@@ -198,14 +206,15 @@ class RobotAutos():
                         .addPathStage(self.loadTrajectory("side-upper-back-v02", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
 
         elif self.autoChooser.getSelected() == AUTO_SIDEUPPER_3PC:
             traj = self.loadTrajectory("side-upper-v02", r.onRedSide)
 
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_SIDE_UPPER)
-            auto.addIntakeStage()
             auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
+            auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
             auto.addIntakeStage().triggerAlongPath(0.5, traj)
@@ -238,12 +247,14 @@ class RobotAutos():
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
             auto.addIntakeStage().triggerAlongPath(0.5, traj)
             auto.addIntakeStage()
             auto.addStageSet(AutoBuilder() \
                         .addPathStage(self.loadTrajectory('side-lower-back', r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
+            auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
 
         else:
             assert(False)
