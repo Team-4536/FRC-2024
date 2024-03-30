@@ -24,7 +24,7 @@ class NoteStateMachine():
 
     # 0 is target aim, 1 is target speeds, 2 is cam
     ampSetpoint = (1.7, 100, 0)
-    podiumSetpoint = (0.286, 350, 1.9)
+    podiumSetpoint = (0.3, 350, 2.35)
     subwooferSetpoint = (0, 250, 0)
 
     def __init__(self):
@@ -157,7 +157,7 @@ class NoteStateMachine():
             aimTarget = self.aimSetpoint
             speedTarget = self.speedSetpoint
             camTarget = self.camSetpoint
-            hal.shooterIntakeSpeed = 0.4
+            hal.shooterIntakeSpeed = 0.8
             hal.intakeSpeeds[1] = 0.4
             if(time - self.time > 1.0):
                 self.state = self.START
