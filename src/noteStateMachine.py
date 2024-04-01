@@ -1,4 +1,3 @@
-import math
 from enum import Enum
 
 from ntcore import NetworkTableInstance
@@ -24,7 +23,7 @@ class NoteStateMachine():
 
     # 0 is target aim, 1 is target speeds, 2 is cam
     ampSetpoint = (1.7, 100, 0)
-    podiumSetpoint = (0.286, 350, 1.9)
+    podiumSetpoint = (0.3, 350, 2.35)
     subwooferSetpoint = (0, 250, 0)
 
     def __init__(self):
@@ -36,10 +35,6 @@ class NoteStateMachine():
         self.camPID = PIDControllerForCam("cam", 0.06, 0.032, 0.0, 0.1)
         self.shooterPID = PIDController("shooter", 0.0008, 0, 0, 0.00181)
 
-
-        self.table.putNumber("podiumAim", math.radians(18))
-        self.table.putNumber("podiumSpeed", 250)
-        self.table.putNumber("podiumCam", 0.0)
 
         self.aimSetpoint = 0
         self.speedSetpoint = 0
@@ -110,6 +105,10 @@ class NoteStateMachine():
         if self.state == self.AIMING or self.state == self.SHOOTING:
             self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 20
 
+        self.onCamTarget = False
+        if self.state == self.AIMING or self.state == self.SHOOTING:
+            self.onCamTarget = abs(hal.camPos - self.camSetpoint) < 0.05
+
         if(self.state == self.START):
             hal.shooterIntakeSpeed = 0
             hal.intakeSpeeds = [0, 0]
@@ -146,7 +145,7 @@ class NoteStateMachine():
             if self.inputRev:
                 speedTarget = self.speedSetpoint
             if self.inputShoot:
-                if self.onTarget:
+                if self.onTarget and self.onCamTarget:
                     self.state = self.SHOOTING
                     self.time = time
 
@@ -154,7 +153,7 @@ class NoteStateMachine():
             aimTarget = self.aimSetpoint
             speedTarget = self.speedSetpoint
             camTarget = self.camSetpoint
-            hal.shooterIntakeSpeed = 0.4
+            hal.shooterIntakeSpeed = 0.8
             hal.intakeSpeeds[1] = 0.4
             if(time - self.time > 1.0):
                 self.state = self.START
