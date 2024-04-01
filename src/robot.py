@@ -135,6 +135,7 @@ AUTO_SIDE_BLUE = "blue"
 AUTO_SIDE_FMS = "FMS side"
 
 #Pipeline definitions
+
 ODOMETRY_RESET_PIPELINE = 0
 SUBWOOFER_LINEUP_RED_PIPLINE = 1
 SUBWOOFER_LINEUP_BLUE_PIPLINE = 2
@@ -244,10 +245,10 @@ class Robot(wpilib.TimedRobot):
 
         #TODO make the pipelines an Enum
         #red side
-        self.subwooferLineupPipeline: int = 1
+        self.subwooferLineupPipeline: int = SUBWOOFER_LINEUP_RED_PIPLINE
         if(not self.onRedSide):
             #blue side
-            self.subwooferLineupPipeline = 2
+            self.subwooferLineupPipeline = SUBWOOFER_LINEUP_BLUE_PIPLINE
 
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()

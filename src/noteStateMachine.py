@@ -1,4 +1,3 @@
-import math
 from enum import Enum
 
 from ntcore import NetworkTableInstance
@@ -55,10 +54,6 @@ class NoteStateMachine():
 
         self.inputProfile: float = 0.0
 
-        self.table.putNumber("podium target aim", self.podiumSetpoint[0])
-        self.table.putNumber("podium target speed", self.podiumSetpoint[1])
-        self.table.putNumber("podium target cam", self.podiumSetpoint[2])
-
     # none will not change currently targeted pos
     def aim(self, target: ShooterTarget):
         self.table.putNumber("aimed", target.value)
@@ -92,9 +87,6 @@ class NoteStateMachine():
         self.table.putNumber("inputRev", float(self.inputRev))
         self.table.putNumber("inputAim", self.inputAim.value)
 
-        self.podiumSetpoint = (self.table.getNumber("podium target aim", 0), self.table.getNumber("podium target speed", 0),\
-                               self.table.getNumber("podium target cam", 0))
-
         if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):
                 self.aimSetpoint = self.ampSetpoint[0]
@@ -112,6 +104,10 @@ class NoteStateMachine():
         self.onTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:
             self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 20
+
+        self.onCamTarget = False
+        if self.state == self.AIMING or self.state == self.SHOOTING:
+            self.onCamTarget = abs(hal.camPos - self.camSetpoint) < 0.05
 
         if(self.state == self.START):
             hal.shooterIntakeSpeed = 0
@@ -149,7 +145,7 @@ class NoteStateMachine():
             if self.inputRev:
                 speedTarget = self.speedSetpoint
             if self.inputShoot:
-                if self.onTarget:
+                if self.onTarget and self.onCamTarget:
                     self.state = self.SHOOTING
                     self.time = time
 
