@@ -39,7 +39,7 @@ exposure:220
 fiducial_backend:umich
 fiducial_decoder_strictness:strict
 fiducial_denoise:0.000000
-fiducial_idfilters:8
+fiducial_idfilters:7
 fiducial_locfilters:
 fiducial_method:sqpnp
 fiducial_qualitythreshold:2
