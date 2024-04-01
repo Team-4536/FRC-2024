@@ -88,6 +88,7 @@ class RobotAutos():
             pass
 
         elif self.autoChooser.getSelected() == AUTO_SYSTEM_CHECK:
+            #auto.add(Stage(self.systemCheckTest, "test"))
             auto.add(Stage(self.systemCheckDrive, "drive"))
             auto.add(Stage(self.systemCheckIntake, "intake"))
             auto.add(Stage(self.systemCheckAmp, "amp"))
@@ -266,6 +267,11 @@ class RobotAutos():
 
         return auto, initialPose
 
+
+    def systemCheckTest(self,r: 'robot.Robot'):
+        speed = ChassisSpeeds(0.5, 0, self.turn)
+        r.drive.update(r.time.dt, r.hal, speed)
+
     def systemCheckDrive(self,r: 'robot.Robot'):
         if r.input.armCtrlr.getBButtonPressed():
             self.turn = 0
@@ -273,7 +279,7 @@ class RobotAutos():
             self.turn = 0.05
         if r.input.armCtrlr.getYButtonPressed():
             self.turn = -0.05
-        speed = ChassisSpeeds(0.05, 0, self.turn)
+        speed = ChassisSpeeds(0.5, 0, self.turn)
         r.drive.update(r.time.dt, r.hal, speed)
         return r.input.armCtrlr.getAButtonPressed()
     def systemCheckIntake(self, r: 'robot.Robot') -> bool | None: 
