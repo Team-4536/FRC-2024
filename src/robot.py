@@ -6,6 +6,7 @@ import robotHAL
 import wpilib
 from lightControl import LightControl
 from noteStateMachine import NoteStateMachine, ShooterTarget
+from climberStateMachine import ClimberStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from PIDController import PIDController, PIDControllerForArm, updatePIDsInNT
@@ -171,6 +172,7 @@ class Robot(wpilib.TimedRobot):
         self.hardware.resetClimbEncoderPos(0)
         
         self.noteStateMachine: NoteStateMachine = NoteStateMachine()
+        self.climberStateMachine: ClimberStateMachine = ClimberStateMachine()
 
         self.autoSideChooser = wpilib.SendableChooser()
         self.autoSideChooser.setDefaultOption(AUTO_SIDE_FMS, AUTO_SIDE_FMS)
@@ -204,6 +206,7 @@ class Robot(wpilib.TimedRobot):
 
         self.hal.publish(self.table)
         self.noteStateMachine.publishInfo()
+        self.climberStateMachine.publishInfo()
 
         self.drive.updateOdometry(self.hal)
 
@@ -398,7 +401,7 @@ class Robot(wpilib.TimedRobot):
         if(self.input.camEncoderReset):
             self.hardware.resetCamEncoderPos(0)
             
-        if(self.input.climbEncoderReset):
+        if(self.input.climbEncoderReset or self.hal.climberLimitPressed):
             self.hardware.resetClimbEncoderPos(0)
 
         profiler.end("note state machine")
@@ -431,9 +434,12 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal, self.time)
         self.drive.resetOdometry(initialPose, self.hal)
         self.holonomicController.reset(initialPose, ChassisSpeeds())
+        
+        self.climberStateMachine.state = 0
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
+        self.climberStateMachine.update(self.hal)
         self.auto.run(self)
         self.noteStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
         self.hardware.update(self.hal, self.time)

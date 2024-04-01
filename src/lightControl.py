@@ -114,7 +114,6 @@ class LightControl():
         else:
             climbTrigger = False
             
-
         table.putBoolean("low climbTrigger", climbTrigger)
             
         if self.hal.intakeSensor:
@@ -124,7 +123,6 @@ class LightControl():
         
         self.flashLEDs(climbTrigger, self.climberLEDPrevTrigger, 255, 247, 0, 0.2) 
         self.climberLEDPrevTrigger = climbTrigger
-        
         
         self.flashLEDs(self.intakeLEDTrigger, self.intakeLEDPrevTrigger, 255, 255, 255, 0.2)  #white on pickup
         self.intakeLEDPrevTrigger = self.intakeLEDTrigger
@@ -159,7 +157,6 @@ class LightControl():
                 table.putNumber("LED R value", redBrightnessArray[self.LEDAnimationFrame])
                 table.putNumber("LED G value", greenBrightnessArray[self.LEDAnimationFrame])
                 table.putNumber("LED B value", blueBrightnessArray[self.LEDAnimationFrame])
-
         else:
             self.LEDFlashTimer = 0.0
             self.hardware.setLEDs(0, 0, 0)
