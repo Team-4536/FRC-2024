@@ -289,8 +289,6 @@ class RobotHAL():
         profiler.end("other motor encoder updates")
 
         profiler.start()
-        if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
-            self.gyro.reset()
         buf.yaw = math.radians(-self.gyro.getAngle())
         profiler.end("gyro updates")
 
