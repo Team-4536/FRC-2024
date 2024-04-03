@@ -154,6 +154,7 @@ class RobotHAL():
         self.driveMotors[1].setInverted(True)
         self.driveMotors[3].setInverted(True)
         for d in self.driveMotors:
+            d.setOpenLoopRampRate(0.2)
             d.setSmartCurrentLimit(40)
 
         self.steerMotors = [rev.CANSparkMax(1, rev.CANSparkMax.MotorType.kBrushless),
@@ -174,7 +175,9 @@ class RobotHAL():
         self.intakeMotors[0].setInverted(False)
         self.intakeMotors[1].setInverted(True)
         self.intakeMotors[0].setSmartCurrentLimit(30)
+        self.intakeMotors[0].setOpenLoopRampRate(0.2)
         self.intakeMotors[1].setSmartCurrentLimit(30)
+        self.intakeMotors[1].setOpenLoopRampRate(0.2)
 
         # self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
         # for k in self.intakeMotors:
@@ -183,10 +186,14 @@ class RobotHAL():
         # shooter motors
         self.shooterTopMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless)
         self.shooterTopMotor.setInverted(True)
+        self.shooterTopMotor.setOpenLoopRampRate(0.2)
         self.shooterBottomMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
+        self.shooterBottomMotor.setOpenLoopRampRate(0.2)
         self.shooterAimMotor = rev.CANSparkMax(14, rev.CANSparkMax.MotorType.kBrushless)
         self.shooterAimMotor.setInverted(True)
+        self.shooterAimMotor.setOpenLoopRampRate(0.2)
         self.shooterIntakeMotor = rev.CANSparkMax(13, rev.CANSparkMax.MotorType.kBrushless)
+        self.shooterIntakeMotor.setOpenLoopRampRate(0.2)
         # shooter encoders
         self.shooterTopEncoder = self.shooterTopMotor.getEncoder()
         self.shooterBottomEncoder = self.shooterBottomMotor.getEncoder()
