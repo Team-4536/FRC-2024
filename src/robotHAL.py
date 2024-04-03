@@ -163,7 +163,7 @@ class RobotHAL():
                             ]
         for m in self.steerMotors:
             m.setInverted(True)
-            m.setOpenLoopRampRate(50)
+            m.setOpenLoopRampRate(0.2)
             m.setSmartCurrentLimit(40)
 
         self.steerEncoders = [CANcoder(21), CANcoder(22), CANcoder(23), CANcoder(24)]
