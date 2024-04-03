@@ -46,7 +46,7 @@ class SwerveDrive():
         for i in range(4):
             self.turningPIDs[i].kp = self.turningPIDs[0].kp
 
-        speed = ChassisSpeeds.discretize(speed.vx, speed.vy, speed.omega, dt)
+        speed = ChassisSpeeds.discretize(speed.vx, speed.vy, speed.omega, dt * 8)
 
         wheelPositions = [SwerveModulePosition(hal.drivePositions[i], Rotation2d(hal.steeringPositions[i])) for i in range(4)]
         targetStates = self.kinematics.toSwerveModuleStates(speed)
