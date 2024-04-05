@@ -233,6 +233,8 @@ class AutoBuilder:
                 #X, Y, & Yaw are updated correctly
                 r.drive.resetOdometry(visionPose2D, r.hal)
                 return True
+            elif (r.time.timeSinceInit - r.auto.stageStart) > 0.25:
+                return True
             return False
         
         self.add(Stage(func, "reset odom with limelight"))

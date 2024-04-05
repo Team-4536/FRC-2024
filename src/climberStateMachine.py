@@ -17,7 +17,6 @@ class ClimberStateMachine():
         if (self.state == self.START):
             self.state = self.LOWERING
         if(self.state == self.LOWERING):
-            print("FUCK")
             hal.climberSpeed = -3
             if(hal.climberLimitPressed):
                 self.state = self.DOWN
