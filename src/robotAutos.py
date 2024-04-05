@@ -214,13 +214,11 @@ class RobotAutos():
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
             auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
-            traj = self.loadTrajectory("sideFar-upper-v02", r.onRedSide)
-            auto.addPathStage(traj)
-            #traj = self.loadTrajectory('sideFar-upper-v02B', r.onRedSide)
-            #auto.addIntakeStage().triggerAlongPath(0.5, traj)
+            auto.addStageSet(AutoBuilder() \
+                             .addPathStage(self.loadTrajectory("sideFar-upper-v02", r.onRedSide))
+                             .addIntakeStage())
             auto.addIntakeStage()
             auto.addStageSet(AutoBuilder() \
-
                         .addPathStage(self.loadTrajectory("sideFar-upper-back-v02", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
