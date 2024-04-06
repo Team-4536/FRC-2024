@@ -18,7 +18,7 @@ class NoteStateMachine():
     AIMING = 3
     SHOOTING = 4
 
-    SPEED_SMOOTH_SCALAR = 0.1
+    SPEED_SMOOTH_SCALAR = 0.2
     AIM_SMOOTH_SCALAR = 0.05
 
     # 0 is target aim, 1 is target speeds, 2 is cam
