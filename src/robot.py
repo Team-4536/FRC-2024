@@ -71,6 +71,8 @@ class RobotInputs():
         self.climbEncoderReset: bool = False
 
         self.lineUpWithSubwoofer: bool = False
+        
+        self.manualLightFlash: bool = False
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
@@ -97,6 +99,9 @@ class RobotInputs():
 
         # arm controller
         self.intake = self.armCtrlr.getAButton()
+        
+        self.manualLightFlash = self.armCtrlr.getStartButtonPressed()
+            
 
         #POV is also known as the Dpad, 0 is centered on top, angles go clockwise
         self.aim = ShooterTarget.NONE
@@ -233,7 +238,7 @@ class Robot(wpilib.TimedRobot):
         if self.input.absToggle:
             self.abs = not self.abs
 
-        self.lights.updateLED(self.table, self.time, self.hal, self.hardware)
+        self.lights.updateLED(self.table, self.time, self.hal, self.hardware, self.input)
 
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
