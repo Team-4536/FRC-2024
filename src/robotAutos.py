@@ -18,7 +18,7 @@ AUTO_SIDE_LOWER = 'speaker side to source ring'
 
 AUTO_FAR_MIDDLE = 'speaker center to far middle ring'
 AUTO_SIDEUPPER_V02 = 'Side upper routine version 2'
-AUTO_SIDEUPPER_3PC = 'side upper 3pc, no podium'
+AUTO_SIDEUPPER_3PC = 'side upper far'
 AUTO_TROLL = 'mess up middle rings'
 
 """
@@ -209,7 +209,6 @@ class RobotAutos():
             auto.addIntakeStage().triggerAlongPath(0.5, traj)
             auto.addIntakeStage()
             auto.addStageSet(AutoBuilder() \
-
                         .addPathStage(self.loadTrajectory("side-upper-back-v02", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
