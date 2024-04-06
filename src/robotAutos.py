@@ -18,7 +18,7 @@ AUTO_SIDE_LOWER = 'speaker side to source ring'
 
 AUTO_FAR_MIDDLE = 'speaker center to far middle ring'
 AUTO_SIDEUPPER_V02 = 'Side upper routine version 2'
-AUTO_SIDEUPPER_3PC = 'side upper 3pc, no podium'
+AUTO_SIDEUPPER_3PC = 'side upper far'
 AUTO_TROLL = 'mess up middle rings'
 
 """
@@ -40,7 +40,7 @@ class RobotAutos():
         self.autoChooser.addOption(AUTO_SIDE_LOWER, AUTO_SIDE_LOWER)
         # self.autoChooser.addOption(AUTO_FAR_MIDDLE, AUTO_FAR_MIDDLE)
         # self.autoChooser.addOption(AUTO_SIDEUPPER_V02, AUTO_SIDEUPPER_V02)
-        # self.autoChooser.addOption(AUTO_SIDEUPPER_3PC, AUTO_SIDEUPPER_3PC)
+        self.autoChooser.addOption(AUTO_SIDEUPPER_3PC, AUTO_SIDEUPPER_3PC)
         # self.autoChooser.addOption(AUTO_TROLL, AUTO_TROLL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
@@ -209,18 +209,15 @@ class RobotAutos():
             auto.addIntakeStage().triggerAlongPath(0.5, traj)
             auto.addIntakeStage()
             auto.addStageSet(AutoBuilder() \
-
                         .addPathStage(self.loadTrajectory("side-upper-back-v02", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
             auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
-            traj = self.loadTrajectory("sideFar-upper-v02", r.onRedSide)
-            auto.addPathStage(traj)
-            #traj = self.loadTrajectory('sideFar-upper-v02B', r.onRedSide)
-            #auto.addIntakeStage().triggerAlongPath(0.5, traj)
+            auto.addStageSet(AutoBuilder() \
+                             .addPathStage(self.loadTrajectory("sideFar-upper-v02", r.onRedSide))
+                             .addIntakeStage())
             auto.addIntakeStage()
             auto.addStageSet(AutoBuilder() \
-
                         .addPathStage(self.loadTrajectory("sideFar-upper-back-v02", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
             auto.addShooterFireStage()
