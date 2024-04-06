@@ -40,7 +40,7 @@ class RobotAutos():
         self.autoChooser.addOption(AUTO_SIDE_LOWER, AUTO_SIDE_LOWER)
         # self.autoChooser.addOption(AUTO_FAR_MIDDLE, AUTO_FAR_MIDDLE)
         # self.autoChooser.addOption(AUTO_SIDEUPPER_V02, AUTO_SIDEUPPER_V02)
-        # self.autoChooser.addOption(AUTO_SIDEUPPER_3PC, AUTO_SIDEUPPER_3PC)
+        self.autoChooser.addOption(AUTO_SIDEUPPER_3PC, AUTO_SIDEUPPER_3PC)
         # self.autoChooser.addOption(AUTO_TROLL, AUTO_TROLL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
