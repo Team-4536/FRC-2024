@@ -7,6 +7,7 @@ import robotHAL
 from simHAL import RobotSimHAL
 from robotHAL import RobotHALBuffer
 import wpilib
+import robot
 
 LIGHTS_OFF = "off"
 LIGHTS_ON = "on"
@@ -78,10 +79,11 @@ class LightControl():
             self.blue = blue
             self.duration = duration
         
-    def updateLED(self, table: ntcore.NetworkTable, time: TimeData, hal: RobotHALBuffer, hardware) -> None:
+    def updateLED(self, table: ntcore.NetworkTable, time: TimeData, hal: RobotHALBuffer, hardware, input) -> None:
         self.hal = hal
         self.hardware = hardware
         self.time = time
+        self.input = robot.RobotInputs
         table.putNumber("LEDAnimationFrame", self.LEDAnimationFrame)
         table.putBoolean("LEDTrigger", self.LEDTrigger)
         table.putNumber("LEDFlashTimer", self.LEDFlashTimer)
@@ -89,7 +91,7 @@ class LightControl():
         table.putBoolean("intake ledTrigger", self.intakeLEDTrigger)
         table.putBoolean("intakeledPrevTrigger", self.intakeLEDPrevTrigger)
         table.putBoolean("climber ledTrigger", self.climberLEDTrigger)
-        if self.lightToggle.getSelected() == LIGHTS_ON: #test pickers can be deleted later once debugged
+        if input.manualLightFlash:
             self.lightTriggerBool = True
         else:
             self.lightTriggerBool = False
