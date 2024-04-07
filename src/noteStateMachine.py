@@ -26,7 +26,7 @@ class NoteStateMachine():
     ampSetpoint = (1.7, 100, 0)
     podiumSetpoint = (0.3, 350, 2.35)
     subwooferSetpoint = (0, 250, 0)
-    lobSetpoint = (0.4, 250, 0)
+    lobSetpoint = (0.4, 300, 0)
 
     def __init__(self):
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
