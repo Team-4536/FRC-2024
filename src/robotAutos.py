@@ -41,7 +41,7 @@ class RobotAutos():
         # self.autoChooser.addOption(AUTO_FAR_MIDDLE, AUTO_FAR_MIDDLE)
         # self.autoChooser.addOption(AUTO_SIDEUPPER_V02, AUTO_SIDEUPPER_V02)
         self.autoChooser.addOption(AUTO_SIDEUPPER_3PC, AUTO_SIDEUPPER_3PC)
-        # self.autoChooser.addOption(AUTO_TROLL, AUTO_TROLL)
+        self.autoChooser.addOption(AUTO_TROLL, AUTO_TROLL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
     # NOTE: filename is *just* the title of the file, with no extension and no path
@@ -245,7 +245,7 @@ class RobotAutos():
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
             auto.addShooterFireStage()
-            auto.addPathStage(traj)
+            auto.addStageSet(AutoBuilder().addPathStage(traj).addIntakeStage())
 
         else:
             assert(False)
