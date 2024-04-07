@@ -10,6 +10,7 @@ class ShooterTarget(Enum):
     AMP = 1
     PODIUM = 2
     SUBWOOFER = 3
+    SOURCE = 4
 
 class NoteStateMachine():
     START = 0
@@ -18,6 +19,9 @@ class NoteStateMachine():
     AIMING = 3
     SHOOTING = 4
 
+    READY_FOR_SOURCE = 5
+    SOURCE_FEEDING = 6
+
     SPEED_SMOOTH_SCALAR = 0.2
     AIM_SMOOTH_SCALAR = 0.05
 
@@ -25,7 +29,8 @@ class NoteStateMachine():
     ampSetpoint = (1.7, 100, 0)
     podiumSetpoint = (0.3, 350, 2.35)
     subwooferSetpoint = (0, 250, 0)
-
+    SourceSetpoint = (1.7, -10, 0)
+    inputGetSource = False
     def __init__(self):
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
         self.table.putNumber("kff", 0.00181)
@@ -70,6 +75,10 @@ class NoteStateMachine():
     def intake(self, feed: bool):
         self.table.putBoolean("intaking", feed)
         self.beIntaking = feed
+    def source(self, source: bool):
+        self.table.putBoolean("source intaking", source)
+        print('this function is working!!!')
+        self.inputGetSource = source
 
     def publishInfo(self):
         self.table.putNumber("state", self.state)
@@ -100,6 +109,10 @@ class NoteStateMachine():
                 self.aimSetpoint = self.subwooferSetpoint[0]
                 self.speedSetpoint = self.subwooferSetpoint[1]
                 self.camSetpoint = self.subwooferSetpoint[2]
+            elif(self.inputAim == ShooterTarget.SOURCE):
+                self.aimSetpoint = self.SourceSetpoint[0]
+                self.speedSetpoint = self.SourceSetpoint[1]
+                self.camSetpoint = self.SourceSetpoint[2]
 
         self.onTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:
@@ -108,6 +121,9 @@ class NoteStateMachine():
         self.onCamTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:
             self.onCamTarget = abs(hal.camPos - self.camSetpoint) < 0.05
+
+        if self.inputGetSource == True:
+            self.state = self.READY_FOR_SOURCE
 
         if(self.state == self.START):
             hal.shooterIntakeSpeed = 0
@@ -130,6 +146,7 @@ class NoteStateMachine():
                 self.state = self.STORED_IN_SHOOTER
 
         elif(self.state == self.STORED_IN_SHOOTER):
+            print("phew")
             hal.shooterIntakeSpeed = 0
             hal.intakeSpeeds = [0, 0]
             aimTarget = 0
@@ -157,6 +174,27 @@ class NoteStateMachine():
             hal.intakeSpeeds[1] = 0.4
             if(time - self.time > 1.0):
                 self.state = self.START
+
+        elif(self.state == self.READY_FOR_SOURCE):
+            print("ready for source")
+            aimTarget = self.aimSetpoint
+            speedTarget = self.speedSetpoint
+            camTarget = self.camSetpoint
+            print(hal.shooterSpeed)
+            if hal.shooterSensor:
+                self.state = self.SOURCE_FEEDING
+                 
+
+        elif(self.state == self.SOURCE_FEEDING):
+            self.time = time
+            print('source feeding')
+            aimTarget = 0
+            speedTarget = 0
+            camTarget = 0
+            hal.shooterSpeed = -0.1
+            if hal.shooterSensor:
+             if (time - self.time) > 0.1:
+                self.state = self.STORED_IN_SHOOTER
 
         else:
             aimTarget = 0

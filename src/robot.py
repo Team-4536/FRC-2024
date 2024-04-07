@@ -424,8 +424,9 @@ class Robot(wpilib.TimedRobot):
     def autonomousInit(self) -> None:
         # when simulating, initalize sim to have a preloaded ring
         if isinstance(self.hardware, RobotSimHAL):
-            self.hardware.ringPos = 1
+            self.hardware.ringPos = 0
             self.hardware.ringTransitionStart = -1
+            pass
 
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),

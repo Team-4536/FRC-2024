@@ -6,6 +6,7 @@ from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
 from wpimath.geometry import Pose2d
 from wpimath.kinematics import ChassisSpeeds
+from noteStateMachine import NoteStateMachine
 
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
@@ -38,11 +39,13 @@ class RobotAutos():
         self.autoChooser.addOption(AUTO_GET_ALL_PODIUM, AUTO_GET_ALL_PODIUM)
         self.autoChooser.addOption(AUTO_SIDE_UPPER, AUTO_SIDE_UPPER)
         self.autoChooser.addOption(AUTO_SIDE_LOWER, AUTO_SIDE_LOWER)
-        # self.autoChooser.addOption(AUTO_FAR_MIDDLE, AUTO_FAR_MIDDLE)
+        self.autoChooser.addOption(AUTO_FAR_MIDDLE, AUTO_FAR_MIDDLE)
         # self.autoChooser.addOption(AUTO_SIDEUPPER_V02, AUTO_SIDEUPPER_V02)
         self.autoChooser.addOption(AUTO_SIDEUPPER_3PC, AUTO_SIDEUPPER_3PC)
         # self.autoChooser.addOption(AUTO_TROLL, AUTO_TROLL)
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
+
+        self.noteStateMachine: NoteStateMachine = NoteStateMachine()
 
     # NOTE: filename is *just* the title of the file, with no extension and no path
     # filename is directly passed to pathplanner.loadPath
@@ -153,7 +156,7 @@ class RobotAutos():
             auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
 
         elif self.autoChooser.getSelected() == AUTO_FAR_MIDDLE:
-            traj = self.loadTrajectory("far-middle", r.onRedSide)
+            """traj = self.loadTrajectory("far-middle", r.onRedSide)
             initialPose = traj.getInitialState().getTargetHolonomicPose()
             auto.addTelemetryStage(AUTO_FAR_MIDDLE)
             auto.addIntakeStage()
@@ -164,7 +167,9 @@ class RobotAutos():
             auto.addStageSet(AutoBuilder() \
                         .addPathStage(self.loadTrajectory("far-middle-back", r.onRedSide)) \
                         .addShooterPrepStage(ShooterTarget.SUBWOOFER, True))
-            auto.addShooterFireStage()
+            auto.addShooterFireStage()"""
+
+            self.noteStateMachine.state = self.noteStateMachine.READY_FOR_SOURCE
 
         elif self.autoChooser.getSelected() == AUTO_SIDE_UPPER:
             traj = self.loadTrajectory("side-upper", r.onRedSide)

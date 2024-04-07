@@ -29,6 +29,7 @@ class RobotSimHAL():
 
     def update(self, buf: RobotHALBuffer, time: TimeData) -> None:
         # prev = self.prev
+        
         self.prev = copy.deepcopy(buf)
 
         # UPDATE WHEEL VELOCITIES
@@ -70,6 +71,10 @@ class RobotSimHAL():
                     if (time.timeSinceInit - self.ringTransitionStart) > 0.4:
                         self.ringPos = 1
                         self.ringTransitionStart = -1
+
+            elif buf.shooterSpeed < 0:
+                self.ringPos = 2
+                self.ringTransitionStart = -1
             else:
                 self.ringTransitionStart = -1
         elif self.ringPos == 1:
