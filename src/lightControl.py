@@ -129,7 +129,7 @@ class LightControl():
         self.flashLEDs(self.intakeLEDTrigger, self.intakeLEDPrevTrigger, 255, 255, 255, 0.2)  #white on pickup
         self.intakeLEDPrevTrigger = self.intakeLEDTrigger
         
-        self.flashLEDs(self.lightTriggerBool, self.lightTestLEDPrevTrigger, 0, 255, 0, 0.2) #test 
+        self.flashLEDs(self.lightTriggerBool, self.lightTestLEDPrevTrigger, 0, 0, 255, 0.2) #test 
         self.lightTestLEDPrevTrigger = self.lightTriggerBool
         
         self.flashLEDs(self.lightTriggerBool2, self.lightTestLEDPrevTrigger2, 255, 0, 100, 0.1)
