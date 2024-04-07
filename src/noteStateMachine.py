@@ -10,6 +10,7 @@ class ShooterTarget(Enum):
     AMP = 1
     PODIUM = 2
     SUBWOOFER = 3
+    LOB = 4
 
 class NoteStateMachine():
     START = 0
@@ -25,6 +26,7 @@ class NoteStateMachine():
     ampSetpoint = (1.7, 100, 0)
     podiumSetpoint = (0.3, 350, 2.35)
     subwooferSetpoint = (0, 250, 0)
+    lobSetpoint = (0.4, 250, 0)
 
     def __init__(self):
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
@@ -35,6 +37,8 @@ class NoteStateMachine():
         self.camPID = PIDControllerForCam("cam", 0.06, 0.032, 0.0, 0.1)
         self.shooterPID = PIDController("shooter", 0.0008, 0, 0, 0.00181)
 
+        self.table.putNumber("lobAngle", self.lobSetpoint[0])
+        self.table.putNumber("lobSpeed", self.lobSetpoint[1])
 
         self.aimSetpoint = 0
         self.speedSetpoint = 0
@@ -100,6 +104,10 @@ class NoteStateMachine():
                 self.aimSetpoint = self.subwooferSetpoint[0]
                 self.speedSetpoint = self.subwooferSetpoint[1]
                 self.camSetpoint = self.subwooferSetpoint[2]
+            elif(self.inputAim == ShooterTarget.LOB):
+                self.aimSetpoint = self.table.getNumber("lobAngle", 0)
+                self.speedSetpoint = self.table.getNumber("lobSpeed", 0)
+                self.camSetpoint = self.lobSetpoint[2]
 
         self.onTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:

@@ -4,9 +4,9 @@ import profiler
 import robotAutos
 import robotHAL
 import wpilib
+from climberStateMachine import ClimberStateMachine
 from lightControl import LightControl
 from noteStateMachine import NoteStateMachine, ShooterTarget
-from climberStateMachine import ClimberStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
 from PIDController import PIDController, PIDControllerForArm, updatePIDsInNT
@@ -71,7 +71,7 @@ class RobotInputs():
         self.climbEncoderReset: bool = False
 
         self.lineUpWithSubwoofer: bool = False
-        
+
         self.manualLightFlash: bool = False
 
     def update(self) -> None:
@@ -99,9 +99,9 @@ class RobotInputs():
 
         # arm controller
         self.intake = self.armCtrlr.getAButton()
-        
+
         self.manualLightFlash = self.armCtrlr.getStartButtonPressed()
-            
+
 
         #POV is also known as the Dpad, 0 is centered on top, angles go clockwise
         self.aim = ShooterTarget.NONE
@@ -112,6 +112,9 @@ class RobotInputs():
                 self.aim = ShooterTarget.PODIUM
             elif self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170: # down
                 self.aim = ShooterTarget.AMP
+            elif self.armCtrlr.getPOV() < 100 and self.armCtrlr.getPOV() > 80: # right
+                self.aim = ShooterTarget.LOB
+                print("pob pressed")
 
         self.rev = self.armCtrlr.getLeftTriggerAxis() > 0.2
         self.shoot = self.armCtrlr.getLeftBumper()
