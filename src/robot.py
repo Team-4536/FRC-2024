@@ -194,6 +194,8 @@ class Robot(wpilib.TimedRobot):
         self.turnPID = PIDController("turnPID", 3, 0, 0)
         self.ang = 0
 
+        self.childMode = False
+
         self.frontLimelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
         self.robotPoseTable = NetworkTableInstance.getDefault().getTable("robot pose")
 
@@ -204,6 +206,14 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/SWERVE ADDED R", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED DRIVE", 0)
         self.table.putNumber("ctrl/SWERVE ADDED STEER", 0)
+
+        #create child mode chooser on dash
+        self.controlModeChooser = wpilib.SendableChooser()
+        self.controlModeChooser.setDefaultOption("Competition", "comp")
+        self.controlModeChooser.addOption("Competition", "comp")
+        self.controlModeChooser.addOption("Small Child", "child")
+        self.controlModeChooser.addOption("VIP", "vip")
+        wpilib.SmartDashboard.putData("Control Mode", self.controlModeChooser)
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -244,6 +254,18 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
         profiler.end("robotPeriodic")
 
+        if self.controlModeChooser.getSelected() != "comp":
+            self.childMode = True
+            if self.controlModeChooser.getSelected() == "child":
+                self.table.putBoolean("ChildMode", self.childMode)
+                self.table.putBoolean("VIPMode", False)
+            else:
+                self.table.putBoolean("ChildMode", False)
+                self.table.putBoolean("VIPMode", True)
+        else:
+            self.childMode = False
+
+
     def teleopInit(self) -> None:
         self.noteStateMachine.state = self.noteStateMachine.START
         self.manualAimPID = PIDControllerForArm("ManualAim", 0, 0, 0, 0, 0.04, 0)
@@ -268,8 +290,16 @@ class Robot(wpilib.TimedRobot):
             self.driveGyroYawOffset = self.hal.yaw
 
         profiler.start()
-        speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
-        turnScalar = 6
+
+        if self.childMode:
+            speedControlEdited = 0.9
+            turnScalar = 2
+            turnPIDScalar = 0
+        else:
+            speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
+            turnScalar = 4.3
+            turnPIDScalar = 1
+
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         turnVector = Translation2d(self.input.turningY, self.input.turningX) #for pid only
         #absolute drive
@@ -319,9 +349,9 @@ class Robot(wpilib.TimedRobot):
 
         #assign turning speed based on pid
         if self.PIDtoggle:
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)), self.ang, self.time.dt))
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)) * turnPIDScalar, self.ang, self.time.dt))
         #limelight lineup
-        elif self.input.lineUpWithSubwoofer:
+        elif self.input.lineUpWithSubwoofer and self.childMode == False:
             if(self.frontLimelightTable.getNumber("getpipe", -1) != self.subwooferLineupPipeline):
                 self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
             tx = self.frontLimelightTable.getNumber("tx", 0)
