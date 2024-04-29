@@ -351,7 +351,7 @@ class Robot(wpilib.TimedRobot):
         if self.PIDtoggle:
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)) * turnPIDScalar, self.ang, self.time.dt))
         #limelight lineup
-        elif self.input.lineUpWithSubwoofer and self.childMode == False:
+        elif self.input.lineUpWithSubwoofer:
             if(self.frontLimelightTable.getNumber("getpipe", -1) != self.subwooferLineupPipeline):
                 self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
             tx = self.frontLimelightTable.getNumber("tx", 0)
