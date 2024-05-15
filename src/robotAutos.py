@@ -1,16 +1,12 @@
-from ast import Yield
-from enum import auto
 from inspect import signature
-from pathlib import Path
-from typing import Generator
 
 import autos
 import robot
 import wpilib
+from ntcore import NetworkTableInstance
 from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.trajectory import PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
-from wpimath.geometry import Pose2d
 from wpimath.kinematics import ChassisSpeeds
 
 
@@ -23,38 +19,53 @@ def loadTrajectory(fileName: str, flipped: bool) -> PathPlannerTrajectory:
     t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
     return t
 
-"""
-A small class to remove the functionality of auto choosers and construction from robot.py.
-This was done to prevent large conflicts, and make it easy to change chooser options without jumping up and down 300 lines of other code.
-This class is only intended to be used once in robotInit in robot.py, not anywhere else.
-Class construction publishes choosers to the dashboard
-"""
+# TODO: document this fucking mess
+
 class RobotAutos():
     def __init__(self) -> None:
         self.autoChooser = wpilib.SendableChooser()
-        self.auto: Generator | None = None
+        self.auto = None
+        outputTopic = NetworkTableInstance.getDefault().getStringTopic("autoMessage")
+        self.outputPub = outputTopic.publish()
 
-        for key in self.__dict__:
-            obj = self.__dict__[key]
+        self.autoChooser.setDefaultOption('doNothing', 'doNothing')
+        for key in RobotAutos.__dict__:
+            if key == '__init__':
+                continue
+            elif key == 'runAuto':
+                continue
+            elif key == 'doNothing':
+                continue
+
+            obj = RobotAutos.__dict__[key]
             if callable(obj) and (len(signature(obj).parameters) == 1):
-                print(f"we'd be adding {key}")
+                self.autoChooser.addOption(key, key)
 
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
-    def initOrRunAuto(self, r: 'robot.Robot'):
-        self.auto = self.__dict__[self.autoChooser.getSelected()]()
-        assert(self.auto is not None)
-        self.auto.__next__()
+    def initAuto(self, r: 'robot.Robot'):
+        auto = RobotAutos.__dict__[self.autoChooser.getSelected()]
+        if auto is not None:
+            self.auto = auto(r)
+        else:
+            self.auto = None
+
+    def runAuto(self):
+        if(self.auto is not None):
+            try:
+                self.outputPub.set(self.auto.__next__())
+            except StopIteration:
+                self.outputPub.set("[finished executing]")
 
     @staticmethod
     def doNothing(r: 'robot.Robot'):
-        yield 0
+        pass
 
     @staticmethod
     def shootStartingRing(r: 'robot.Robot'):
         yield from autos.intakeUntilRingGot(r)
         while not autos.prepShooter(r, ShooterTarget.SUBWOOFER, True):
-            yield 0
+            yield "waiting on shooter prep"
         yield from autos.fireShooterUntilDone(r)
 
     @staticmethod
@@ -64,34 +75,36 @@ class RobotAutos():
         while(t.get() < outTraj.getTotalTimeSeconds()):
             r.intakeStateMachine.update(r.hal, True)
             autos.runPath(r, outTraj, t.get())
-            yield 0
+            yield "waiting on running out path"
 
-        while(r.intakeStateMachine.state != r.intakeStateMachine.STORING):
-            r.intakeStateMachine.update(r.hal, True)
-            yield 0
+        yield from autos.intakeUntilRingGot(r)
 
         # run back
         t.restart()
         while(t.get() < returnTraj.getTotalTimeSeconds()):
             autos.prepShooter(r, ShooterTarget.SUBWOOFER, True)
             autos.runPath(r, returnTraj, t.get())
-            yield 0
+            yield "waiting for return path"
 
-        autos.prepShooter(r, ShooterTarget.PODIUM, True)
+        while not autos.prepShooter(r, ShooterTarget.SUBWOOFER, True):
+            yield "waiting on shooter prep"
+
         yield from autos.fireShooterUntilDone(r)
 
     @staticmethod
     def shootThenIntakeCenterRing(r: 'robot.Robot'):
-        initialPos: Pose2d = Pose2d()
         middleTraj = loadTrajectory("middle", r.onRedSide)
         returnTraj = loadTrajectory("middleBack", r.onRedSide)
+        r.resetGyroAndOdomToPose(middleTraj.getInitialTargetHolonomicPose())
+
         yield from RobotAutos.shootStartingRing(r)
         yield from RobotAutos.scoreRing(r, middleTraj, returnTraj)
 
     @staticmethod
     def troll(r: 'robot.Robot'):
-        initialPos: Pose2d = Pose2d()
         traj = loadTrajectory("troll", r.onRedSide)
+        r.resetGyroAndOdomToPose(traj.getInitialTargetHolonomicPose())
+
         yield from RobotAutos.shootStartingRing(r)
         yield from autos.runPathUntilDone(r, traj)
 
@@ -103,8 +116,7 @@ class RobotAutos():
         upperBack = loadTrajectory("upperBack", r.onRedSide)
         lowerOut = loadTrajectory("lower", r.onRedSide)
         lowerBack = loadTrajectory("lowerBack", r.onRedSide)
-
-        initialPose = middleOut.getInitialTargetHolonomicPose()
+        r.resetGyroAndOdomToPose(middleOut.getInitialTargetHolonomicPose())
 
         yield from RobotAutos.shootStartingRing(r)
         yield from RobotAutos.scoreRing(r, middleOut, middleBack)
@@ -120,7 +132,7 @@ class RobotAutos():
         lowerOut = loadTrajectory("lower", r.onRedSide)
         lowerBack = loadTrajectory("lowerBack", r.onRedSide)
 
-        initialPose = middleOut.getInitialTargetHolonomicPose()
+        r.resetGyroAndOdomToPose(middleOut.getInitialTargetHolonomicPose())
 
         yield from RobotAutos.shootStartingRing(r)
         yield from RobotAutos.scoreRing(r, middleOut, middleBack)
@@ -130,40 +142,43 @@ class RobotAutos():
     @staticmethod
     def exitBackwards(r: 'robot.Robot'):
         traj = loadTrajectory("exit", r.onRedSide)
-        initialPose = Pose2d()
         yield from autos.runPathUntilDone(r, traj)
 
     @staticmethod
-    def ShootAndGetFarMiddle(r: 'robot.Robot'):
+    def shootAndGetFarMiddle(r: 'robot.Robot'):
         outTraj = loadTrajectory("far-middle", r.onRedSide)
         returnTraj = loadTrajectory("far-middle", r.onRedSide)
-        initialPose = outTraj.getInitialState().getTargetHolonomicPose()
+        r.resetGyroAndOdomToPose(outTraj.getInitialTargetHolonomicPose())
+
         yield from RobotAutos.shootStartingRing(r)
         yield from RobotAutos.scoreRing(r, outTraj, returnTraj)
 
     @staticmethod
-    def ShootFromUpperSpeakerAndScoreUpperNote(r: 'robot.Robot'):
+    def shootFromUpperSpeakerAndScoreUpperNote(r: 'robot.Robot'):
         outTraj = loadTrajectory("side-upper", r.onRedSide)
         returnTraj = loadTrajectory("side-upper-back", r.onRedSide)
-        initialPose = outTraj.getInitialState().getTargetHolonomicPose()
+        r.resetGyroAndOdomToPose(outTraj.getInitialTargetHolonomicPose())
+
         yield from RobotAutos.shootStartingRing(r)
         yield from RobotAutos.scoreRing(r, outTraj, returnTraj)
 
     @staticmethod
-    def ShootFromUpperSpeakerAndScoreTwo(r: 'robot.Robot'):
+    def shootFromUpperSpeakerAndScoreTwo(r: 'robot.Robot'):
         outTraj = loadTrajectory("side-upper", r.onRedSide)
         returnTraj = loadTrajectory("side-upper-back", r.onRedSide)
         farOutTraj = loadTrajectory("sideFar-upper-v02", r.onRedSide)
         farReturnTraj = loadTrajectory("sideFar-upper-back-v02", r.onRedSide)
-        initialPose = outTraj.getInitialState().getTargetHolonomicPose()
+        r.resetGyroAndOdomToPose(outTraj.getInitialTargetHolonomicPose())
+
         yield from RobotAutos.shootStartingRing(r)
         yield from RobotAutos.scoreRing(r, outTraj, returnTraj)
         yield from RobotAutos.scoreRing(r, farOutTraj, farReturnTraj)
 
     @staticmethod
-    def ShootFromLowerSpeakerAndScoreLowerNote(r: 'robot.Robot'):
+    def shootFromLowerSpeakerAndScoreLowerNote(r: 'robot.Robot'):
         outTraj = loadTrajectory("side-lower", r.onRedSide)
         returnTraj = loadTrajectory("side-lower-back", r.onRedSide)
-        initialPose = outTraj.getInitialState().getTargetHolonomicPose()
+        r.resetGyroAndOdomToPose(outTraj.getInitialTargetHolonomicPose())
+
         yield from RobotAutos.shootStartingRing(r)
         yield from RobotAutos.scoreRing(r, outTraj, returnTraj)

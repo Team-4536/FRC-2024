@@ -7,7 +7,7 @@ from pathplannerlib.path import PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
 from wpimath.geometry import Pose2d
 
-#TODO: ABORTS
+# TODO: ABORTS
 # TODO: TIMEOUTS
 
 def runPath(r: 'robot.Robot', t: PathPlannerTrajectory, timeIntoTraj: float):
@@ -31,18 +31,18 @@ def runPathUntilDone(r: 'robot.Robot', t: PathPlannerTrajectory):
     timer.start()
     while(timer.get() < t.getTotalTimeSeconds()):
         runPath(r, t, timer.get())
-        yield 0
+        yield "running path until finished"
 
 def intakeUntilRingGot(r: 'robot.Robot'):
     while(r.intakeStateMachine.state != r.intakeStateMachine.STORING):
         r.intakeStateMachine.update(r.hal, True)
-        yield 0
+        yield "waiting on ring intake"
 
 def wait(duration: float):
     t = wpilib.Timer()
     t.start()
     while(t.get() < duration):
-        yield 0
+        yield f"waiting for {duration}s"
 
 def prepShooter(r: 'robot.Robot', target: ShooterTarget, rev: bool) -> bool:
     r.shooterStateMachine.feed(True)
@@ -54,7 +54,7 @@ def prepShooter(r: 'robot.Robot', target: ShooterTarget, rev: bool) -> bool:
 def fireShooterUntilDone(r: 'robot.Robot'):
     while r.shooterStateMachine.state != r.shooterStateMachine.READY_FOR_RING:
         r.shooterStateMachine.shoot(True)
-        yield 0
+        yield "waiting on shooter to return to ready state"
 
 def tryResetOdomWithLimelight(r: 'robot.Robot', pipeline: int) -> bool:
     limelightTable = r.frontLimelightTable

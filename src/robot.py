@@ -429,9 +429,12 @@ class Robot(wpilib.TimedRobot):
             5.0,
             self.drive.modulePositions[0].distance(Translation2d()))
 
+        self.resetGyroAndOdomToPose(Pose2d())
+        self.autoSubsys.initAuto(self)
+
     # NOTE: this pushes anything currently in the HAL and messes with a lot of hardward, please please please
     # only use in the beginning of autos to start the robot correctly
-    def resetGyroAndOdomToPose(self, pose) -> None:
+    def resetGyroAndOdomToPose(self, pose: Pose2d) -> None:
         self.driveGyroYawOffset = pose.rotation().radians()
         self.hardware.resetGyroToAngle(pose.rotation().radians())
         self.hardware.update(self.hal, self.time)
@@ -440,7 +443,7 @@ class Robot(wpilib.TimedRobot):
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
-        self.autoSubsys.initOrRunAuto(self)
+        self.autoSubsys.runAuto()
         self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
         self.hardware.update(self.hal, self.time)
 
