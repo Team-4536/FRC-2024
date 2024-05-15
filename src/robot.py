@@ -4,7 +4,6 @@ import profiler
 import robotAutos
 import robotHAL
 import wpilib
-from autos import AutoBuilder
 from intakeStateMachine import IntakeStateMachine
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
@@ -272,7 +271,7 @@ class Robot(wpilib.TimedRobot):
         if(not self.onRedSide):
             #blue side
             self.subwooferLineupPipeline = 2
-    
+
     def teleopPeriodic(self) -> None:
         frameStart = wpilib.getTime()
         self.input.update()
@@ -430,17 +429,18 @@ class Robot(wpilib.TimedRobot):
             5.0,
             self.drive.modulePositions[0].distance(Translation2d()))
 
-        self.auto, initialPose = self.autoSubsys.autoInit(self)
-
-        self.driveGyroYawOffset = initialPose.rotation().radians()
-        self.hardware.resetGyroToAngle(initialPose.rotation().radians())
+    # NOTE: this pushes anything currently in the HAL and messes with a lot of hardward, please please please
+    # only use in the beginning of autos to start the robot correctly
+    def resetGyroAndOdomToPose(self, pose) -> None:
+        self.driveGyroYawOffset = pose.rotation().radians()
+        self.hardware.resetGyroToAngle(pose.rotation().radians())
         self.hardware.update(self.hal, self.time)
-        self.drive.resetOdometry(initialPose, self.hal)
-        self.holonomicController.reset(initialPose, ChassisSpeeds())
+        self.drive.resetOdometry(pose, self.hal)
+        self.holonomicController.reset(pose, ChassisSpeeds())
 
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
-        self.auto.run(self)
+        self.autoSubsys.initOrRunAuto(self)
         self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
         self.hardware.update(self.hal, self.time)
 

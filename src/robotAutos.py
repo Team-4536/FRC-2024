@@ -2,6 +2,7 @@ from ast import Yield
 from enum import auto
 from inspect import signature
 from pathlib import Path
+from typing import Generator
 
 import autos
 import robot
@@ -31,6 +32,8 @@ Class construction publishes choosers to the dashboard
 class RobotAutos():
     def __init__(self) -> None:
         self.autoChooser = wpilib.SendableChooser()
+        self.auto: Generator | None = None
+
         for key in self.__dict__:
             obj = self.__dict__[key]
             if callable(obj) and (len(signature(obj).parameters) == 1):
@@ -38,19 +41,24 @@ class RobotAutos():
 
         wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
+    def initOrRunAuto(self, r: 'robot.Robot'):
+        self.auto = self.__dict__[self.autoChooser.getSelected()]()
+        assert(self.auto is not None)
+        self.auto.__next__()
+
     @staticmethod
-    def DoNothing(r: 'robot.Robot'):
+    def doNothing(r: 'robot.Robot'):
         yield 0
 
     @staticmethod
-    def ShootStartingRing(r: 'robot.Robot'):
+    def shootStartingRing(r: 'robot.Robot'):
         yield from autos.intakeUntilRingGot(r)
         while not autos.prepShooter(r, ShooterTarget.SUBWOOFER, True):
             yield 0
         yield from autos.fireShooterUntilDone(r)
 
     @staticmethod
-    def ScoreRing(r: 'robot.Robot', outTraj: PathPlannerTrajectory, returnTraj: PathPlannerTrajectory):
+    def scoreRing(r: 'robot.Robot', outTraj: PathPlannerTrajectory, returnTraj: PathPlannerTrajectory):
         t = wpilib.Timer()
         t.start()
         while(t.get() < outTraj.getTotalTimeSeconds()):
@@ -73,22 +81,22 @@ class RobotAutos():
         yield from autos.fireShooterUntilDone(r)
 
     @staticmethod
-    def ShootThenIntakeCenterRing(r: 'robot.Robot'):
+    def shootThenIntakeCenterRing(r: 'robot.Robot'):
         initialPos: Pose2d = Pose2d()
         middleTraj = loadTrajectory("middle", r.onRedSide)
         returnTraj = loadTrajectory("middleBack", r.onRedSide)
-        yield from RobotAutos.ShootStartingRing(r)
-        yield from RobotAutos.ScoreRing(r, middleTraj, returnTraj)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, middleTraj, returnTraj)
 
     @staticmethod
-    def Troll(r: 'robot.Robot'):
+    def troll(r: 'robot.Robot'):
         initialPos: Pose2d = Pose2d()
         traj = loadTrajectory("troll", r.onRedSide)
-        yield from RobotAutos.ShootStartingRing(r)
+        yield from RobotAutos.shootStartingRing(r)
         yield from autos.runPathUntilDone(r, traj)
 
     @staticmethod
-    def GetAllMidUpLow(r: 'robot.Robot'):
+    def getAllMidUpLow(r: 'robot.Robot'):
         middleOut = loadTrajectory("middle", r.onRedSide)
         middleBack = loadTrajectory("middleBack", r.onRedSide)
         upperOut = loadTrajectory("upper", r.onRedSide)
@@ -98,13 +106,13 @@ class RobotAutos():
 
         initialPose = middleOut.getInitialTargetHolonomicPose()
 
-        yield from RobotAutos.ShootStartingRing(r)
-        yield from RobotAutos.ScoreRing(r, middleOut, middleBack)
-        yield from RobotAutos.ScoreRing(r, upperOut, upperBack)
-        yield from RobotAutos.ScoreRing(r, lowerOut, lowerBack)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, middleOut, middleBack)
+        yield from RobotAutos.scoreRing(r, upperOut, upperBack)
+        yield from RobotAutos.scoreRing(r, lowerOut, lowerBack)
 
     @staticmethod
-    def GetAllMidLowUp(r: 'robot.Robot'):
+    def getAllMidLowUp(r: 'robot.Robot'):
         middleOut = loadTrajectory("middle", r.onRedSide)
         middleBack = loadTrajectory("middleBack", r.onRedSide)
         upperOut = loadTrajectory("upper", r.onRedSide)
@@ -114,13 +122,13 @@ class RobotAutos():
 
         initialPose = middleOut.getInitialTargetHolonomicPose()
 
-        yield from RobotAutos.ShootStartingRing(r)
-        yield from RobotAutos.ScoreRing(r, middleOut, middleBack)
-        yield from RobotAutos.ScoreRing(r, lowerOut, lowerBack)
-        yield from RobotAutos.ScoreRing(r, upperOut, upperBack)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, middleOut, middleBack)
+        yield from RobotAutos.scoreRing(r, lowerOut, lowerBack)
+        yield from RobotAutos.scoreRing(r, upperOut, upperBack)
 
     @staticmethod
-    def ExitBackwards(r: 'robot.Robot'):
+    def exitBackwards(r: 'robot.Robot'):
         traj = loadTrajectory("exit", r.onRedSide)
         initialPose = Pose2d()
         yield from autos.runPathUntilDone(r, traj)
@@ -130,16 +138,16 @@ class RobotAutos():
         outTraj = loadTrajectory("far-middle", r.onRedSide)
         returnTraj = loadTrajectory("far-middle", r.onRedSide)
         initialPose = outTraj.getInitialState().getTargetHolonomicPose()
-        yield from RobotAutos.ShootStartingRing(r)
-        yield from RobotAutos.ScoreRing(r, outTraj, returnTraj)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, outTraj, returnTraj)
 
     @staticmethod
     def ShootFromUpperSpeakerAndScoreUpperNote(r: 'robot.Robot'):
         outTraj = loadTrajectory("side-upper", r.onRedSide)
         returnTraj = loadTrajectory("side-upper-back", r.onRedSide)
         initialPose = outTraj.getInitialState().getTargetHolonomicPose()
-        yield from RobotAutos.ShootStartingRing(r)
-        yield from RobotAutos.ScoreRing(r, outTraj, returnTraj)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, outTraj, returnTraj)
 
     @staticmethod
     def ShootFromUpperSpeakerAndScoreTwo(r: 'robot.Robot'):
@@ -148,14 +156,14 @@ class RobotAutos():
         farOutTraj = loadTrajectory("sideFar-upper-v02", r.onRedSide)
         farReturnTraj = loadTrajectory("sideFar-upper-back-v02", r.onRedSide)
         initialPose = outTraj.getInitialState().getTargetHolonomicPose()
-        yield from RobotAutos.ShootStartingRing(r)
-        yield from RobotAutos.ScoreRing(r, outTraj, returnTraj)
-        yield from RobotAutos.ScoreRing(r, farOutTraj, farReturnTraj)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, outTraj, returnTraj)
+        yield from RobotAutos.scoreRing(r, farOutTraj, farReturnTraj)
 
     @staticmethod
     def ShootFromLowerSpeakerAndScoreLowerNote(r: 'robot.Robot'):
         outTraj = loadTrajectory("side-lower", r.onRedSide)
         returnTraj = loadTrajectory("side-lower-back", r.onRedSide)
         initialPose = outTraj.getInitialState().getTargetHolonomicPose()
-        yield from RobotAutos.ShootStartingRing(r)
-        yield from RobotAutos.ScoreRing(r, outTraj, returnTraj)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, outTraj, returnTraj)
