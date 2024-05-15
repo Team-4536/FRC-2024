@@ -1,78 +1,198 @@
-import math
+from inspect import signature
 
+import autoUtils
 import robot
 import wpilib
 from ntcore import NetworkTableInstance
-from pathplannerlib.path import PathPlannerTrajectory
+from pathplannerlib.path import PathPlannerPath
+from pathplannerlib.trajectory import PathPlannerTrajectory
 from shooterStateMachine import ShooterTarget
-from wpimath.geometry import Pose2d
+from wpimath.kinematics import ChassisSpeeds
 
-# TODO: ABORTS
-# TODO: TIMEOUTS
 
-def runPath(r: 'robot.Robot', t: PathPlannerTrajectory, timeIntoTraj: float):
-    goal = t.sample(timeIntoTraj)
+# NOTE: filename is *just* the title of the file, with no extension and no path
+# filename is directly passed to pathplanner.loadPath
+def loadTrajectory(fileName: str, flipped: bool) -> PathPlannerTrajectory:
+    p = PathPlannerPath.fromPathFile(fileName)
+    if flipped:
+        p = p.flipPath()
+    t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
+    return t
 
-    table = NetworkTableInstance.getDefault().getTable("autos")
-    table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
-    table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
-    table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
+# TODO: document this fucking mess
 
-    table.putNumber("odomR", r.drive.odometry.getPose().rotation().radians())
-    adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getPose(), goal)
-    table.putNumber("pathVelX", adjustedSpeeds.vx)
-    table.putNumber("pathVelY", adjustedSpeeds.vy)
-    table.putNumber("pathVelR", adjustedSpeeds.omega)
+class RobotAutos():
+    def __init__(self) -> None:
+        self.autoChooser = wpilib.SendableChooser()
+        self.auto = None
+        outputTopic = NetworkTableInstance.getDefault().getStringTopic("autoMessage")
+        self.outputPub = outputTopic.publish()
 
-    r.drive.update(r.time.dt, r.hal, adjustedSpeeds)
+        self.autoChooser.setDefaultOption('doNothing', 'doNothing')
+        for key in RobotAutos.__dict__:
+            if key == '__init__':
+                continue
+            elif key == 'runAuto':
+                continue
+            elif key == 'doNothing':
+                continue
 
-def runPathUntilDone(r: 'robot.Robot', t: PathPlannerTrajectory):
-    timer = wpilib.Timer()
-    timer.start()
-    while(timer.get() < t.getTotalTimeSeconds()):
-        runPath(r, t, timer.get())
-        yield "running path until finished"
+            obj = RobotAutos.__dict__[key]
+            if callable(obj) and (len(signature(obj).parameters) == 1):
+                self.autoChooser.addOption(key, key)
 
-def intakeUntilRingGot(r: 'robot.Robot'):
-    while(r.intakeStateMachine.state != r.intakeStateMachine.STORING):
-        r.intakeStateMachine.update(r.hal, True)
-        yield "waiting on ring intake"
+        wpilib.SmartDashboard.putData('auto chooser', self.autoChooser)
 
-def wait(duration: float):
-    t = wpilib.Timer()
-    t.start()
-    while(t.get() < duration):
-        yield f"waiting for {duration}s"
+    def initAuto(self, r: 'robot.Robot'):
+        auto = RobotAutos.__dict__[self.autoChooser.getSelected()]
+        if auto is not None:
+            self.auto = auto(r)
+        else:
+            self.auto = None
 
-def prepShooter(r: 'robot.Robot', target: ShooterTarget, rev: bool) -> bool:
-    r.shooterStateMachine.feed(True)
-    r.shooterStateMachine.aim(target)
-    r.shooterStateMachine.rev(rev)
-    return r.shooterStateMachine.onTarget
+    def runAuto(self):
+        if(self.auto is not None):
+            try:
+                self.outputPub.set(self.auto.__next__())
+            except StopIteration:
+                self.outputPub.set("[finished executing]")
 
-# TODO: make this not frame dependant
-def fireShooterUntilDone(r: 'robot.Robot'):
-    while r.shooterStateMachine.state != r.shooterStateMachine.READY_FOR_RING:
-        r.shooterStateMachine.shoot(True)
-        yield "waiting on shooter to return to ready state"
+    @staticmethod
+    def doNothing(r: 'robot.Robot'):
+        pass
 
-def tryResetOdomWithLimelight(r: 'robot.Robot', pipeline: int) -> bool:
-    limelightTable = r.frontLimelightTable
-    robotPoseTable = r.robotPoseTable
+    @staticmethod
+    def shootStartingRing(r: 'robot.Robot'):
+        yield from autoUtils.intakeUntilRingGot(r)
+        while not autoUtils.prepShooter(r, ShooterTarget.SUBWOOFER, True):
+            yield "waiting on shooter prep"
+        yield from autoUtils.fireShooterUntilDone(r)
 
-    if(limelightTable.getNumber("getPipe", -1) != pipeline):
-        limelightTable.putNumber("pipeline", pipeline)
+    @staticmethod
+    def scoreRing(r: 'robot.Robot', outTraj: PathPlannerTrajectory, returnTraj: PathPlannerTrajectory):
+        t = wpilib.Timer()
+        t.start()
+        while(t.get() < outTraj.getTotalTimeSeconds()):
+            r.intakeStateMachine.update(r.hal, True)
+            autoUtils.runPath(r, outTraj, t.get())
+            yield "waiting on running out path"
 
-    #gets the pos from limelight
-    visionPose = limelightTable.getNumberArray("botpose_wpiblue", [0,0,0,0,0,0,0])
-    #debug values
-    robotPoseTable.putNumber("limeXPos", visionPose[0])
-    robotPoseTable.putNumber("limeYPos", visionPose[1])
-    robotPoseTable.putNumber("limeYaw", visionPose[5])
-    if (not (visionPose[0] == 0 and visionPose[1] == 0 and visionPose[5] == 0)):
-        visionPose2D:Pose2d = Pose2d(visionPose[0], visionPose[1], math.radians(visionPose[5]))
+        yield from autoUtils.intakeUntilRingGot(r)
 
-        #X, Y, & Yaw are updated correctly
-        r.drive.resetOdometry(visionPose2D, r.hal)
-        return True
-    return False
+        # run back
+        t.restart()
+        while(t.get() < returnTraj.getTotalTimeSeconds()):
+            autoUtils.prepShooter(r, ShooterTarget.SUBWOOFER, True)
+            autoUtils.runPath(r, returnTraj, t.get())
+            yield "waiting for return path"
+
+        while not autoUtils.prepShooter(r, ShooterTarget.SUBWOOFER, True):
+            yield "waiting on shooter prep"
+
+        yield from autoUtils.fireShooterUntilDone(r)
+
+    @staticmethod
+    def shootThenIntakeCenterRing(r: 'robot.Robot'):
+        middleTraj = loadTrajectory("middle", r.onRedSide)
+        returnTraj = loadTrajectory("middleBack", r.onRedSide)
+        r.resetGyroAndOdomToPose(middleTraj.getInitialTargetHolonomicPose())
+
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, middleTraj, returnTraj)
+
+    @staticmethod
+    def troll(r: 'robot.Robot'):
+        traj = loadTrajectory("troll", r.onRedSide)
+        r.resetGyroAndOdomToPose(traj.getInitialTargetHolonomicPose())
+
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from autoUtils.runPathUntilDone(r, traj)
+
+    @staticmethod
+    def getAllMidUpLow(r: 'robot.Robot'):
+        middleOut = loadTrajectory("middle", r.onRedSide)
+        middleBack = loadTrajectory("middleBack", r.onRedSide)
+        upperOut = loadTrajectory("upper", r.onRedSide)
+        upperBack = loadTrajectory("upperBack", r.onRedSide)
+        lowerOut = loadTrajectory("lower", r.onRedSide)
+        lowerBack = loadTrajectory("lowerBack", r.onRedSide)
+        r.resetGyroAndOdomToPose(middleOut.getInitialTargetHolonomicPose())
+
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, middleOut, middleBack)
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.scoreRing(r, upperOut, upperBack)
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.scoreRing(r, lowerOut, lowerBack)
+
+    @staticmethod
+    def getAllMidLowUp(r: 'robot.Robot'):
+        middleOut = loadTrajectory("middle", r.onRedSide)
+        middleBack = loadTrajectory("middleBack", r.onRedSide)
+        upperOut = loadTrajectory("upper", r.onRedSide)
+        upperBack = loadTrajectory("upperBack", r.onRedSide)
+        lowerOut = loadTrajectory("lower", r.onRedSide)
+        lowerBack = loadTrajectory("lowerBack", r.onRedSide)
+
+        r.resetGyroAndOdomToPose(middleOut.getInitialTargetHolonomicPose())
+
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, middleOut, middleBack)
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.scoreRing(r, lowerOut, lowerBack)
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.scoreRing(r, upperOut, upperBack)
+
+    @staticmethod
+    def exitBackwards(r: 'robot.Robot'):
+        traj = loadTrajectory("exit", r.onRedSide)
+        r.resetGyroAndOdomToPose(traj.getInitialTargetHolonomicPose())
+        yield from autoUtils.runPathUntilDone(r, traj)
+
+    @staticmethod
+    def shootAndGetFarMiddle(r: 'robot.Robot'):
+        outTraj = loadTrajectory("far-middle", r.onRedSide)
+        returnTraj = loadTrajectory("far-middle", r.onRedSide)
+        r.resetGyroAndOdomToPose(outTraj.getInitialTargetHolonomicPose())
+
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, outTraj, returnTraj)
+
+    @staticmethod
+    def shootFromUpperSpeakerAndScoreUpperNote(r: 'robot.Robot'):
+        outTraj = loadTrajectory("side-upper", r.onRedSide)
+        returnTraj = loadTrajectory("side-upper-back", r.onRedSide)
+        r.resetGyroAndOdomToPose(outTraj.getInitialTargetHolonomicPose())
+
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, outTraj, returnTraj)
+
+    @staticmethod
+    def shootFromUpperSpeakerAndScoreTwo(r: 'robot.Robot'):
+        outTraj = loadTrajectory("side-upper", r.onRedSide)
+        returnTraj = loadTrajectory("side-upper-back", r.onRedSide)
+        farOutTraj = loadTrajectory("sideFar-upper-v02", r.onRedSide)
+        farReturnTraj = loadTrajectory("sideFar-upper-back-v02", r.onRedSide)
+        r.resetGyroAndOdomToPose(outTraj.getInitialTargetHolonomicPose())
+
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, outTraj, returnTraj)
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.scoreRing(r, farOutTraj, farReturnTraj)
+
+    @staticmethod
+    def shootFromLowerSpeakerAndScoreLowerNote(r: 'robot.Robot'):
+        outTraj = loadTrajectory("side-lower", r.onRedSide)
+        returnTraj = loadTrajectory("side-lower-back", r.onRedSide)
+        r.resetGyroAndOdomToPose(outTraj.getInitialTargetHolonomicPose())
+
+        autoUtils.tryResetOdomWithLimelight(r, 0)
+        yield from RobotAutos.shootStartingRing(r)
+        yield from RobotAutos.scoreRing(r, outTraj, returnTraj)

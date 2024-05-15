@@ -1,7 +1,7 @@
 import math
 
+import autos
 import profiler
-import robotAutos
 import robotHAL
 import wpilib
 from intakeStateMachine import IntakeStateMachine
@@ -164,7 +164,7 @@ class Robot(wpilib.TimedRobot):
         self.autoSideChooser.addOption(AUTO_SIDE_BLUE, AUTO_SIDE_BLUE)
         wpilib.SmartDashboard.putData('auto side chooser', self.autoSideChooser)
 
-        self.autoSubsys = robotAutos.RobotAutos()
+        self.autoSubsys = autos.RobotAutos()
         wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
         self.intakeStateMachine = IntakeStateMachine()
