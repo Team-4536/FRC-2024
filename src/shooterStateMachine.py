@@ -288,7 +288,7 @@ class ShooterStateMachine:
 
                 onTarget = abs(hal.shooterAimPos - self.inputedTargetState.aimSetpt) < 0.1 and \
                         abs(hal.shooterAngVelocityMeasured - self.inputedTargetState.speedSetpt) < 20
-                # once on target and shooting, hold for 5s then break and loop back to no ring
+                # once on target and shooting, hold for .5s then break and loop back to no ring
                 if onTarget and self.inputShoot:
                     t = wpilib.Timer()
                     t.start()
