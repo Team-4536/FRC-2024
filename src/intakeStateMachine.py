@@ -3,28 +3,26 @@ from robotHAL import RobotHALBuffer
 
 
 class IntakeStateMachine:
-    START = 0
-    INTAKING = 1
-    STORING = 2
-    def __init__(self):
-        self.state = self.START
+    def __init__(self, hal: RobotHALBuffer):
+        self.__generator = self.__update(hal)
+        self.__intakeThisFrame: bool = False
 
-    def update(self, hal: RobotHALBuffer, beIntaking: bool):
-        NetworkTableInstance.getDefault().getTable("stateMachines").putNumber("intake state", self.state)
+        self.__table = NetworkTableInstance.getDefault().getTable("stateMachines")
+        self.__table.putBoolean("storing", False)
+        self.__table.putBoolean("intakeThisFrame", False)
 
-        if(self.state == self.START):
+    def setIntaking(self, intake: bool) -> None:
+        self.intakeThisFrame = intake
+
+    def update(self):
+        self.__generator.__next__()
+
+    def __update(self, hal: RobotHALBuffer):
+        while True:
             hal.intakeSpeeds = [0, 0]
-            if(beIntaking):
-                self.state = self.INTAKING
 
-        elif(self.state == self.INTAKING):
-            hal.intakeSpeeds = [0.7, 0.7]
-            if(not beIntaking):
-                self.state = self.START
-            if(hal.intakeSensor):
-                self.state = self.STORING
-
-        elif(self.state == self.STORING):
-            hal.intakeSpeeds = [0, 0]
             if not hal.intakeSensor:
-                self.state = self.START
+                if self.__intakeThisFrame:
+                    hal.intakeSpeeds = [0.7, 0.7]
+
+            yield 0

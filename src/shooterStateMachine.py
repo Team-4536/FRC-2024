@@ -1,9 +1,12 @@
+import copy
 import math
 from enum import Enum
 
+import wpilib
 from ntcore import NetworkTableInstance
 from PIDController import PIDController, PIDControllerForArm
 from robotHAL import RobotHALBuffer
+from wpilib import Timer
 
 
 class ShooterTarget(Enum):
@@ -23,9 +26,9 @@ class StateMachine():
     AIM_SMOOTH_SCALAR = 0.05
 
     # 0 is target aim, 1 is target speeds, 2 is cam
+    subwooferSetpoint = (0, 250, 0)
     ampSetpoint = (1.7, 100, 0)
     podiumSetpoint = (0, 0, 3)
-    subwooferSetpoint = (0, 250, 0)
 
     def __init__(self):
         self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
@@ -175,3 +178,135 @@ class StateMachine():
         self.inputFeed = False
 
         return self.state
+
+
+# Target/state vaiables for everything that is PID controlled or smoothed on the shooter
+class ShooterStateMachineState:
+    def __init__(self, aimSetpt: float, speedSetpt: float, camSetpt: float) -> None:
+        self.aimSetpt = aimSetpt
+        self.speedSetpt = speedSetpt
+        self.camSetpt = camSetpt
+
+class ShooterStateMachine:
+    SPEED_SMOOTH_SCALAR = 0.1
+    AIM_SMOOTH_SCALAR = 0.05
+
+    def __init__(self, hal: RobotHALBuffer):
+        self.generator = self.__update(hal)
+        self.inputAim: ShooterTarget = ShooterTarget.NONE
+
+        self.inputRev: bool = False
+        self.inputShoot: bool = False
+        self.inputFeed: bool = False
+
+        self.inputedTargetState = ShooterStateMachineState(0, 0, 0)
+        self.frameTargetState = ShooterStateMachineState(0, 0, 0)
+        self.smoothedTargetState = ShooterStateMachineState(0, 0, 0)
+
+        self.aimPID = PIDControllerForArm("aim", 0.6, 0, 0, 0, 0.02, 0.1)
+        self.camPID = PIDController("cam", 0.06)
+        self.shooterPID = PIDController("shooter", 0.0008, 0, 0, 0.00181)
+
+        self.setpoints = [
+            ShooterStateMachineState(0, 0, 0),
+            ShooterStateMachineState(1.7, 100, 0), # AMP
+            ShooterStateMachineState(0, 0, 3), # PODIUM
+            ShooterStateMachineState(0, 250, 0), # SUBWOOFER
+        ]
+
+        self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
+
+    def publishInfo(self):
+        self.table.putNumber("targetSpeed", self.frameTargetState.speedSetpt)
+        self.table.putNumber("targetSpeedSmoothed", self.smoothedTargetState.speedSetpt)
+        self.table.putNumber("targetAim", self.frameTargetState.aimSetpt)
+        self.table.putNumber("targetAimSmoothed", self.smoothedTargetState.aimSetpt)
+        self.table.putNumber("targetCam", self.frameTargetState.camSetpt)
+        self.table.putBoolean("onTarget", self.onTarget)
+
+
+    def update(self, hal: RobotHALBuffer, dt: float):
+        self.frameTargetState.aimSetpt = 0
+        self.frameTargetState.speedSetpt = 0
+        self.frameTargetState.camSetpt = 0
+
+        if(self.inputAim != ShooterTarget.NONE):
+            self.inputedTargetState = self.setpoints[self.inputAim.value]
+
+        # self.generator // __update() fills the frameTargetState with insane state machine things to be correct
+        # also fills the hal buffer with any feeding commands
+        self.generator.__next__()
+
+        # Update smoothed targets, push smoothed outputs to hal buffer
+        self.PIDaimSetpoint = (self.frameTargetState.aimSetpt - self.PIDaimSetpoint) * self.AIM_SMOOTH_SCALAR + self.PIDaimSetpoint
+        hal.shooterAimSpeed = self.aimPID.tick(self.PIDaimSetpoint, hal.shooterAimPos, dt)
+        self.PIDspeedSetpoint = (self.frameTargetState.speedSetpt - self.PIDspeedSetpoint) * self.SPEED_SMOOTH_SCALAR + self.PIDspeedSetpoint
+        hal.shooterSpeed = self.shooterPID.tick(self.PIDspeedSetpoint, hal.shooterAngVelocityMeasured, dt)
+        hal.camSpeed = self.camPID.tick(self.frameTargetState.camSetpt, hal.camPos, dt)
+
+        # reset per-frame variables
+        self.inputAim = ShooterTarget.NONE
+        self.inputRev = False
+        self.inputShoot = False
+        self.inputFeed = False
+
+    # none will not change currently targeted pos
+    def aim(self, target: ShooterTarget):
+        self.table.putNumber("aimed", target.value)
+        self.inputAim = target
+    def rev(self, rev: bool):
+        self.table.putBoolean("revved", rev)
+        self.inputRev = rev
+    def shoot(self, shoot: bool):
+        self.table.putBoolean("shooting", shoot)
+        self.inputShoot = shoot
+    def feed(self, feed: bool):
+        self.table.putBoolean("feeding (shooter)", feed)
+        self.inputFeed = feed
+
+    def __update(self, hal: RobotHALBuffer):
+        while True:
+            # While the robot doesn't have a ring,
+            # enable rev and feed, hardcode aim and cam to zero
+            while not hal.shooterSensor:
+                s = ShooterStateMachineState(0, 0, 0)
+                if self.inputRev:
+                    s.speedSetpt = self.inputedTargetState.speedSetpt
+                if self.inputFeed and abs(hal.shooterAimPos - 0) < 0.2:
+                    hal.shooterIntakeSpeed = 0.1
+                    hal.intakeSpeeds[1] = 0.1
+                yield s
+
+            # After the robot has a ring
+            while True:
+                # Hardcode aim and cam, allow rev input to toggle speedsetpt
+                s = ShooterStateMachineState(0, 0, 0)
+                s.aimSetpt = self.inputedTargetState.aimSetpt
+                s.camSetpt = self.inputedTargetState.camSetpt
+                if self.inputRev:
+                    s.speedSetpt = self.inputedTargetState.speedSetpt
+
+                onTarget = abs(hal.shooterAimPos - self.inputedTargetState.aimSetpt) < 0.1 and \
+                        abs(hal.shooterAngVelocityMeasured - self.inputedTargetState.speedSetpt) < 20
+                # once on target and shooting, hold for 5s then break and loop back to no ring
+                if onTarget and self.inputShoot:
+                    t = wpilib.Timer()
+                    t.start()
+                    while t.get() < 0.5:
+                        s = self.inputedTargetState
+                        # feed while shooting to make sure the ring doesn't have as much resistance
+                        hal.shooterIntakeSpeed = 0.1
+                        hal.intakeSpeeds[1] = 0.1
+                        yield s
+                    # After shooting, set the target to the sub shot
+                    self.inputedTargetState = self.setpoints[ShooterTarget.SUBWOOFER.value]
+                    break
+                yield s
+            # end ring-fully-fed loop
+        # end infinite loop between not fed and fed
+    #end __update()
+
+
+
+
+
