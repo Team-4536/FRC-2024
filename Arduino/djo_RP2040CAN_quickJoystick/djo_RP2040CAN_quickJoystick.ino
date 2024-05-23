@@ -23,7 +23,7 @@ void loop() {
   
   if (!digitalRead(PIN_BUTTON)) { //Check the BOOTSEL button state (pulled-up --> FALSE=pressed)
     Serial.println("Joystick buttons");
-    for (uint8_t i = 1; i <= 32; i++) {
+    for (int i = 1; i <= 32; i++) {
       Joystick.button(i, true);
       delay(250);
       Joystick.button(i, false);
