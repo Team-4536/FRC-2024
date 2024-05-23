@@ -35,7 +35,7 @@ void loop() {
     }
   }
 
-  // Check manual button (needs to be installed on breadboard.)
+  // Check manual button on Arduino PIN 5 (needs to be installed on breadboard,) then press virtual joystick button 3.
   if (!digitalRead(5)) { //Check the Externally Wired Custom Button state (pulled-up --> FALSE=pressed)
    Joystick.button(3, true);
   } else {
