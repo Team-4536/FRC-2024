@@ -1,5 +1,7 @@
 import math
 
+from phoenix5 import ControlMode
+
 import profiler
 import robotAutos
 import robotHAL
@@ -202,6 +204,8 @@ class Robot(wpilib.TimedRobot):
 
         self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
+        self.controlMode = "comp"
+
         self.table.putNumber("ctrl/SWERVE ADDED X", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED Y", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED R", 0.0)
@@ -247,6 +251,14 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
         profiler.end("robotPeriodic")
 
+        self.controlChooser = wpilib.SendableChooser()
+        self.controlChooser.setDefaultOption("Competiton", "comp")
+        self.controlChooser.addOption("Competition", "comp")
+        self.controlChooser.addOption("Child", "child")
+        self.controlChooser.addOption("VIP", "child")
+        self.controlChooser.addOption("Grand Old Day", "grod")
+        wpilib.SmartDashboard.putData("Control Mode", self.controlChooser)
+
     def teleopInit(self) -> None:
         self.noteStateMachine.state = self.noteStateMachine.START
         self.manualAimPID = PIDControllerForArm("ManualAim", 0, 0, 0, 0, 0.04, 0)
@@ -271,8 +283,17 @@ class Robot(wpilib.TimedRobot):
             self.driveGyroYawOffset = self.hal.yaw
 
         profiler.start()
-        speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
-        turnScalar = 6
+        self.controlMode = self.controlChooser.getSelected()
+
+        if self.controlMode == "comp":
+            speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
+            turnScalar = 6
+        elif self.controlMode == "child":
+            speedControlEdited = 0.2
+            turnScalar = 3
+        elif self.controlMode == "grod":
+            speedControlEdited = 0.2
+            turnScalar = 4
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         turnVector = Translation2d(self.input.turningY, self.input.turningX) #for pid only
         #absolute drive
