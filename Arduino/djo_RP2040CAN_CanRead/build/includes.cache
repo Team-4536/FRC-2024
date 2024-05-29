@@ -1,0 +1,82 @@
+[
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\orser\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\3.8.1\\cores\\rp2040"
+  },
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\orser\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\3.8.1\\variants\\adafruit_feather_can"
+  },
+  {
+    "Sourcefile": "C:\\Repos\\FRC-2024\\Arduino\\djo_RP2040CAN_CanRead\\build\\sketch\\djo_RP2040CAN_CanRead.ino.cpp",
+    "Include": "Adafruit_MCP2515.h",
+    "Includepath": "C:\\Users\\orser\\Documents\\Arduino\\libraries\\Adafruit_MCP2515\\src"
+  },
+  {
+    "Sourcefile": "C:\\Repos\\FRC-2024\\Arduino\\djo_RP2040CAN_CanRead\\build\\sketch\\djo_RP2040CAN_CanRead.ino.cpp",
+    "Include": "Adafruit_SPIDevice.h",
+    "Includepath": "C:\\Users\\orser\\Documents\\Arduino\\libraries\\Adafruit_BusIO"
+  },
+  {
+    "Sourcefile": "C:\\Repos\\FRC-2024\\Arduino\\djo_RP2040CAN_CanRead\\build\\sketch\\djo_RP2040CAN_CanRead.ino.cpp",
+    "Include": "SPI.h",
+    "Includepath": "C:\\Users\\orser\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\3.8.1\\libraries\\SPI\\src"
+  },
+  {
+    "Sourcefile": "C:\\Repos\\FRC-2024\\Arduino\\djo_RP2040CAN_CanRead\\build\\sketch\\djo_RP2040CAN_CanRead.ino.cpp",
+    "Include": "CANController.h",
+    "Includepath": "C:\\Users\\orser\\Documents\\Arduino\\libraries\\Adafruit_CAN\\src"
+  },
+  {
+    "Sourcefile": "C:\\Repos\\FRC-2024\\Arduino\\djo_RP2040CAN_CanRead\\build\\sketch\\djo_RP2040CAN_CanRead.ino.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\orser\\Documents\\Arduino\\libraries\\Adafruit_MCP2515\\src\\Adafruit_MCP2515.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\orser\\Documents\\Arduino\\libraries\\Adafruit_BusIO\\Adafruit_BusIO_Register.cpp",
+    "Include": "Wire.h",
+    "Includepath": "C:\\Users\\orser\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\3.8.1\\libraries\\Wire\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\orser\\Documents\\Arduino\\libraries\\Adafruit_BusIO\\Adafruit_BusIO_Register.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\orser\\Documents\\Arduino\\libraries\\Adafruit_BusIO\\Adafruit_I2CDevice.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\orser\\Documents\\Arduino\\libraries\\Adafruit_BusIO\\Adafruit_SPIDevice.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\orser\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\3.8.1\\libraries\\SPI\\src\\SPI.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\orser\\Documents\\Arduino\\libraries\\Adafruit_CAN\\src\\CANController.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\orser\\Documents\\Arduino\\libraries\\Adafruit_CAN\\src\\CANSAME5x.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\orser\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\3.8.1\\libraries\\Wire\\src\\Wire.cpp",
+    "Include": "",
+    "Includepath": null
+  }
+]
