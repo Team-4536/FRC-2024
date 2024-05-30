@@ -205,6 +205,7 @@ class Robot(wpilib.TimedRobot):
         self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
         self.controlMode = "comp"
+        self.fastMode = False
 
         self.table.putNumber("ctrl/SWERVE ADDED X", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED Y", 0.0)
@@ -285,6 +286,10 @@ class Robot(wpilib.TimedRobot):
         profiler.start()
         self.controlMode = self.controlChooser.getSelected()
 
+        if self.input.driveCtrlr.getRightBumperPressed():
+            self.fastMode = not self.fastMode
+
+        #drive scalars
         if self.controlMode == "comp":
             speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
             turnScalar = 6
@@ -292,8 +297,15 @@ class Robot(wpilib.TimedRobot):
             speedControlEdited = 0.2
             turnScalar = 3
         elif self.controlMode == "grod":
-            speedControlEdited = 0.2
-            turnScalar = 4
+            if self.fastMode:
+                speedControlEdited = 0.35
+            else:
+                speedControlEdited = 0.25
+            turnScalar = 3.5
+        else:
+            speedControlEdited = 0
+            turnScalar = 0
+
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         turnVector = Translation2d(self.input.turningY, self.input.turningX) #for pid only
         #absolute drive
@@ -342,10 +354,10 @@ class Robot(wpilib.TimedRobot):
             self.PIDtoggle = True
 
         #assign turning speed based on pid
-        if self.PIDtoggle:
+        if self.PIDtoggle and (self.controlMode == "comp" or self.controlMode == "child"):
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)), self.ang, self.time.dt))
         #limelight lineup
-        elif self.input.lineUpWithSubwoofer:
+        elif self.input.lineUpWithSubwoofer and self.controlMode == "comp":
             if(self.frontLimelightTable.getNumber("getpipe", -1) != self.subwooferLineupPipeline):
                 self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
             tx = self.frontLimelightTable.getNumber("tx", 0)
@@ -356,7 +368,7 @@ class Robot(wpilib.TimedRobot):
                     driveVector.Y(), \
                     self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
         else:
-            #set chassis speed with no abs
+            #set chassis speed with no pid
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turningX * turnScalar)
 
         self.table.putBoolean("ctrl/anglePIDToggle", self.PIDtoggle)
@@ -383,6 +395,12 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
         profiler.start()
+
+        if self.controlMode == "grod":
+            if self.input.aim != ShooterTarget.NONE or ShooterTarget.AMP:
+                self.input.aim = ShooterTarget.NONE
+            self.input.overideNoteStateMachine = False
+
 
         if not self.input.overideNoteStateMachine:
             self.noteStateMachine.intake(self.input.intake)
