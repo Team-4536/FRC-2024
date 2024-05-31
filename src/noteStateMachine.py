@@ -91,6 +91,16 @@ class NoteStateMachine():
         self.table.putNumber("inputRev", float(self.inputRev))
         self.table.putNumber("inputAim", self.inputAim.value)
 
+        if hal.controlProfile == "grod":
+            self.subwooferSetpoint = (0, 125, 0)
+            self.lobSetpoint = (0.8, 120, 0)
+            self.ampSetpoint = (1.7, 50, 0)
+        else:
+            self.subwooferSetpoint = (0, 250, 0)
+            self.lobSetpoint = (0.4, 250, 0)
+            self.ampSetpoint = (1.7, 100, 0)
+
+
         if(self.inputAim != ShooterTarget.NONE):
             if(self.inputAim == ShooterTarget.AMP):
                 self.aimSetpoint = self.ampSetpoint[0]
@@ -105,8 +115,8 @@ class NoteStateMachine():
                 self.speedSetpoint = self.subwooferSetpoint[1]
                 self.camSetpoint = self.subwooferSetpoint[2]
             elif(self.inputAim == ShooterTarget.LOB):
-                self.aimSetpoint = self.table.getNumber("lobAngle", 0)
-                self.speedSetpoint = self.table.getNumber("lobSpeed", 0)
+                self.aimSetpoint = self.lobSetpoint[0]
+                self.speedSetpoint = self.lobSetpoint[1]
                 self.camSetpoint = self.lobSetpoint[2]
 
         self.onTarget = False

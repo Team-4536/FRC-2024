@@ -1,5 +1,6 @@
 import math
 
+from numpy import short
 from phoenix5 import ControlMode
 
 import profiler
@@ -213,6 +214,13 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/SWERVE ADDED DRIVE", 0)
         self.table.putNumber("ctrl/SWERVE ADDED STEER", 0)
 
+        self.controlChooser = wpilib.SendableChooser()
+        self.controlChooser.setDefaultOption("Comp", "comp")
+        self.controlChooser.addOption("Child", "child")
+        self.controlChooser.addOption("VIP", "child")
+        self.controlChooser.addOption("Grand Old Day", "grod")
+        wpilib.SmartDashboard.putData("Control Mode", self.controlChooser)
+
     def robotPeriodic(self) -> None:
         profiler.start()
 
@@ -250,15 +258,10 @@ class Robot(wpilib.TimedRobot):
 
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
-        profiler.end("robotPeriodic")
 
-        self.controlChooser = wpilib.SendableChooser()
-        self.controlChooser.setDefaultOption("Competiton", "comp")
-        self.controlChooser.addOption("Competition", "comp")
-        self.controlChooser.addOption("Child", "child")
-        self.controlChooser.addOption("VIP", "child")
-        self.controlChooser.addOption("Grand Old Day", "grod")
-        wpilib.SmartDashboard.putData("Control Mode", self.controlChooser)
+        self.hal.controlProfile = self.controlChooser.getSelected()
+
+        profiler.end("robotPeriodic")
 
     def teleopInit(self) -> None:
         self.noteStateMachine.state = self.noteStateMachine.START
@@ -284,27 +287,32 @@ class Robot(wpilib.TimedRobot):
             self.driveGyroYawOffset = self.hal.yaw
 
         profiler.start()
-        self.controlMode = self.controlChooser.getSelected()
+        self.controlMode = self.hal.controlProfile
+
+        self.table.putString("halControlMode", self.hal.controlProfile)
+        self.table.putString("controlMode", self.controlMode)
 
         if self.input.driveCtrlr.getRightBumperPressed():
             self.fastMode = not self.fastMode
 
-        #drive scalars
+        #drive scalars (scalars range from 0.0-5.0)
         if self.controlMode == "comp":
             speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
             turnScalar = 6
         elif self.controlMode == "child":
-            speedControlEdited = 0.2
+            speedControlEdited = 0.5
             turnScalar = 3
         elif self.controlMode == "grod":
             if self.fastMode:
-                speedControlEdited = 0.35
+                speedControlEdited = 0.9
             else:
-                speedControlEdited = 0.25
+                speedControlEdited = 0.5
             turnScalar = 3.5
         else:
             speedControlEdited = 0
             turnScalar = 0
+
+        self.table.putNumber("speedControl", speedControlEdited)
 
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         turnVector = Translation2d(self.input.turningY, self.input.turningX) #for pid only
@@ -397,8 +405,9 @@ class Robot(wpilib.TimedRobot):
         profiler.start()
 
         if self.controlMode == "grod":
-            if self.input.aim != ShooterTarget.NONE or ShooterTarget.AMP:
+            if self.input.aim == ShooterTarget.PODIUM:
                 self.input.aim = ShooterTarget.NONE
+            
             self.input.overideNoteStateMachine = False
 
 
