@@ -1,4 +1,5 @@
 import math
+import profiler
 
 from ntcore import NetworkTable, NetworkTableInstance
 
@@ -65,6 +66,7 @@ class PIDControllerForArm(PIDController):
             self.kg = t.getNumber("Kg", 0)
         super()._publish()
 
+@profiler.profileFn
 def updatePIDsInNT():
     for c in createdControllers:
         c._publish()

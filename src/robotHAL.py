@@ -12,6 +12,7 @@ from timing import TimeData
 
 
 class RobotHALBuffer():
+    @profiler.profileFn
     def __init__(self) -> None:
         self.driveVolts: list[float] = [0, 0, 0, 0] # -1 to 1 // volts to motor controller
         self.steeringVolts: list[float] = [0, 0, 0, 0] # -1 to 1
@@ -71,6 +72,7 @@ class RobotHALBuffer():
 
         self.debugBool: bool = False
 
+    @profiler.profileFn
     def resetEncoders(self) -> None:
         # swerve encoders
         for i in range(4):
@@ -80,6 +82,7 @@ class RobotHALBuffer():
         self.shooterAimPos = 0
         self.camPos = 0
 
+    @profiler.profileFn
     def stopMotors(self) -> None:
         # swerve motors
         for i in range(4):
@@ -98,6 +101,7 @@ class RobotHALBuffer():
 
         self.climberSpeed = 0.0
 
+    @profiler.profileFn
     def publish(self, table: ntcore.NetworkTable) -> None:
         # swerve modules
         prefs = ["FL", "FR", "BL", "BR"]
@@ -142,6 +146,7 @@ class RobotHALBuffer():
         table.putNumber("yaw", self.yaw)
 
 class RobotHAL():
+    @profiler.profileFn
     def __init__(self) -> None:
         self.prev = RobotHALBuffer()
 
@@ -219,6 +224,7 @@ class RobotHAL():
         self.ledController: CANdle = CANdle(20)
 
     # angle expected in CCW rads
+    @profiler.profileFn
     def resetGyroToAngle(self, ang: float) -> None:
         self.gyro.reset()
         self.gyro.setAngleAdjustment(-math.degrees(ang))
@@ -229,9 +235,11 @@ class RobotHAL():
     def resetAimEncoderPos(self, nPos: float) -> None:
         self.shooterAimEncoder.setPosition(nPos)
 
+    @profiler.profileFn
     def setLEDs(self, r: int, g: int, b: int, w: int = 0, startIdx: int = 0, count: int = 512) -> None:
         self.ledController.setLEDs(r, g, b, w, startIdx, count)
 
+    @profiler.profileFn
     def update(self, buf: RobotHALBuffer, time: TimeData) -> None:
         prev = self.prev
         self.prev = copy.deepcopy(buf)

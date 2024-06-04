@@ -165,6 +165,7 @@ LIGHTS_OFF = "off"
 LIGHTS_ON = "on"
 
 class Robot(wpilib.TimedRobot):
+    @profiler.profileFn
     def robotInit(self) -> None:
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
@@ -231,13 +232,8 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/SWERVE ADDED DRIVE", 0)
         self.table.putNumber("ctrl/SWERVE ADDED STEER", 0)
 
+    @profiler.profileFn
     def robotPeriodic(self) -> None:
-        if self.isSimulation():
-            cProfile.runctx('self.realRobotPeriodic()', globals(), locals())
-        else:
-            self.realRobotPeriodic()
-
-    def realRobotPeriodic(self) -> None:
         self.time = TimeData(self.time)
 
         self.hal.publish(self.table)
@@ -297,6 +293,7 @@ class Robot(wpilib.TimedRobot):
             self.LEDFlashTimer = 0.0
             self.hardware.setLEDs(0, 0, 0)
 
+    @profiler.profileFn
     def teleopInit(self) -> None:
         self.shooterStateMachine.state = 0
         self.manualAimPID = PIDControllerForArm("ManualAim", 0, 0, 0, 0, 0.04, 0)
@@ -310,6 +307,7 @@ class Robot(wpilib.TimedRobot):
             #blue side
             self.subwooferLineupPipeline = 2
 
+    @profiler.profileFn
     def teleopPeriodic(self) -> None:
         self.input.update()
         self.hal.stopMotors()
@@ -441,6 +439,7 @@ class Robot(wpilib.TimedRobot):
         t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
         return t
 
+    @profiler.profileFn
     def autonomousInit(self) -> None:
         # when simulating, initalize sim to have a preloaded ring
         if isinstance(self.hardware, RobotSimHAL):
@@ -664,16 +663,19 @@ class Robot(wpilib.TimedRobot):
         self.drive.resetOdometry(initialPose, self.hal)
         self.holonomicController.reset(initialPose, ChassisSpeeds())
 
+    @profiler.profileFn
     def autonomousPeriodic(self) -> None:
         self.hal.stopMotors()
         self.auto.run(self)
         self.shooterStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
         self.hardware.update(self.hal, self.time)
 
+    @profiler.profileFn
     def disabledInit(self) -> None:
         self.disabledPeriodic()
         profiler.flushToFile()
 
+    @profiler.profileFn
     def disabledPeriodic(self) -> None:
         self.hal.stopMotors()
         self.hardware.update(self.hal, self.time)
