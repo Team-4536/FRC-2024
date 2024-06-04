@@ -1,11 +1,40 @@
+from typing import Callable
 import wpilib
 from ntcore import NetworkTableInstance
 
-startTime: float = 0
+class __Sample():
+    def __init__(self, name: str) -> None:
+        self.startTime: float = 0.0
+        self.endTime: float = 0.0
+        self.functionName: str = name
 
-def start():
-    global startTime
-    startTime = wpilib.getTime()
+    def __enter__(self):
+        self.startTime = wpilib.getTime()
 
-def end(title: str):
-    NetworkTableInstance.getDefault().getTable("profiling").putNumber(title, wpilib.getTime() - startTime)
+    def __exit__(self, *args):
+        self.endTime = wpilib.getTime()
+        __completeSamples.append(self)
+
+
+# Data for the state of this module - dont mess with please
+# accumulates samples recorded with profileRegion and profileFn
+__completeSamples: list[__Sample] = []
+
+# dumps all accumulated samples in the a file named perfLog.csv
+def flushToFile(self) -> None:
+    f = open("perfLog", 'w')
+    f.write(f"name, start, end\n")
+    for sample in self.done:
+        f.write(f"{sample.functionName}, {sample.startTime}, {sample.endTime}\n")
+    f.close()
+    self.active.clear()
+    self.done.clear()
+
+def profileFn(fn: Callable) -> Callable:
+    def inner():
+        with __Sample(fn.__name__):
+            fn()
+    return inner
+
+def profileRegion(name: str) -> __Sample:
+    return __Sample(name)
