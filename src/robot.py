@@ -673,7 +673,7 @@ class Robot(wpilib.TimedRobot):
     @profiler.profileFn
     def disabledInit(self) -> None:
         self.disabledPeriodic()
-        profiler.flushToFile()
+        profiler.flushToFile(self.time.initTime)
 
     @profiler.profileFn
     def disabledPeriodic(self) -> None:

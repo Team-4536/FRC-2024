@@ -23,11 +23,12 @@ class __Sample():
 
 
 # dumps all accumulated samples in the a file named perfLog.csv
-def flushToFile() -> None:
+# reference time adjusts all start and ends to be relative to the given time
+def flushToFile(referenceTime: float) -> None:
     f = open("perfLog", 'w')
     f.write(f"name, start, end\n")
     for sample in _completeSamples:
-        f.write(f"{sample.functionName}, {sample.startTime}, {sample.endTime}\n")
+        f.write(f"{sample.functionName}, {sample.startTime - referenceTime}, {sample.endTime - referenceTime}\n")
     f.close()
     _completeSamples.clear()
 
