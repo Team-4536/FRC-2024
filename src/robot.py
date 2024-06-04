@@ -238,8 +238,6 @@ class Robot(wpilib.TimedRobot):
             self.realRobotPeriodic()
 
     def realRobotPeriodic(self) -> None:
-        profiler.start()
-
         self.time = TimeData(self.time)
 
         self.hal.publish(self.table)
@@ -277,7 +275,6 @@ class Robot(wpilib.TimedRobot):
 
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
-        profiler.end("robotPeriodic")
 
         self.LEDTrigger |= self.hal.intakeSensor
         if self.LEDTrigger and not self.LEDPrevTrigger:
@@ -314,14 +311,12 @@ class Robot(wpilib.TimedRobot):
             self.subwooferLineupPipeline = 2
 
     def teleopPeriodic(self) -> None:
-        frameStart = wpilib.getTime()
         self.input.update()
         self.hal.stopMotors()
 
         if self.input.gyroReset:
             self.driveGyroYawOffset = self.hal.yaw
 
-        profiler.start()
         speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
         turnScalar = 4
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
@@ -372,12 +367,9 @@ class Robot(wpilib.TimedRobot):
 
 
         self.drive.update(self.time.dt, self.hal, speed)
-        profiler.end("drive updates")
 
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
-
-        profiler.start()
 
         if(not self.input.overideIntakeStateMachine):
             self.intakeStateMachine.update(self.hal, self.input.intake)
@@ -388,9 +380,6 @@ class Robot(wpilib.TimedRobot):
                 self.hal.intakeSpeeds = [-0.4, -0.4]
             self.intakeStateMachine.state = 0
 
-        profiler.end("intake state machine")
-
-        profiler.start()
 
         if(self.input.aimEncoderReset):
             self.hardware.resetAimEncoderPos(0)
@@ -436,16 +425,12 @@ class Robot(wpilib.TimedRobot):
 
         self.table.putNumber("ShooterAimManual", self.input.shooterAimManual)
 
-        profiler.end("shooter state machine")
 
         # self.hal.camSpeed = self.input.camTemp * 0.2
         self.hal.climberSpeed = self.input.climb * 0.6
 
 
-        profiler.start()
         self.hardware.update(self.hal, self.time)
-        profiler.end("hardware update")
-        self.table.putNumber("frame time", wpilib.getTime() - frameStart)
 
     # NOTE: filename is *just* the title of the file, with no extension and no path
     # filename is directly passed to pathplanner.loadPath
@@ -687,6 +672,7 @@ class Robot(wpilib.TimedRobot):
 
     def disabledInit(self) -> None:
         self.disabledPeriodic()
+        profiler.flushToFile()
 
     def disabledPeriodic(self) -> None:
         self.hal.stopMotors()

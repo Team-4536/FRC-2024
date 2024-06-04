@@ -236,7 +236,6 @@ class RobotHAL():
         prev = self.prev
         self.prev = copy.deepcopy(buf)
 
-        profiler.start()
         for m, s in zip(self.driveMotors, buf.driveVolts):
             m.set(s)
 
@@ -253,18 +252,13 @@ class RobotHAL():
             buf.steeringPositions[i] = math.radians(e.get_position().value_as_double * 360)
             buf.steerSpeedMeasured[i] = math.radians(e.get_velocity().value_as_double * 360)
 
-        profiler.end("drive updates")
-
-        profiler.start()
         for m, s in zip(self.intakeMotors, buf.intakeSpeeds):
             m.set(s)
-        profiler.end("steer updates")
 
         # for i in range(0, 2):
         #     e = self.intakeEncoders[i]
         #     buf.intakePositions[i] = e.getPosition()
 
-        profiler.start()
         self.shooterTopMotor.set(buf.shooterSpeed) # bottom shooter motor is on follower mode
         self.shooterAimMotor.set(buf.shooterAimSpeed)
         self.shooterIntakeMotor.set(buf.shooterIntakeSpeed)
@@ -282,20 +276,12 @@ class RobotHAL():
         buf.climbTemp = self.climbingMotor.getMotorTemperature()
 
 
-        profiler.end("other motor encoder updates")
-
-        profiler.start()
         if(buf.yaw != prev.yaw and abs(buf.yaw) < 0.01):
             self.gyro.reset()
         buf.yaw = math.radians(-self.gyro.getAngle())
-        profiler.end("gyro updates")
 
-        profiler.start()
         buf.lowerShooterLimitSwitch = self.lowerShooterLimitSwitch.get()
         buf.upperShooterLimitSwitch = self.upperShooterLimitSwitch.get()
-        profiler.end("switch updates")
-
-        profiler.start()
 
         # ntcore.NetworkTableInstance.getDefault().getTable("telemetry").putNumber("colorProx", self.colorSensor.getProximity())
         # if self.colorSensor.getProximity() >= 400:
@@ -305,4 +291,3 @@ class RobotHAL():
 
         buf.intakeSensor = self.intakeSensor.get()
         buf.shooterSensor = self.shooterSensor.get()
-        profiler.end("sensor updates")

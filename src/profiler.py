@@ -21,14 +21,13 @@ class __Sample():
 __completeSamples: list[__Sample] = []
 
 # dumps all accumulated samples in the a file named perfLog.csv
-def flushToFile(self) -> None:
+def flushToFile() -> None:
     f = open("perfLog", 'w')
     f.write(f"name, start, end\n")
-    for sample in self.done:
+    for sample in __completeSamples:
         f.write(f"{sample.functionName}, {sample.startTime}, {sample.endTime}\n")
     f.close()
-    self.active.clear()
-    self.done.clear()
+    __completeSamples.clear()
 
 def profileFn(fn: Callable) -> Callable:
     def inner():
