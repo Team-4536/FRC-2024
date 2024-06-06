@@ -161,6 +161,7 @@ SUBWOOFER_LINEUP_BLUE_PIPLINE = 2
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
+        
         self.limelightLeashOn = True
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
@@ -222,6 +223,9 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/SWERVE ADDED R", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED DRIVE", 0)
         self.table.putNumber("ctrl/SWERVE ADDED STEER", 0)
+        self.table.putNumber("leashedSpeedX", 0)
+        self.table.putNumber("leashedSpeedY", 0)
+        self.table.putNumber("leashedSpeedTurn", 0)
         
 
     def robotPeriodic(self) -> None:
@@ -283,178 +287,179 @@ class Robot(wpilib.TimedRobot):
         frameStart = wpilib.getTime()
         self.input.update()
         self.hal.stopMotors()
-        if self.limelightLeashOn == False:
+        
           
 
-            if self.input.gyroReset:
-                self.driveGyroYawOffset = self.hal.yaw
+        if self.input.gyroReset:
+            self.driveGyroYawOffset = self.hal.yaw
 
-            profiler.start()
-            speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
-            turnScalar = 6
-            driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
-            turnVector = Translation2d(self.input.turningY, self.input.turningX) #for pid only
-            #absolute drive
-            if self.abs:
-                driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
+        profiler.start()
+        speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
+        turnScalar = 6
+        driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
+        turnVector = Translation2d(self.input.turningY, self.input.turningX) #for pid only
+        #absolute drive
+        if self.abs:
+            driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
 
-            #disable pid when stick moved
-            if (self.input.turningX != 0 and self.rightStickToggle == False) or self.input.lineUpWithSubwoofer:
-                self.PIDtoggle = False
+        #disable pid when stick moved
+        if (self.input.turningX != 0 and self.rightStickToggle == False) or self.input.lineUpWithSubwoofer:
+            self.PIDtoggle = False
 
-            if self.input.turningX == 0:
-                self.rightStickToggle = False
+        if self.input.turningX == 0:
+            self.rightStickToggle = False
 
-            #turn stick to dpad (kind of)
-            if self.input.turningStickButton:
-                self.PIDtoggle = True
-                self.rightStickToggle = True
-                if turnVector.angle().degrees() >= -45 and turnVector.angle().degrees() < 45:
-                    if self.onRedSide:
-                        self.ang = math.radians(60)
-                    else:
-                        self.ang = math.radians(-60)
-                elif turnVector.angle().degrees() >= 45 and turnVector.angle().degrees() < 135:
-                    self.ang = math.radians(90)
-                elif turnVector.angle().degrees() >= 135 or turnVector.angle().degrees() < -135:
-                    self.ang = math.radians(0)
-                elif turnVector.angle().degrees() >= -135 and turnVector.angle().degrees() < -45:
-                    self.ang = math.radians(-90)
-            self.table.putNumber("ctrl/turnVectorAngle", turnVector.angle().degrees())
-
-            #assign angle based on button
-            if self.input.angleTarget == RobotInputs.TARGET_LEFT:
-                self.ang = math.radians(-90)
-                self.PIDtoggle = True
-            elif self.input.angleTarget == RobotInputs.TARGET_RIGHT:
-                self.ang = math.radians(90)
-                self.PIDtoggle = True
-            elif self.input.angleTarget == RobotInputs.TARGET_SOURCE:
+        #turn stick to dpad (kind of)
+        if self.input.turningStickButton:
+            self.PIDtoggle = True
+            self.rightStickToggle = True
+            if turnVector.angle().degrees() >= -45 and turnVector.angle().degrees() < 45:
                 if self.onRedSide:
                     self.ang = math.radians(60)
                 else:
                     self.ang = math.radians(-60)
-                self.PIDtoggle = True
-            elif self.input.angleTarget == RobotInputs.TARGET_SUBWOOFER:
-                self.ang = 0
-                self.PIDtoggle = True
+            elif turnVector.angle().degrees() >= 45 and turnVector.angle().degrees() < 135:
+                self.ang = math.radians(90)
+            elif turnVector.angle().degrees() >= 135 or turnVector.angle().degrees() < -135:
+                self.ang = math.radians(0)
+            elif turnVector.angle().degrees() >= -135 and turnVector.angle().degrees() < -45:
+                self.ang = math.radians(-90)
+        self.table.putNumber("ctrl/turnVectorAngle", turnVector.angle().degrees())
 
-            #assign turning speed based on pid
-            if self.PIDtoggle:
-                speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)), self.ang, self.time.dt))
-            #limelight lineup
-            elif self.input.lineUpWithSubwoofer:
-                if(self.frontLimelightTable.getNumber("getpipe", 0) != self.subwooferLineupPipeline):
-                    self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
-                tx = self.frontLimelightTable.getNumber("tx", 0)
-                ty = self.frontLimelightTable.getNumber('ty', 0)
-
-                #speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
-                speed = ChassisSpeeds(self.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, self.time.dt), \
-                        driveVector.Y(), \
-                        self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
+        #assign angle based on button
+        if self.input.angleTarget == RobotInputs.TARGET_LEFT:
+            self.ang = math.radians(-90)
+            self.PIDtoggle = True
+        elif self.input.angleTarget == RobotInputs.TARGET_RIGHT:
+            self.ang = math.radians(90)
+            self.PIDtoggle = True
+        elif self.input.angleTarget == RobotInputs.TARGET_SOURCE:
+            if self.onRedSide:
+                self.ang = math.radians(60)
             else:
-                #set chassis speed with no abs
-                speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turningX * turnScalar)
+                self.ang = math.radians(-60)
+            self.PIDtoggle = True
+        elif self.input.angleTarget == RobotInputs.TARGET_SUBWOOFER:
+            self.ang = 0
+            self.PIDtoggle = True
 
-            self.table.putBoolean("ctrl/anglePIDToggle", self.PIDtoggle)
-            self.table.putNumber("ctrl/targetAngle", math.degrees(self.ang))
+        #assign turning speed based on pid
+        if self.PIDtoggle:
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)), self.ang, self.time.dt))
+        #limelight lineup
+        elif self.input.lineUpWithSubwoofer:
+            if(self.frontLimelightTable.getNumber("getpipe", 0) != self.subwooferLineupPipeline):
+                self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
+            tx = self.frontLimelightTable.getNumber("tx", 0)
+            ty = self.frontLimelightTable.getNumber('ty', 0)
 
-            time = self.table.getNumber("ctrl/SWERVE TEST TIME", 0.0)
-            time -= self.time.dt
-            self.table.putNumber("ctrl/SWERVE TEST TIME", time)
-            if time > 0:
-                s = Translation2d(self.table.getNumber("ctrl/SWERVE ADDED X", 0.0), self.table.getNumber("ctrl/SWERVE ADDED Y", 0.0))
-                s = s.rotateBy(Rotation2d((-self.hal.yaw + self.driveGyroYawOffset)))
-                speed.vx += s.X()
-                speed.vy += s.Y()
-                speed.omega += self.table.getNumber("ctrl/SWERVE ADDED R", 0.0)
-                # for i in range(4):
-                #     self.hal.driveVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED DRIVE", 0)
-                #     self.hal.steeringVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED STEER", 0)
-
-
-            self.drive.update(self.time.dt, self.hal, speed)
-            profiler.end("drive updates")
-
-
-            self.table.putNumber("POV", self.input.armCtrlr.getPOV())
-
-            profiler.start()
-
-            if not self.input.overideNoteStateMachine:
-                self.noteStateMachine.intake(self.input.intake)
-                self.noteStateMachine.feed(self.input.feed) #untested
-                self.noteStateMachine.aim(self.input.aim)
-                self.noteStateMachine.rev(self.input.rev)
-                self.noteStateMachine.shoot(self.input.shoot)
-                self.noteStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
-            else:
-                self.noteStateMachine.state = self.noteStateMachine.START
-                #overides for intaking
-                if(self.input.intake):
-                    self.hal.intakeSpeeds = [0.4, 0.4]
-                if(self.input.intakeReverse):
-                    self.hal.intakeSpeeds = [-0.4, -0.4]
-
-                #overides for lower shooter motor and upper intake
-                self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
-                self.hal.shooterAimSpeed += self.input.shooterAimManual * 0.2
-
-                if(self.input.manualFeed):
-                    self.hal.intakeSpeeds[1] += 0.4
-                    self.hal.shooterIntakeSpeed += 0.4
-                if(self.input.manualFeedReverse):
-                    self.hal.intakeSpeeds[1] -= 0.4
-                    self.hal.shooterIntakeSpeed -= 0.4
-
-                #overid for shooting
-                # TODO: this is moving to fast
-                speedTarget = 0
-                if(self.input.rev):
-                    speedTarget = 100
-                self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * 0.1 + self.PIDspeedSetpoint
-                self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
-                if(self.input.shoot):
-                    self.hal.shooterIntakeSpeed = 0   
-
-            # TODO: manual cam drive
-            # camTarget = self.shooterStateMachine.table.getNumber('targetCam', 0)
-            # self.shooterStateMachine.camPID.kp = self.shooterStateMachine.table.getNumber("cam kp", 0)
-            # self.hal.camSpeed = self.shooterStateMachine.camPID.tick(camTarget, self.hal.camPos, self.time.dt)
-        
-
-            if(self.input.aimEncoderReset):
-                self.hardware.resetAimEncoderPos(0)
-
-            if(self.input.camEncoderReset):
-                self.hardware.resetCamEncoderPos(0)
-
-            profiler.end("note state machine")
-
-            # self.hal.camSpeed = self.input.camTemp * 0.2
-            self.hal.climberSpeed = self.input.climb * 0.6
-
-
-           
-        
-            
+            #speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
+            speed = ChassisSpeeds(self.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, self.time.dt), \
+                    driveVector.Y(), \
+                    self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
         else:
-            speed = ChassisSpeeds(0, 0, 0)
-            if (self.pieceX == 0.00 and self.pieceY == 0.00):
-                pass
-            else:
-                if self.pieceX > -6 and self.pieceX < 6:
-                    speed = ChassisSpeeds(0.05, 0, 0)
-                elif (self.pieceX < -6):
-                    speed = ChassisSpeeds(0,0, 0.05)
-                elif (self.pieceX > 6):
-                    speed = ChassisSpeeds(0,0, -0.05)
-            
-            self.table.putNumber("leashedSpeedX", speed.vx)
-            self.table.putNumber("leashedSpeedY", speed.vy)
-            self.table.putNumber("leashedSpeedTurn", speed.omega)
-            self.drive.update(self.time.dt, self.hal, speed)
+            #set chassis speed with no abs
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turningX * turnScalar)
+
+        self.table.putBoolean("ctrl/anglePIDToggle", self.PIDtoggle)
+        self.table.putNumber("ctrl/targetAngle", math.degrees(self.ang))
+
+        time = self.table.getNumber("ctrl/SWERVE TEST TIME", 0.0)
+        time -= self.time.dt
+        self.table.putNumber("ctrl/SWERVE TEST TIME", time)
+        if time > 0:
+            s = Translation2d(self.table.getNumber("ctrl/SWERVE ADDED X", 0.0), self.table.getNumber("ctrl/SWERVE ADDED Y", 0.0))
+            s = s.rotateBy(Rotation2d((-self.hal.yaw + self.driveGyroYawOffset)))
+            speed.vx += s.X()
+            speed.vy += s.Y()
+            speed.omega += self.table.getNumber("ctrl/SWERVE ADDED R", 0.0)
+            # for i in range(4):
+            #     self.hal.driveVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED DRIVE", 0)
+            #     self.hal.steeringVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED STEER", 0)
+
+
+        # self.drive.update(self.time.dt, self.hal, speed)
+        if (self.pieceX == 0.00 and self.pieceY == 0.00):
+            pass
+        else:
+            if self.pieceX > -15 and self.pieceX < 12:
+                speed = ChassisSpeeds(-0.4, 0, 0)
+            elif (self.pieceX < -12):
+                speed = ChassisSpeeds(0,0, 0.4)
+            elif (self.pieceX > 12):
+                speed = ChassisSpeeds(0,0, -0.4)
+        
+        self.table.putNumber("leashedSpeedX", speed.vx)
+        self.table.putNumber("leashedSpeedY", speed.vy)
+        self.table.putNumber("leashedSpeedTurn", speed.omega)
+        self.drive.update(self.time.dt, self.hal, speed)
+        profiler.end("drive updates")
+
+
+        self.table.putNumber("POV", self.input.armCtrlr.getPOV())
+
+        profiler.start()
+
+        if not self.input.overideNoteStateMachine:
+            self.noteStateMachine.intake(self.input.intake)
+            self.noteStateMachine.feed(self.input.feed) #untested
+            self.noteStateMachine.aim(self.input.aim)
+            self.noteStateMachine.rev(self.input.rev)
+            self.noteStateMachine.shoot(self.input.shoot)
+            self.noteStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
+        else:
+            self.noteStateMachine.state = self.noteStateMachine.START
+            #overides for intaking
+            if(self.input.intake):
+                self.hal.intakeSpeeds = [0.4, 0.4]
+            if(self.input.intakeReverse):
+                self.hal.intakeSpeeds = [-0.4, -0.4]
+
+            #overides for lower shooter motor and upper intake
+            self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
+            self.hal.shooterAimSpeed += self.input.shooterAimManual * 0.2
+
+            if(self.input.manualFeed):
+                self.hal.intakeSpeeds[1] += 0.4
+                self.hal.shooterIntakeSpeed += 0.4
+            if(self.input.manualFeedReverse):
+                self.hal.intakeSpeeds[1] -= 0.4
+                self.hal.shooterIntakeSpeed -= 0.4
+
+            #overid for shooting
+            # TODO: this is moving to fast
+            speedTarget = 0
+            if(self.input.rev):
+                speedTarget = 100
+            self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * 0.1 + self.PIDspeedSetpoint
+            self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
+            if(self.input.shoot):
+                self.hal.shooterIntakeSpeed = 0   
+
+        # TODO: manual cam drive
+        # camTarget = self.shooterStateMachine.table.getNumber('targetCam', 0)
+        # self.shooterStateMachine.camPID.kp = self.shooterStateMachine.table.getNumber("cam kp", 0)
+        # self.hal.camSpeed = self.shooterStateMachine.camPID.tick(camTarget, self.hal.camPos, self.time.dt)
+    
+
+        if(self.input.aimEncoderReset):
+            self.hardware.resetAimEncoderPos(0)
+
+        if(self.input.camEncoderReset):
+            self.hardware.resetCamEncoderPos(0)
+
+        profiler.end("note state machine")
+
+        # self.hal.camSpeed = self.input.camTemp * 0.2
+        self.hal.climberSpeed = self.input.climb * 0.6
+
+
+        
+    
+        
+    
+        #speed = ChassisSpeeds(0, 0, 0)
+        
         profiler.start()
         self.hardware.update(self.hal, self.time)
         profiler.end("hardware update")
