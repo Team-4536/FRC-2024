@@ -382,12 +382,21 @@ class Robot(wpilib.TimedRobot):
         if (self.pieceX == 0.00 and self.pieceY == 0.00):
             pass
         else:
-            if self.pieceX > -15 and self.pieceX < 12:
+            if self.pieceX > -12 and self.pieceX < 12:
                 speed = ChassisSpeeds(-0.4, 0, 0)
             elif (self.pieceX < -12):
-                speed = ChassisSpeeds(0,0, 0.4)
+                self.leashError: float = self.pieceX - -12
+                self.leashError = self.leashError * -1
+                self.leashError = self.leashError * 0.1
+                if self.leashError < 0.3:
+                    self.leashError = 0.3
+                speed = ChassisSpeeds(0,0, self.leashError)
             elif (self.pieceX > 12):
-                speed = ChassisSpeeds(0,0, -0.4)
+                self.leashError: float = self.pieceX - -1
+                self.leashError = self.leashError * 0.1
+                if self.leashError < 0.3:
+                    self.leashError = 0.3
+                speed = ChassisSpeeds(0,0, self.leashError)
         
         self.table.putNumber("leashedSpeedX", speed.vx)
         self.table.putNumber("leashedSpeedY", speed.vy)
