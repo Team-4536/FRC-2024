@@ -226,6 +226,8 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("leashedSpeedX", 0)
         self.table.putNumber("leashedSpeedY", 0)
         self.table.putNumber("leashedSpeedTurn", 0)
+        self.table.putNumber("leashedError1", 0)
+        self.table.putNumber("leashedError2", 0)
         
 
     def robotPeriodic(self) -> None:
@@ -385,18 +387,17 @@ class Robot(wpilib.TimedRobot):
             if self.pieceX > -12 and self.pieceX < 12:
                 speed = ChassisSpeeds(-0.4, 0, 0)
             elif (self.pieceX < -12):
-                self.leashError: float = self.pieceX - -12
-                self.leashError = self.leashError * -1
-                self.leashError = self.leashError * 0.1
-                if self.leashError < 0.3:
-                    self.leashError = 0.3
-                speed = ChassisSpeeds(0,0, self.leashError)
+                self.leashError: float = self.pieceX + 12
+                self.table.putNumber("leashedError1", self.leashError)
+                self.leashError = self.leashError * 0.33
+                self.table.putNumber("leashedError2", self.leashError)
+                speed = ChassisSpeeds(0,0, -self.leashError)
             elif (self.pieceX > 12):
-                self.leashError: float = self.pieceX - -1
-                self.leashError = self.leashError * 0.1
-                if self.leashError < 0.3:
-                    self.leashError = 0.3
-                speed = ChassisSpeeds(0,0, self.leashError)
+                self.leashError: float = self.pieceX - 12
+                self.table.putNumber("leashedError1", self.leashError)
+                self.leashError = self.leashError * 0.33
+                self.table.putNumber("leashedError2", self.leashError)
+                speed = ChassisSpeeds(0,0, -self.leashError)
         
         self.table.putNumber("leashedSpeedX", speed.vx)
         self.table.putNumber("leashedSpeedY", speed.vy)
