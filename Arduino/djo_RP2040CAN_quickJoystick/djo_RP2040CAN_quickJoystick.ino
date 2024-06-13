@@ -23,7 +23,7 @@ void loop() {
   //NOTE: this is not how you normally create custom buttons 
   //attached to an Arduino...its just really easy 
   
-  if (!digitalRead(PIN_BUTTON)) { //Check the BOOTSEL button state (pulled-up --> FALSE=pressed)
+  if (!digitalRead(5)) { //Check the BOOTSEL button state (pulled-up --> FALSE=pressed)
     Serial.println("Joystick buttons");
     for (int i = 1; i <= 32; i++) {
       Serial.print(i);
