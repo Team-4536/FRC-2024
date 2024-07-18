@@ -391,7 +391,7 @@ class Robot(wpilib.TimedRobot):
                 self.table.putNumber("leashedError1", self.leashError)
                 self.leashError = self.leashError * 0.33
                 self.table.putNumber("leashedError2", self.leashError)
-                speed = ChassisSpeeds(0,0, -self.leashError)
+                speed = ChassisSpeeds(0,0, -self.leashError) 
             elif (self.pieceX > 12):
                 self.leashError: float = self.pieceX - 12
                 self.table.putNumber("leashedError1", self.leashError)
