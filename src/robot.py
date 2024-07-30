@@ -207,6 +207,7 @@ class Robot(wpilib.TimedRobot):
 
         self.controlMode = "comp"
         self.fastMode = False
+        self.outsideCaution = False
 
         self.table.putNumber("ctrl/SWERVE ADDED X", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED Y", 0.0)
@@ -218,7 +219,7 @@ class Robot(wpilib.TimedRobot):
         self.controlChooser.setDefaultOption("Comp", "comp")
         self.controlChooser.addOption("Child", "child")
         self.controlChooser.addOption("VIP", "child")
-        self.controlChooser.addOption("Grand Old Day", "grod")
+        self.controlChooser.addOption("Grand Old Day", "grodChoosen")
         wpilib.SmartDashboard.putData("Control Mode", self.controlChooser)
 
     def robotPeriodic(self) -> None:
@@ -254,12 +255,23 @@ class Robot(wpilib.TimedRobot):
         if self.input.absToggle:
             self.abs = not self.abs
 
+        if self.input.armCtrlr.getBackButtonPressed():
+            self.outsideCaution = not self.outsideCaution
+
         self.lights.updateLED(self.table, self.time, self.hal, self.hardware, self.input)
 
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
 
-        self.hal.controlProfile = self.controlChooser.getSelected()
+        if self.controlChooser.getSelected() == "grodChoosen":
+            if self.outsideCaution:
+                self.hal.controlProfile = "outside"
+            else:
+                self.hal.controlProfile = "grod"
+        else:
+            self.hal.controlProfile = self.controlChooser.getSelected()
+
+        self.table.putBoolean("Outside (Caution)", self.outsideCaution)
 
         profiler.end("robotPeriodic")
 
@@ -302,9 +314,9 @@ class Robot(wpilib.TimedRobot):
         elif self.controlMode == "child":
             speedControlEdited = 0.5
             turnScalar = 3
-        elif self.controlMode == "grod":
+        elif self.controlMode == "grod" or self.controlMode == "outside":
             if self.fastMode:
-                speedControlEdited = 0.9
+                speedControlEdited = 1.1
             else:
                 speedControlEdited = 0.5
             turnScalar = 3.5

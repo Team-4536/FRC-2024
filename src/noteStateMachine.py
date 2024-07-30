@@ -1,6 +1,7 @@
 from enum import Enum
 
 from ntcore import NetworkTableInstance
+from wpiutil import ControlRecordType
 from PIDController import PIDController, PIDControllerForArm, PIDControllerForCam
 from robotHAL import RobotHALBuffer
 
@@ -93,8 +94,13 @@ class NoteStateMachine():
 
         if hal.controlProfile == "grod":
             self.subwooferSetpoint = (0, 125, 0)
-            self.lobSetpoint = (0.8, 120, 0)
-            self.ampSetpoint = (1.7, 50, 0)
+            self.lobSetpoint = (0.9, 110, 0)
+            self.ampSetpoint = (1.7, 100, 0)
+        elif hal.controlProfile == "outside":
+            self.subwooferSetpoint = (0, 500, 0)
+            self.lobSetpoint = (0.7, 500, 0)
+            self.ampSetpoint = (1.7, 100, 0)
+
         else:
             self.subwooferSetpoint = (0, 250, 0)
             self.lobSetpoint = (0.4, 250, 0)
@@ -121,7 +127,7 @@ class NoteStateMachine():
 
         self.onTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:
-            self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 20
+            self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 60
 
         self.onCamTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:
