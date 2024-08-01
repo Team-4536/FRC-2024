@@ -1,5 +1,8 @@
 import math
 
+from numpy import short
+from phoenix5 import ControlMode
+
 import profiler
 import robotAutos
 import robotHAL
@@ -202,11 +205,22 @@ class Robot(wpilib.TimedRobot):
 
         self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
 
+        self.controlMode = "comp"
+        self.fastMode = False
+        self.outsideCaution = False
+
         self.table.putNumber("ctrl/SWERVE ADDED X", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED Y", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED R", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED DRIVE", 0)
         self.table.putNumber("ctrl/SWERVE ADDED STEER", 0)
+
+        self.controlChooser = wpilib.SendableChooser()
+        self.controlChooser.setDefaultOption("Comp", "comp")
+        self.controlChooser.addOption("Child", "child")
+        self.controlChooser.addOption("VIP", "child")
+        self.controlChooser.addOption("Grand Old Day", "grodChoosen")
+        wpilib.SmartDashboard.putData("Control Mode", self.controlChooser)
 
     def robotPeriodic(self) -> None:
         profiler.start()
@@ -241,10 +255,24 @@ class Robot(wpilib.TimedRobot):
         if self.input.absToggle:
             self.abs = not self.abs
 
+        if self.input.armCtrlr.getBackButtonPressed():
+            self.outsideCaution = not self.outsideCaution
+
         self.lights.updateLED(self.table, self.time, self.hal, self.hardware, self.input)
 
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
+
+        if self.controlChooser.getSelected() == "grodChoosen":
+            if self.outsideCaution:
+                self.hal.controlProfile = "outside"
+            else:
+                self.hal.controlProfile = "grod"
+        else:
+            self.hal.controlProfile = self.controlChooser.getSelected()
+
+        self.table.putBoolean("Outside (Caution)", self.outsideCaution)
+
         profiler.end("robotPeriodic")
 
     def teleopInit(self) -> None:
@@ -271,8 +299,33 @@ class Robot(wpilib.TimedRobot):
             self.driveGyroYawOffset = self.hal.yaw
 
         profiler.start()
-        speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
-        turnScalar = 6
+        self.controlMode = self.hal.controlProfile
+
+        self.table.putString("halControlMode", self.hal.controlProfile)
+        self.table.putString("controlMode", self.controlMode)
+
+        if self.input.driveCtrlr.getRightBumperPressed():
+            self.fastMode = not self.fastMode
+
+        #drive scalars (scalars range from 0.0-5.0)
+        if self.controlMode == "comp":
+            speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
+            turnScalar = 6
+        elif self.controlMode == "child":
+            speedControlEdited = 0.5
+            turnScalar = 3
+        elif self.controlMode == "grod" or self.controlMode == "outside":
+            if self.fastMode:
+                speedControlEdited = 1.1
+            else:
+                speedControlEdited = 0.5
+            turnScalar = 3.5
+        else:
+            speedControlEdited = 0
+            turnScalar = 0
+
+        self.table.putNumber("speedControl", speedControlEdited)
+
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         turnVector = Translation2d(self.input.turningY, self.input.turningX) #for pid only
         #absolute drive
@@ -321,10 +374,10 @@ class Robot(wpilib.TimedRobot):
             self.PIDtoggle = True
 
         #assign turning speed based on pid
-        if self.PIDtoggle:
+        if self.PIDtoggle and (self.controlMode == "comp" or self.controlMode == "child"):
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)), self.ang, self.time.dt))
         #limelight lineup
-        elif self.input.lineUpWithSubwoofer:
+        elif self.input.lineUpWithSubwoofer and self.controlMode == "comp":
             if(self.frontLimelightTable.getNumber("getpipe", -1) != self.subwooferLineupPipeline):
                 self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
             tx = self.frontLimelightTable.getNumber("tx", 0)
@@ -335,7 +388,7 @@ class Robot(wpilib.TimedRobot):
                     driveVector.Y(), \
                     self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
         else:
-            #set chassis speed with no abs
+            #set chassis speed with no pid
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turningX * turnScalar)
 
         self.table.putBoolean("ctrl/anglePIDToggle", self.PIDtoggle)
@@ -362,6 +415,13 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
         profiler.start()
+
+        if self.controlMode == "grod":
+            if self.input.aim == ShooterTarget.PODIUM:
+                self.input.aim = ShooterTarget.NONE
+            
+            self.input.overideNoteStateMachine = False
+
 
         if not self.input.overideNoteStateMachine:
             self.noteStateMachine.intake(self.input.intake)

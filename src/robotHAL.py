@@ -69,6 +69,8 @@ class RobotHALBuffer():
         self.yaw: float = 0
         self.leds: list[tuple] = [(0, 0, 0)] * 8
 
+        self.controlProfile: str = "comp"
+
         self.debugBool: bool = False
 
     def resetEncoders(self) -> None:
