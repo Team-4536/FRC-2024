@@ -100,9 +100,14 @@ class NoteStateMachine():
             self.subwooferSetpoint = (0, 500, 0)
             self.lobSetpoint = (0.7, 500, 0)
             self.ampSetpoint = (1.7, 100, 0)
+        elif hal.controlProfile == "child":
+            self.subwooferSetpoint = (0, 250, 0)
+            self.lobSetpoint = (0.4, 120, 0)
+            self.ampSetpoint = (1.7, 100, 0)
 
         else:
             self.subwooferSetpoint = (0, 250, 0)
+            self.podiumSetpoint = (0.3, 350, 2.35)
             self.lobSetpoint = (0.4, 250, 0)
             self.ampSetpoint = (1.7, 100, 0)
 

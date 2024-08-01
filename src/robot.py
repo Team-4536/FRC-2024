@@ -220,6 +220,7 @@ class Robot(wpilib.TimedRobot):
         self.controlChooser.addOption("Child", "child")
         self.controlChooser.addOption("VIP", "child")
         self.controlChooser.addOption("Grand Old Day", "grodChoosen")
+        self.controlChooser.addOption("State Fair (not child)", "fair")
         wpilib.SmartDashboard.putData("Control Mode", self.controlChooser)
 
     def robotPeriodic(self) -> None:
@@ -255,8 +256,9 @@ class Robot(wpilib.TimedRobot):
         if self.input.absToggle:
             self.abs = not self.abs
 
-        if self.input.armCtrlr.getBackButtonPressed():
-            self.outsideCaution = not self.outsideCaution
+        #if self.input.armCtrlr.getBackButtonPressed():
+            #self.outsideCaution = not self.outsideCaution
+        self.outsideCaution = False
 
         self.lights.updateLED(self.table, self.time, self.hal, self.hardware, self.input)
 
@@ -312,8 +314,8 @@ class Robot(wpilib.TimedRobot):
             speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
             turnScalar = 6
         elif self.controlMode == "child":
-            speedControlEdited = 0.5
-            turnScalar = 3
+            speedControlEdited = 0.8
+            turnScalar = 2.9
         elif self.controlMode == "grod" or self.controlMode == "outside":
             if self.fastMode:
                 speedControlEdited = 1.1
@@ -373,10 +375,13 @@ class Robot(wpilib.TimedRobot):
             self.ang = 0
             self.PIDtoggle = True
 
-        #assign turning speed based on pid
-        if self.PIDtoggle and (self.controlMode == "comp" or self.controlMode == "child"):
+        #assign turning speed based on pid [COMP]
+        if self.PIDtoggle and (self.controlMode == "comp" or self.controlMode == "fair"):
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)), self.ang, self.time.dt))
-        #limelight lineup
+        #limelight lineup [COMP ONLY]
+        elif self.PIDtoggle and self.controlMode == "child":
+            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)) * 0.4, self.ang, self.time.dt))
+    
         elif self.input.lineUpWithSubwoofer and self.controlMode == "comp":
             if(self.frontLimelightTable.getNumber("getpipe", -1) != self.subwooferLineupPipeline):
                 self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
@@ -416,12 +421,13 @@ class Robot(wpilib.TimedRobot):
 
         profiler.start()
 
-        if self.controlMode == "grod":
+        #disable podium aim button for [GROD and CHILD]
+        if self.controlMode == "grod" or self.controlMode == "child":
             if self.input.aim == ShooterTarget.PODIUM:
                 self.input.aim = ShooterTarget.NONE
             
+            #never go into manual mode
             self.input.overideNoteStateMachine = False
-
 
         if not self.input.overideNoteStateMachine:
             self.noteStateMachine.intake(self.input.intake)
