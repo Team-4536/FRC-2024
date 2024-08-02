@@ -5,6 +5,7 @@ import navx
 import ntcore
 import profiler
 import rev
+from rev import SparkPIDController
 import wpilib
 from phoenix5.led import CANdle
 from phoenix6.hardware import CANcoder
@@ -189,6 +190,18 @@ class RobotHAL():
         self.shooterTopMotor = rev.CANSparkMax(11, rev.CANSparkMax.MotorType.kBrushless)
         self.shooterTopMotor.setInverted(True)
         self.shooterTopMotor.setOpenLoopRampRate(0.2)
+        self.shooterTopMotorPID: SparkPIDController = self.shooterTopMotor.getPIDController()
+        self.shooterTopMotorPID.AccelStrategy(SparkPIDController.AccelStrategy.kTrapezoidal.value)
+        self.shooterTopMotorPID.ArbFFUnits(rev.SparkPIDController.ArbFFUnits.kVoltage.value) # this means that the FF input will be in Volts
+        self.shooterTopMotorPID.setFF(0.0001, 1)
+        self.shooterTopMotorPID.setP(0.00015, 1)
+        self.shooterTopMotorPID.setI(0, 1)
+        self.shooterTopMotorPID.setD(0, 1)
+        self.shooterTopMotorPID.setSmartMotionMaxAccel(100, 1)
+        self.shooterTopMotorPID.setSmartMotionMaxVelocity(2500, 1)
+        self.shooterTopMotorPID.setOutputRange(-12, 12, 1)
+        self.shooterTopMotorPID.setReference(0, rev.CANSparkLowLevel.ControlType.kVelocity)
+
         self.shooterBottomMotor = rev.CANSparkMax(12, rev.CANSparkMax.MotorType.kBrushless) # motor on follower
         self.shooterBottomMotor.setOpenLoopRampRate(0.2)
         self.shooterAimMotor = rev.CANSparkMax(14, rev.CANSparkMax.MotorType.kBrushless)
