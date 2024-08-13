@@ -220,7 +220,8 @@ class Robot(wpilib.TimedRobot):
         self.controlChooser.addOption("Child", "child")
         self.controlChooser.addOption("VIP", "child")
         self.controlChooser.addOption("Grand Old Day", "grodChoosen")
-        self.controlChooser.addOption("State Fair (not child)", "fair")
+        self.controlChooser.addOption("State Fair (Comp)", "fair")
+        self.controlChooser.addOption("State Fair Child", "fairKid")
         wpilib.SmartDashboard.putData("Control Mode", self.controlChooser)
 
     def robotPeriodic(self) -> None:
@@ -310,10 +311,10 @@ class Robot(wpilib.TimedRobot):
             self.fastMode = not self.fastMode
 
         #drive scalars (scalars range from 0.0-5.0)
-        if self.controlMode == "comp":
+        if self.controlMode == "comp" or self.controlMode == "fair":
             speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
             turnScalar = 6
-        elif self.controlMode == "child":
+        elif self.controlMode == "child" or self.controlMode == "fairKid":
             speedControlEdited = 0.8
             turnScalar = 2.9
         elif self.controlMode == "grod" or self.controlMode == "outside":
@@ -325,6 +326,7 @@ class Robot(wpilib.TimedRobot):
         else:
             speedControlEdited = 0
             turnScalar = 0
+            #CHECK THIS IF NEW MODE DOESNT WORK
 
         self.table.putNumber("speedControl", speedControlEdited)
 
@@ -375,14 +377,15 @@ class Robot(wpilib.TimedRobot):
             self.ang = 0
             self.PIDtoggle = True
 
-        #assign turning speed based on pid [COMP]
-        if self.PIDtoggle and (self.controlMode == "comp" or self.controlMode == "fair"):
+        #assign turning speed based on pid [COMP and FAIR]
+        if self.PIDtoggle and (self.controlMode == "fair" or self.controlMode == "fair"):
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)), self.ang, self.time.dt))
-        #limelight lineup [COMP ONLY]
-        elif self.PIDtoggle and self.controlMode == "child":
+
+        elif self.PIDtoggle and (self.controlMode == "child" or self.controlMode == "fairKid"):
             speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)) * 0.4, self.ang, self.time.dt))
-    
-        elif self.input.lineUpWithSubwoofer and self.controlMode == "comp":
+
+        #limelight lineup [COMP and FAIR and FAIRKID]
+        elif self.input.lineUpWithSubwoofer and (self.controlMode == "comp" or self.controlMode == "fair" or self.controlMode == "fairKid"):
             if(self.frontLimelightTable.getNumber("getpipe", -1) != self.subwooferLineupPipeline):
                 self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
             tx = self.frontLimelightTable.getNumber("tx", 0)
@@ -425,7 +428,7 @@ class Robot(wpilib.TimedRobot):
         if self.controlMode == "grod" or self.controlMode == "child":
             if self.input.aim == ShooterTarget.PODIUM:
                 self.input.aim = ShooterTarget.NONE
-            
+
             #never go into manual mode
             self.input.overideNoteStateMachine = False
 
@@ -475,7 +478,7 @@ class Robot(wpilib.TimedRobot):
 
         if(self.input.camEncoderReset):
             self.hardware.resetCamEncoderPos(0)
-            
+
         if(self.input.climbEncoderReset or self.hal.climberLimitPressed):
             self.hardware.resetClimbEncoderPos(0)
 
