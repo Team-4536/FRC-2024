@@ -2,6 +2,7 @@ import math
 
 from numpy import short
 from phoenix5 import ControlMode
+from phoenix5.led import CANdle, RainbowAnimation
 
 import profiler
 import robotAutos
@@ -209,6 +210,10 @@ class Robot(wpilib.TimedRobot):
         self.fastMode = False
         self.outsideCaution = False
 
+        self.rainbowAnim = RainbowAnimation(1, .4, 80)
+        self.candle = CANdle(20)
+        #self.candle.animate(self.rainbowAnim)
+
         self.table.putNumber("ctrl/SWERVE ADDED X", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED Y", 0.0)
         self.table.putNumber("ctrl/SWERVE ADDED R", 0.0)
@@ -226,6 +231,9 @@ class Robot(wpilib.TimedRobot):
 
     def robotPeriodic(self) -> None:
         profiler.start()
+
+        #self.candle.animate(self.rainbowAnim)
+
 
         self.time = TimeData(self.time)
 
@@ -261,7 +269,7 @@ class Robot(wpilib.TimedRobot):
             #self.outsideCaution = not self.outsideCaution
         self.outsideCaution = False
 
-        self.lights.updateLED(self.table, self.time, self.hal, self.hardware, self.input)
+        #self.lights.updateLED(self.table, self.time, self.hal, self.hardware, self.input)
 
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
