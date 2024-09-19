@@ -400,7 +400,7 @@ class Robot(wpilib.TimedRobot):
                 self.leashError = self.leashError * 0.2
                 self.table.putNumber("leashedError2", self.leashError)
                 speed = ChassisSpeeds(-0.2,0, -self.leashError)
-        if self.pieceStop > 30:
+        if self.pieceStop > 60:
             speed = ChassisSpeeds(0, 0, 0)
         self.table.putNumber("leashedSpeedX", speed.vx)
         self.table.putNumber("leashedSpeedY", speed.vy)
