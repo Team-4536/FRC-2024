@@ -228,6 +228,7 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("leashedSpeedTurn", 0)
         self.table.putNumber("leashedError1", 0)
         self.table.putNumber("leashedError2", 0)
+        self.table.putNumber("limelightStop", 0)
         
 
     def robotPeriodic(self) -> None:
@@ -242,6 +243,7 @@ class Robot(wpilib.TimedRobot):
         
         self.pieceX = self.frontLimelightTable.getNumber("tx", 0)
         self.pieceY = self.frontLimelightTable.getNumber("ty",0)
+        self.pieceStop = self.frontLimelightTable.getNumber("ta",0)
         pose = self.drive.odometry.getPose()
         self.table.putNumber("odomX", pose.x )
         self.table.putNumber("odomY", pose.y)
@@ -379,7 +381,7 @@ class Robot(wpilib.TimedRobot):
             #     self.hal.driveVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED DRIVE", 0)
             #     self.hal.steeringVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED STEER", 0)
 
-
+        speed = ChassisSpeeds(0, 0, 0)
         # self.drive.update(self.time.dt, self.hal, speed)
         if (self.pieceX == 0.00 and self.pieceY == 0.00):
             pass
@@ -398,10 +400,12 @@ class Robot(wpilib.TimedRobot):
                 self.leashError = self.leashError * 0.2
                 self.table.putNumber("leashedError2", self.leashError)
                 speed = ChassisSpeeds(-0.2,0, -self.leashError)
-        
+        if self.pieceStop > 30:
+            speed = ChassisSpeeds(0, 0, 0)
         self.table.putNumber("leashedSpeedX", speed.vx)
         self.table.putNumber("leashedSpeedY", speed.vy)
         self.table.putNumber("leashedSpeedTurn", speed.omega)
+        self.table.putNumber("limelightStop", self.pieceStop)
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
 
