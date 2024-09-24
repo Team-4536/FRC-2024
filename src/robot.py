@@ -1,4 +1,5 @@
 import math
+from re import T
 
 import profiler
 import robotHAL
@@ -69,6 +70,7 @@ class RobotInputs():
 
         self.climb: float = 0.0 # - is trigger in, + is reverse pressed, range goes -1 to 1
         self.climbEncoderReset: bool = False
+        
 
         self.lineUpWithSubwoofer: bool = False
 
@@ -161,7 +163,7 @@ SUBWOOFER_LINEUP_BLUE_PIPLINE = 2
 
 class Robot(wpilib.TimedRobot):
     def robotInit(self) -> None:
-        
+        self.limelightFollow: bool = False
         self.limelightLeashOn = True
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
@@ -296,12 +298,41 @@ class Robot(wpilib.TimedRobot):
 
         if self.input.gyroReset:
             self.driveGyroYawOffset = self.hal.yaw
-
+        
         profiler.start()
         speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
         turnScalar = 6
         driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
         turnVector = Translation2d(self.input.turningY, self.input.turningX) #for pid only
+
+        if self.limelightFollow == True:
+            #speed = ChassisSpeeds(0, 0, 0)
+            # self.drive.update(self.time.dt, self.hal, speed)
+            if (self.pieceX == 0.00 and self.pieceY == 0.00):
+                pass
+            else:
+                if self.pieceX > -12 and self.pieceX < 12:
+                    speed = ChassisSpeeds(-0.4, 0, 0)
+                elif (self.pieceX < -12):
+                    self.leashError: float = self.pieceX + 12
+                    self.table.putNumber("leashedError1", self.leashError)
+                    self.leashError = self.leashError * 0.2
+                    self.table.putNumber("leashedError2", self.leashError)
+                    speed = ChassisSpeeds(-0.2,0, -self.leashError) 
+                elif (self.pieceX > 12):
+                    self.leashError: float = self.pieceX - 12
+                    self.table.putNumber("leashedError1", self.leashError)
+                    self.leashError = self.leashError * 0.2
+                    self.table.putNumber("leashedError2", self.leashError)
+                    speed = ChassisSpeeds(-0.2,0, -self.leashError)
+            if self.pieceStop > 60:
+                speed = ChassisSpeeds(0, 0, 0)
+            self.table.putNumber("leashedSpeedX", speed.vx)
+            self.table.putNumber("leashedSpeedY", speed.vy)
+            self.table.putNumber("leashedSpeedTurn", speed.omega)
+            self.table.putNumber("limelightStop", self.pieceStop)
+            self.drive.update(self.time.dt, self.hal, speed)
+
         #absolute drive
         if self.abs:
             driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
@@ -380,34 +411,8 @@ class Robot(wpilib.TimedRobot):
             # for i in range(4):
             #     self.hal.driveVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED DRIVE", 0)
             #     self.hal.steeringVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED STEER", 0)
-
-        speed = ChassisSpeeds(0, 0, 0)
-        # self.drive.update(self.time.dt, self.hal, speed)
-        if (self.pieceX == 0.00 and self.pieceY == 0.00):
-            pass
-        else:
-            if self.pieceX > -12 and self.pieceX < 12:
-                speed = ChassisSpeeds(-0.4, 0, 0)
-            elif (self.pieceX < -12):
-                self.leashError: float = self.pieceX + 12
-                self.table.putNumber("leashedError1", self.leashError)
-                self.leashError = self.leashError * 0.2
-                self.table.putNumber("leashedError2", self.leashError)
-                speed = ChassisSpeeds(-0.2,0, -self.leashError) 
-            elif (self.pieceX > 12):
-                self.leashError: float = self.pieceX - 12
-                self.table.putNumber("leashedError1", self.leashError)
-                self.leashError = self.leashError * 0.2
-                self.table.putNumber("leashedError2", self.leashError)
-                speed = ChassisSpeeds(-0.2,0, -self.leashError)
-        if self.pieceStop > 60:
-            speed = ChassisSpeeds(0, 0, 0)
-        self.table.putNumber("leashedSpeedX", speed.vx)
-        self.table.putNumber("leashedSpeedY", speed.vy)
-        self.table.putNumber("leashedSpeedTurn", speed.omega)
-        self.table.putNumber("limelightStop", self.pieceStop)
-        self.drive.update(self.time.dt, self.hal, speed)
-        profiler.end("drive updates")
+        
+            profiler.end("drive updates")
 
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
