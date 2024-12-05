@@ -20,7 +20,7 @@ from timing import TimeData
 from utils import CircularScalar, Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
-
+import photonlibpy
 
 class RobotInputs():
     TARGET_NONE = 0
@@ -244,6 +244,17 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/driveY", self.input.driveY)
         self.table.putBoolean("ctrl/noteStateMachineOveride", self.input.overideNoteStateMachine)
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
+
+        self.camera = PhotonCamera("Camera1")
+        result = self.camera.getLatestResult()
+        hasTargets = result.hasTargets()
+        target = result.getTargets()
+        yaw = target.getYaw()
+        pitch = target.getPitch()
+        area = target.getArea()
+        skew = target.getSkew()
+        pose = target.getCameraToTarget()
+        corners = target.getDetectedCorners()
 
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
