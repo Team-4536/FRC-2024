@@ -1,4 +1,5 @@
 import math
+from re import S
 
 from numpy import short
 from phoenix5 import ControlMode
@@ -21,6 +22,8 @@ from utils import CircularScalar, Scalar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 import photonlibpy
+from photonlibpy import photonCamera
+
 
 class RobotInputs():
     TARGET_NONE = 0
@@ -245,12 +248,14 @@ class Robot(wpilib.TimedRobot):
         self.table.putBoolean("ctrl/noteStateMachineOveride", self.input.overideNoteStateMachine)
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
 
-        self.camera = PhotonCamera("Camera1")
+        self.camera = photonCamera.PhotonCamera("Camera1")
+        
         result = self.camera.getLatestResult()
         hasTargets = result.hasTargets()
-        target = result.getTargets()
-        yaw = target.getYaw()
-        pitch = target.getPitch()
+        # target = result.getTargets()
+        targets = result.getTargets()
+        yaw = self.camera.
+        pitch = targets.Get()
         area = target.getArea()
         skew = target.getSkew()
         pose = target.getCameraToTarget()
