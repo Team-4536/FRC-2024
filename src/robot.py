@@ -252,14 +252,15 @@ class Robot(wpilib.TimedRobot):
         
         result = self.camera.getLatestResult()
         hasTargets = result.hasTargets()
-        # target = result.getTargets()
-        targets = result.getTargets()
-        yaw = self.camera.
-        pitch = targets.Get()
-        area = target.getArea()
-        skew = target.getSkew()
-        pose = target.getCameraToTarget()
-        corners = target.getDetectedCorners()
+        target = result.getTargets()
+        
+        pitch = target[0].getPitch()
+        yaw = target[1].getYaw()
+        area = target[2].getArea()
+        skew = target[3].getSkew()
+        pose = target[4].getBestCameraToTarget()
+        #corners = target.getDetectedCorners()
+        self.photonOdometry
 
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
