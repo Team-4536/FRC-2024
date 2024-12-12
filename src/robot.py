@@ -260,7 +260,7 @@ class Robot(wpilib.TimedRobot):
         skew = target[3].getSkew()
         pose = target[4].getBestCameraToTarget()
         #corners = target.getDetectedCorners()
-        self.photonOdometry
+        self.photonOdometry = 
 
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
