@@ -125,7 +125,7 @@ class RobotInputs():
         self.feed = self.intake
 
 
-        self.climb = float(self.armCtrlr.getRightBumper()) - self.armCtrlr.getRightTriggerAxis()
+        self.climb = float(self.armCtrlr.getRightBumper() * 2.5) - (self.armCtrlr.getRightTriggerAxis() * 3)
         self.climbEncoderReset = self.armCtrlr.getXButtonPressed()
 
         # manual mode controls
