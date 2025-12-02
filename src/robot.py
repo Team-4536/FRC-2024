@@ -1,14 +1,12 @@
 import math
 
 from numpy import short
-from phoenix5 import ControlMode
 
 import profiler
 import robotAutos
 import robotHAL
 import wpilib
 from climberStateMachine import ClimberStateMachine
-from lightControl import LightControl
 from noteStateMachine import NoteStateMachine, ShooterTarget
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
@@ -22,7 +20,7 @@ from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 
 
-class RobotInputs():
+class RobotInputs:
     TARGET_NONE = 0
     TARGET_LEFT = 1
     TARGET_RIGHT = 2
@@ -62,15 +60,18 @@ class RobotInputs():
 
         self.overideNoteStateMachine: bool = False
 
-        self.overrideWasPressed: bool = False # NOTE: (Rob, 3/23/24) this is done completely as a hack, trying the WPI getYButtonPressed was not working as intended (even though other ones weres). 
+        self.overrideWasPressed: bool = (
+            False  # NOTE: (Rob, 3/23/24) this is done completely as a hack, trying the WPI getYButtonPressed was not working as intended (even though other ones weres).
+        )
 
         self.shooterAimManual: float = 0
         self.aimEncoderReset: bool = False
         self.manualFeed: bool = False
         self.manualFeedReverse: bool = False
 
-
-        self.climb: float = 0.0 # - is trigger in, + is reverse pressed, range goes -1 to 1
+        self.climb: float = (
+            0.0  # - is trigger in, + is reverse pressed, range goes -1 to 1
+        )
         self.climbEncoderReset: bool = False
 
         self.lineUpWithSubwoofer: bool = False
@@ -79,8 +80,12 @@ class RobotInputs():
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
-        self.driveX, self.driveY = self.driveScalar.Scale(-self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX())
-        self.turningX, self.turningY = self.turningScalar.Scale(self.driveCtrlr.getRightX(), -self.driveCtrlr.getRightY())
+        self.driveX, self.driveY = self.driveScalar.Scale(
+            -self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX()
+        )
+        self.turningX, self.turningY = self.turningScalar.Scale(
+            self.driveCtrlr.getRightX(), -self.driveCtrlr.getRightY()
+        )
 
         self.turningPIDButton = self.driveCtrlr.getLeftBumper()
         self.turningStickButton = self.driveCtrlr.getRightStickButton()
@@ -91,13 +96,13 @@ class RobotInputs():
         self.absToggle = self.driveCtrlr.getBackButtonPressed()
 
         self.angleTarget = self.TARGET_NONE
-        if self.driveCtrlr.getAButton(): #down
+        if self.driveCtrlr.getAButton():  # down
             self.angleTarget = self.TARGET_SUBWOOFER
-        elif self.driveCtrlr.getBButton(): #right
+        elif self.driveCtrlr.getBButton():  # right
             self.angleTarget = self.TARGET_RIGHT
-        elif self.driveCtrlr.getYButton(): #up
+        elif self.driveCtrlr.getYButton():  # up
             self.angleTarget = self.TARGET_SOURCE
-        elif self.driveCtrlr.getXButton(): #left
+        elif self.driveCtrlr.getXButton():  # left
             self.angleTarget = self.TARGET_LEFT
 
         # arm controller
@@ -105,17 +110,16 @@ class RobotInputs():
 
         self.manualLightFlash = self.armCtrlr.getStartButtonPressed()
 
-
-        #POV is also known as the Dpad, 0 is centered on top, angles go clockwise
+        # POV is also known as the Dpad, 0 is centered on top, angles go clockwise
         self.aim = ShooterTarget.NONE
-        if(self.armCtrlr.getPOV() != -1):
-            if self.armCtrlr.getPOV() < 10 or self.armCtrlr.getPOV() > 350: # up
+        if self.armCtrlr.getPOV() != -1:
+            if self.armCtrlr.getPOV() < 10 or self.armCtrlr.getPOV() > 350:  # up
                 self.aim = ShooterTarget.SUBWOOFER
-            elif self.armCtrlr.getPOV() < 280  and self.armCtrlr.getPOV() > 260: # left
+            elif self.armCtrlr.getPOV() < 280 and self.armCtrlr.getPOV() > 260:  # left
                 self.aim = ShooterTarget.PODIUM
-            elif self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170: # down
+            elif self.armCtrlr.getPOV() < 190 and self.armCtrlr.getPOV() > 170:  # down
                 self.aim = ShooterTarget.AMP
-            elif self.armCtrlr.getPOV() < 100 and self.armCtrlr.getPOV() > 80: # right
+            elif self.armCtrlr.getPOV() < 100 and self.armCtrlr.getPOV() > 80:  # right
                 self.aim = ShooterTarget.LOB
                 print("pob pressed")
 
@@ -124,12 +128,13 @@ class RobotInputs():
         self.camTemp = -self.armCtrlr.getRightY()
         self.feed = self.intake
 
-
-        self.climb = float(self.armCtrlr.getRightBumper() * 2.5) - (self.armCtrlr.getRightTriggerAxis() * 3)
+        self.climb = float(self.armCtrlr.getRightBumper() * 2.5) - (
+            self.armCtrlr.getRightTriggerAxis() * 3
+        )
         self.climbEncoderReset = self.armCtrlr.getXButtonPressed()
 
         # manual mode controls
-        if(self.armCtrlr.getYButton() and not self.overrideWasPressed):
+        if self.armCtrlr.getYButton() and not self.overrideWasPressed:
             self.overideNoteStateMachine = not self.overideNoteStateMachine
         self.overrideWasPressed = self.armCtrlr.getYButton()
 
@@ -142,11 +147,12 @@ class RobotInputs():
 
         self.lineUpWithSubwoofer = self.driveCtrlr.getLeftTriggerAxis() > 0.3
 
+
 AUTO_SIDE_RED = "red"
 AUTO_SIDE_BLUE = "blue"
 AUTO_SIDE_FMS = "FMS side"
 
-#Pipeline definitions
+# Pipeline definitions
 
 ODOMETRY_RESET_PIPELINE = 0
 SUBWOOFER_LINEUP_RED_PIPLINE = 1
@@ -169,20 +175,26 @@ class Robot(wpilib.TimedRobot):
             self.hardware = RobotSimHAL()
         else:
             self.hardware = robotHAL.RobotHAL()
-        self.lights = LightControl()
         self.hardware.update(self.hal, self.time)
 
         self.table = NetworkTableInstance.getDefault().getTable("telemetry")
 
         self.input = RobotInputs()
 
-        wheelPositions = [SwerveModulePosition(self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])) for i in range(4)]
+        wheelPositions = [
+            SwerveModulePosition(
+                self.hal.drivePositions[i], Rotation2d(self.hal.steeringPositions[i])
+            )
+            for i in range(4)
+        ]
         self.drive = SwerveDrive(Rotation2d(self.hal.yaw), Pose2d(), wheelPositions)
 
         self.abs = True
-        self.driveGyroYawOffset = 0.0 # the last angle that drivers reset the field oriented drive to zero at
+        self.driveGyroYawOffset = (
+            0.0  # the last angle that drivers reset the field oriented drive to zero at
+        )
         self.hardware.resetClimbEncoderPos(0)
-        
+
         self.noteStateMachine: NoteStateMachine = NoteStateMachine()
         self.climberStateMachine: ClimberStateMachine = ClimberStateMachine()
 
@@ -190,17 +202,19 @@ class Robot(wpilib.TimedRobot):
         self.autoSideChooser.setDefaultOption(AUTO_SIDE_FMS, AUTO_SIDE_FMS)
         self.autoSideChooser.addOption(AUTO_SIDE_RED, AUTO_SIDE_RED)
         self.autoSideChooser.addOption(AUTO_SIDE_BLUE, AUTO_SIDE_BLUE)
-        wpilib.SmartDashboard.putData('auto side chooser', self.autoSideChooser)
+        wpilib.SmartDashboard.putData("auto side chooser", self.autoSideChooser)
         self.autoSubsys = robotAutos.RobotAutos()
 
         self.odomField = wpilib.Field2d()
         wpilib.SmartDashboard.putData("odom", self.odomField)
 
-        #kp can be 4 if wanted
+        # kp can be 4 if wanted
         self.turnPID = PIDController("turnPID", 3, 0, 0)
         self.ang = 0
 
-        self.frontLimelightTable = NetworkTableInstance.getDefault().getTable("limelight-front")
+        self.frontLimelightTable = NetworkTableInstance.getDefault().getTable(
+            "limelight-front"
+        )
         self.robotPoseTable = NetworkTableInstance.getDefault().getTable("robot pose")
 
         self.subwooferLineupPID = PIDController("Subwoofer Lineup PID", 8, 0, 0, 0)
@@ -234,7 +248,7 @@ class Robot(wpilib.TimedRobot):
         self.drive.updateOdometry(self.hal)
 
         pose = self.drive.odometry.getPose()
-        self.table.putNumber("odomX", pose.x )
+        self.table.putNumber("odomX", pose.x)
         self.table.putNumber("odomY", pose.y)
         self.odomField.setRobotPose(pose)
 
@@ -242,12 +256,18 @@ class Robot(wpilib.TimedRobot):
         self.table.putNumber("ctrl/absOffset", self.driveGyroYawOffset)
         self.table.putNumber("ctrl/driveX", self.input.driveX)
         self.table.putNumber("ctrl/driveY", self.input.driveY)
-        self.table.putBoolean("ctrl/noteStateMachineOveride", self.input.overideNoteStateMachine)
+        self.table.putBoolean(
+            "ctrl/noteStateMachineOveride", self.input.overideNoteStateMachine
+        )
         self.table.putNumber("drive pov", self.input.driveCtrlr.getPOV())
 
         self.onRedSide: bool = self.autoSideChooser.getSelected() == AUTO_SIDE_RED
         if self.autoSideChooser.getSelected() == AUTO_SIDE_FMS:
-            if NetworkTableInstance.getDefault().getTable("FMSInfo").getBoolean("IsRedAlliance", False):
+            if (
+                NetworkTableInstance.getDefault()
+                .getTable("FMSInfo")
+                .getBoolean("IsRedAlliance", False)
+            ):
                 self.onRedSide = True
             else:
                 self.onRedSide = False
@@ -257,8 +277,6 @@ class Robot(wpilib.TimedRobot):
 
         if self.input.armCtrlr.getBackButtonPressed():
             self.outsideCaution = not self.outsideCaution
-
-        self.lights.updateLED(self.table, self.time, self.hal, self.hardware, self.input)
 
         updatePIDsInNT()
         self.table.putNumber("Offset yaw", -self.hal.yaw + self.driveGyroYawOffset)
@@ -283,11 +301,11 @@ class Robot(wpilib.TimedRobot):
         self.PIDtoggle = False
         self.rightStickToggle = False
 
-        #TODO make the pipelines an Enum
-        #red side
+        # TODO make the pipelines an Enum
+        # red side
         self.subwooferLineupPipeline: int = SUBWOOFER_LINEUP_RED_PIPLINE
-        if(not self.onRedSide):
-            #blue side
+        if not self.onRedSide:
+            # blue side
             self.subwooferLineupPipeline = SUBWOOFER_LINEUP_BLUE_PIPLINE
 
     def teleopPeriodic(self) -> None:
@@ -307,7 +325,7 @@ class Robot(wpilib.TimedRobot):
         if self.input.driveCtrlr.getRightBumperPressed():
             self.fastMode = not self.fastMode
 
-        #drive scalars (scalars range from 0.0-5.0)
+        # drive scalars (scalars range from 0.0-5.0)
         if self.controlMode == "comp":
             speedControlEdited = lerp(1, 5.0, self.input.speedCtrl)
             turnScalar = 6
@@ -326,37 +344,58 @@ class Robot(wpilib.TimedRobot):
 
         self.table.putNumber("speedControl", speedControlEdited)
 
-        driveVector = Translation2d(self.input.driveX * speedControlEdited, self.input.driveY * speedControlEdited)
-        turnVector = Translation2d(self.input.turningY, self.input.turningX) #for pid only
-        #absolute drive
+        driveVector = Translation2d(
+            self.input.driveX * speedControlEdited,
+            self.input.driveY * speedControlEdited,
+        )
+        turnVector = Translation2d(
+            self.input.turningY, self.input.turningX
+        )  # for pid only
+        # absolute drive
         if self.abs:
-            driveVector = driveVector.rotateBy(Rotation2d(-self.hal.yaw + self.driveGyroYawOffset))
+            driveVector = driveVector.rotateBy(
+                Rotation2d(-self.hal.yaw + self.driveGyroYawOffset)
+            )
 
-        #disable pid when stick moved
-        if (self.input.turningX != 0 and self.rightStickToggle == False) or self.input.lineUpWithSubwoofer:
+        # disable pid when stick moved
+        if (
+            self.input.turningX != 0 and self.rightStickToggle == False
+        ) or self.input.lineUpWithSubwoofer:
             self.PIDtoggle = False
 
         if self.input.turningX == 0:
             self.rightStickToggle = False
 
-        #turn stick to dpad (kind of)
+        # turn stick to dpad (kind of)
         if self.input.turningStickButton:
             self.PIDtoggle = True
             self.rightStickToggle = True
-            if turnVector.angle().degrees() >= -45 and turnVector.angle().degrees() < 45:
+            if (
+                turnVector.angle().degrees() >= -45
+                and turnVector.angle().degrees() < 45
+            ):
                 if self.onRedSide:
                     self.ang = math.radians(60)
                 else:
                     self.ang = math.radians(-60)
-            elif turnVector.angle().degrees() >= 45 and turnVector.angle().degrees() < 135:
+            elif (
+                turnVector.angle().degrees() >= 45
+                and turnVector.angle().degrees() < 135
+            ):
                 self.ang = math.radians(90)
-            elif turnVector.angle().degrees() >= 135 or turnVector.angle().degrees() < -135:
+            elif (
+                turnVector.angle().degrees() >= 135
+                or turnVector.angle().degrees() < -135
+            ):
                 self.ang = math.radians(0)
-            elif turnVector.angle().degrees() >= -135 and turnVector.angle().degrees() < -45:
+            elif (
+                turnVector.angle().degrees() >= -135
+                and turnVector.angle().degrees() < -45
+            ):
                 self.ang = math.radians(-90)
         self.table.putNumber("ctrl/turnVectorAngle", turnVector.angle().degrees())
 
-        #assign angle based on button
+        # assign angle based on button
         if self.input.angleTarget == RobotInputs.TARGET_LEFT:
             self.ang = math.radians(-90)
             self.PIDtoggle = True
@@ -373,23 +412,42 @@ class Robot(wpilib.TimedRobot):
             self.ang = 0
             self.PIDtoggle = True
 
-        #assign turning speed based on pid
-        if self.PIDtoggle and (self.controlMode == "comp" or self.controlMode == "child"):
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)), self.ang, self.time.dt))
-        #limelight lineup
+        # assign turning speed based on pid
+        if self.PIDtoggle and (
+            self.controlMode == "comp" or self.controlMode == "child"
+        ):
+            speed = ChassisSpeeds(
+                driveVector.X(),
+                driveVector.Y(),
+                self.turnPID.tickErr(
+                    angleWrap(self.ang + (-self.hal.yaw + self.driveGyroYawOffset)),
+                    self.ang,
+                    self.time.dt,
+                ),
+            )
+        # limelight lineup
         elif self.input.lineUpWithSubwoofer and self.controlMode == "comp":
-            if(self.frontLimelightTable.getNumber("getpipe", -1) != self.subwooferLineupPipeline):
-                self.frontLimelightTable.putNumber("pipeline", self.subwooferLineupPipeline)
+            if (
+                self.frontLimelightTable.getNumber("getpipe", -1)
+                != self.subwooferLineupPipeline
+            ):
+                self.frontLimelightTable.putNumber(
+                    "pipeline", self.subwooferLineupPipeline
+                )
             tx = self.frontLimelightTable.getNumber("tx", 0)
-            ty = self.frontLimelightTable.getNumber('ty', 0)
+            ty = self.frontLimelightTable.getNumber("ty", 0)
 
-            #speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
-            speed = ChassisSpeeds(self.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, self.time.dt), \
-                    driveVector.Y(), \
-                    self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
+            # speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt))
+            speed = ChassisSpeeds(
+                self.subwooferLineupPID.tickErr(math.radians(ty) + 0, 0, self.time.dt),
+                driveVector.Y(),
+                self.turnPID.tickErr(angleWrap(-math.radians(tx) + 0), 0, self.time.dt),
+            )
         else:
-            #set chassis speed with no pid
-            speed = ChassisSpeeds(driveVector.X(), driveVector.Y(), -self.input.turningX * turnScalar)
+            # set chassis speed with no pid
+            speed = ChassisSpeeds(
+                driveVector.X(), driveVector.Y(), -self.input.turningX * turnScalar
+            )
 
         self.table.putBoolean("ctrl/anglePIDToggle", self.PIDtoggle)
         self.table.putNumber("ctrl/targetAngle", math.degrees(self.ang))
@@ -398,7 +456,10 @@ class Robot(wpilib.TimedRobot):
         time -= self.time.dt
         self.table.putNumber("ctrl/SWERVE TEST TIME", time)
         if time > 0:
-            s = Translation2d(self.table.getNumber("ctrl/SWERVE ADDED X", 0.0), self.table.getNumber("ctrl/SWERVE ADDED Y", 0.0))
+            s = Translation2d(
+                self.table.getNumber("ctrl/SWERVE ADDED X", 0.0),
+                self.table.getNumber("ctrl/SWERVE ADDED Y", 0.0),
+            )
             s = s.rotateBy(Rotation2d((-self.hal.yaw + self.driveGyroYawOffset)))
             speed.vx += s.X()
             speed.vy += s.Y()
@@ -407,10 +468,8 @@ class Robot(wpilib.TimedRobot):
             #     self.hal.driveVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED DRIVE", 0)
             #     self.hal.steeringVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED STEER", 0)
 
-
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
-
 
         self.table.putNumber("POV", self.input.armCtrlr.getPOV())
 
@@ -419,44 +478,51 @@ class Robot(wpilib.TimedRobot):
         if self.controlMode == "grod":
             if self.input.aim == ShooterTarget.PODIUM:
                 self.input.aim = ShooterTarget.NONE
-            
-            self.input.overideNoteStateMachine = False
 
+            self.input.overideNoteStateMachine = False
 
         if not self.input.overideNoteStateMachine:
             self.noteStateMachine.intake(self.input.intake)
-            self.noteStateMachine.feed(self.input.feed) #untested
+            self.noteStateMachine.feed(self.input.feed)  # untested
             self.noteStateMachine.aim(self.input.aim)
             self.noteStateMachine.rev(self.input.rev)
             self.noteStateMachine.shoot(self.input.shoot)
-            self.noteStateMachine.update(self.hal, self.time.timeSinceInit, self.time.dt)
+            self.noteStateMachine.update(
+                self.hal, self.time.timeSinceInit, self.time.dt
+            )
         else:
             self.noteStateMachine.state = self.noteStateMachine.START
-            #overides for intaking
-            if(self.input.intake):
+            # overides for intaking
+            if self.input.intake:
                 self.hal.intakeSpeeds = [0.4, 0.4]
-            if(self.input.intakeReverse):
+            if self.input.intakeReverse:
                 self.hal.intakeSpeeds = [-0.4, -0.4]
 
-            #overides for lower shooter motor and upper intake
-            self.hal.shooterAimSpeed = self.manualAimPID.tick(0, self.hal.shooterAimPos, self.time.dt)
+            # overides for lower shooter motor and upper intake
+            self.hal.shooterAimSpeed = self.manualAimPID.tick(
+                0, self.hal.shooterAimPos, self.time.dt
+            )
             self.hal.shooterAimSpeed += self.input.shooterAimManual * 0.2
 
-            if(self.input.manualFeed):
+            if self.input.manualFeed:
                 self.hal.intakeSpeeds[1] += 0.4
                 self.hal.shooterIntakeSpeed += 0.4
-            if(self.input.manualFeedReverse):
+            if self.input.manualFeedReverse:
                 self.hal.intakeSpeeds[1] -= 0.4
                 self.hal.shooterIntakeSpeed -= 0.4
 
-            #overid for shooting
+            # overid for shooting
             # TODO: this is moving to fast
             speedTarget = 0
-            if(self.input.rev):
+            if self.input.rev:
                 speedTarget = 100
-            self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * 0.1 + self.PIDspeedSetpoint
-            self.hal.shooterSpeed = self.manualShooterPID.tick(self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt)
-            if(self.input.shoot):
+            self.PIDspeedSetpoint = (
+                speedTarget - self.PIDspeedSetpoint
+            ) * 0.1 + self.PIDspeedSetpoint
+            self.hal.shooterSpeed = self.manualShooterPID.tick(
+                self.PIDspeedSetpoint, self.hal.shooterAngVelocityMeasured, self.time.dt
+            )
+            if self.input.shoot:
                 self.hal.shooterIntakeSpeed = 0
 
         # TODO: manual cam drive
@@ -464,20 +530,19 @@ class Robot(wpilib.TimedRobot):
         # self.shooterStateMachine.camPID.kp = self.shooterStateMachine.table.getNumber("cam kp", 0)
         # self.hal.camSpeed = self.shooterStateMachine.camPID.tick(camTarget, self.hal.camPos, self.time.dt)
 
-        if(self.input.aimEncoderReset):
+        if self.input.aimEncoderReset:
             self.hardware.resetAimEncoderPos(0)
 
-        if(self.input.camEncoderReset):
+        if self.input.camEncoderReset:
             self.hardware.resetCamEncoderPos(0)
-            
-        if(self.input.climbEncoderReset or self.hal.climberLimitPressed):
+
+        if self.input.climbEncoderReset or self.hal.climberLimitPressed:
             self.hardware.resetClimbEncoderPos(0)
 
         profiler.end("note state machine")
 
         # self.hal.camSpeed = self.input.camTemp * 0.2
         self.hal.climberSpeed = self.input.climb * 0.6
-
 
         profiler.start()
         self.hardware.update(self.hal, self.time)
@@ -492,9 +557,14 @@ class Robot(wpilib.TimedRobot):
 
         self.holonomicController = PPHolonomicDriveController(
             PIDConstants(1, 0, 0),
-            PIDConstants(self.turnPID.kp, self.turnPID.ki, self.turnPID.kd,),
+            PIDConstants(
+                self.turnPID.kp,
+                self.turnPID.ki,
+                self.turnPID.kd,
+            ),
             5.0,
-            self.drive.modulePositions[0].distance(Translation2d()))
+            self.drive.modulePositions[0].distance(Translation2d()),
+        )
 
         self.auto, initialPose = self.autoSubsys.autoInit(self)
 
@@ -503,7 +573,7 @@ class Robot(wpilib.TimedRobot):
         self.hardware.update(self.hal, self.time)
         self.drive.resetOdometry(initialPose, self.hal)
         self.holonomicController.reset(initialPose, ChassisSpeeds())
-        
+
         self.climberStateMachine.state = 0
 
     def autonomousPeriodic(self) -> None:
@@ -520,6 +590,7 @@ class Robot(wpilib.TimedRobot):
         self.hal.stopMotors()
         self.hardware.update(self.hal, self.time)
 
+
 if __name__ == "__main__":
     wpilib.run(Robot)
 
@@ -529,6 +600,3 @@ if __name__ == "__main__":
     # while(True):
     #     r.robotPeriodic()
     #     r.autonomousPeriodic()
-
-
-
