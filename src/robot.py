@@ -10,7 +10,6 @@ from climberStateMachine import ClimberStateMachine
 from noteStateMachine import NoteStateMachine, ShooterTarget
 from ntcore import NetworkTableInstance
 from pathplannerlib.controller import PIDConstants, PPHolonomicDriveController
-from PIDController import PIDController, PIDControllerForArm, updatePIDsInNT
 from real import angleWrap, lerp
 from simHAL import RobotSimHAL
 from swerveDrive import SwerveDrive
@@ -80,15 +79,6 @@ class RobotInputs:
 
     def update(self) -> None:
         ##flipped x and y inputs so they are relative to bot
-        self.driveX, self.driveY = self.driveScalar.Scale(
-            -self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX()
-        )
-        self.turningX, self.turningY = self.turningScalar.Scale(
-            self.driveCtrlr.getRightX(), -self.driveCtrlr.getRightY()
-        )
-
-        self.turningPIDButton = self.driveCtrlr.getLeftBumper()
-        self.turningStickButton = self.driveCtrlr.getRightStickButton()
 
         self.speedCtrl = self.driveCtrlr.getRightTriggerAxis()
 
@@ -563,7 +553,7 @@ class Robot(wpilib.TimedRobot):
                 self.turnPID.kd,
             ),
             5.0,
-            self.drive.modulePositions[0].distance(Translation2d()),
+            self.drive.modulePositions[0].distance(Translation2()),  # type: ignore
         )
 
         self.auto, initialPose = self.autoSubsys.autoInit(self)
