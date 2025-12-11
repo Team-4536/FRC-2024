@@ -216,6 +216,7 @@ class RobotHAL():
 
         # other
         self.gyro = navx.AHRS(wpilib.SerialPort.Port.kUSB1)
+        # self.gyro = None
 
         self.lowerShooterLimitSwitch = wpilib.DigitalInput(3)
         self.upperShooterLimitSwitch = wpilib.DigitalInput(1)

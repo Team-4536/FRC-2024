@@ -1,3 +1,6 @@
+[tool.uv]
+python-preference = "managed"
+
 #
 # Use this configuration file to control what RobotPy packages are installed
 # on your RoboRIO
@@ -20,6 +23,6 @@ robotpy_extras = [
 
 # Other pip packages to install
 requires = [
-    "robotpy-commands-v2==2024.0.0b4",
+    "robotpy-commands-v2==2024.3.1",
     "numpy"
 ]
