@@ -1,9 +1,9 @@
 [project]
 name = "FRC-2025"
 version = "1.0"
-requires-python = ">=3.12.8,<=3.12.8"
+requires-python = ">=3.13.9,<=3.13.9"
 dependencies = [
-    "robotpy[navx,rev,phoenix6,pathplannerlib]==2024.3.2.2",
+    "robotpy[navx,rev,phoenix6,pathplannerlib]==2025.3.2.2",
     "photonlibpy",
     "mypy",
 ]
