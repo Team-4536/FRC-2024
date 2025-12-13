@@ -494,7 +494,7 @@ class Robot(wpilib.TimedRobot):
             PIDConstants(1, 0, 0),
             PIDConstants(self.turnPID.kp, self.turnPID.ki, self.turnPID.kd,),
             5.0,
-            self.drive.modulePositions[0].distance(Translation2d()))
+            ) # self.drive.modulePositions[0].distance(Translation2d())
 
         self.auto, initialPose = self.autoSubsys.autoInit(self)
 

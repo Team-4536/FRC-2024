@@ -3,9 +3,13 @@ import wpilib
 from autos import AutoBuilder
 from noteStateMachine import ShooterTarget
 from pathplannerlib.path import PathPlannerPath
-from pathplannerlib.trajectory import PathPlannerTrajectory
+# from pathplannerlib.trajectory import PathPlannerTrajectory
+from pathplannerlib.path import PathPlannerPath, PathPlannerTrajectory
 from wpimath.geometry import Pose2d
 from wpimath.kinematics import ChassisSpeeds
+from pathplannerlib.config import RobotConfig, ModuleConfig, DCMotor 
+from wpimath.geometry import Translation2d
+from wpimath import units
 
 AUTO_NONE = "none"
 AUTO_INTAKE_CENTER_RING = "grab center ring"
@@ -47,10 +51,34 @@ class RobotAutos():
     # NOTE: filename is *just* the title of the file, with no extension and no path
     # filename is directly passed to pathplanner.loadPath
     def loadTrajectory(self, fileName: str, flipped: bool) -> PathPlannerTrajectory:
+        
+        oneftInMeters = units.feetToMeters(1)
+        mass = units.lbsToKilograms(122)
+        moi = (
+            (1 / 12)
+            * mass
+            * (oneftInMeters * oneftInMeters + oneftInMeters * oneftInMeters)
+        )
+        # motor = SparkMax(1, rev.SparkMax.MotorType.kBrushless)
+        motor = DCMotor(12, 2.6, 105, 1.8, 5676, 1)
+        modConfig = ModuleConfig(0.05, 1.1, 9.5, motor, 42, 1)
+        RConfig = RobotConfig(
+            mass,
+            moi,
+            modConfig,
+            [
+                Translation2d(-oneftInMeters, oneftInMeters),
+                Translation2d(oneftInMeters, oneftInMeters),
+                Translation2d(-oneftInMeters, -oneftInMeters),
+                Translation2d(oneftInMeters, -oneftInMeters),
+            ],
+        )
         p = PathPlannerPath.fromPathFile(fileName)
         if flipped:
             p = p.flipPath()
-        t = p.getTrajectory(ChassisSpeeds(), p.getPreviewStartingHolonomicPose().rotation())
+        t = p.generateTrajectory(ChassisSpeeds(), 
+            p.getStartingHolonomicPose().rotation(),
+            RConfig)
         return t
 
     # creates and returns the currently selected auto on the dashboard, along with the initial pose
@@ -72,7 +100,8 @@ class RobotAutos():
             pass
 
         elif self.autoChooser.getSelected() == AUTO_INTAKE_CENTER_RING:
-            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            # initialPose = traj.getInitialState().getTargetHolonomicPose()
+            initialPose = traj.getInitialState().pose
             auto.addTelemetryStage(AUTO_INTAKE_CENTER_RING)
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
@@ -82,7 +111,8 @@ class RobotAutos():
         elif self.autoChooser.getSelected() == AUTO_EXIT:
             traj = self.loadTrajectory("exit", r.onRedSide)
 
-            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            # initialPose = traj.getInitialState().getTargetHolonomicPose()
+            initialPose = traj.getInitialState().pose
             auto.addTelemetryStage(AUTO_EXIT)
             auto.addPathStage(traj)
 
@@ -96,7 +126,8 @@ class RobotAutos():
 
         elif self.autoChooser.getSelected() == AUTO_GET_ALL:
             traj = self.loadTrajectory("middle", r.onRedSide)
-            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            # initialPose = traj.getInitialState().getTargetHolonomicPose()
+            initialPose = traj.getInitialState().pose
             auto.addTelemetryStage(AUTO_GET_ALL)
             auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
             auto.addIntakeStage()
@@ -125,7 +156,8 @@ class RobotAutos():
 
         elif self.autoChooser.getSelected() == AUTO_GET_ALL_PODIUM:
             traj = self.loadTrajectory("middle", r.onRedSide)
-            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            # initialPose = traj.getInitialState().getTargetHolonomicPose()
+            initialPose = traj.getInitialState().pose
             auto.addTelemetryStage(AUTO_GET_ALL)
             auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
             auto.addIntakeStage()
@@ -154,7 +186,8 @@ class RobotAutos():
 
         elif self.autoChooser.getSelected() == AUTO_FAR_MIDDLE:
             traj = self.loadTrajectory("far-middle", r.onRedSide)
-            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            # initialPose = traj.getInitialState().getTargetHolonomicPose()
+            initialPose = traj.getInitialState().pose
             auto.addTelemetryStage(AUTO_FAR_MIDDLE)
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
@@ -169,7 +202,8 @@ class RobotAutos():
         elif self.autoChooser.getSelected() == AUTO_SIDE_UPPER:
             traj = self.loadTrajectory("side-upper", r.onRedSide)
 
-            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            # initialPose = traj.getInitialState().getTargetHolonomicPose()
+            initialPose = traj.getInitialState().pose
             auto.addTelemetryStage(AUTO_SIDE_UPPER)
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
@@ -184,7 +218,8 @@ class RobotAutos():
         elif self.autoChooser.getSelected() == AUTO_SIDEUPPER_V02:
             traj = self.loadTrajectory("side-upper-v02", r.onRedSide)
 
-            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            # initialPose = traj.getInitialState().getTargetHolonomicPose()
+            initialPose = traj.getInitialState().pose
             auto.addTelemetryStage(AUTO_SIDE_UPPER)
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
@@ -200,7 +235,8 @@ class RobotAutos():
         elif self.autoChooser.getSelected() == AUTO_SIDEUPPER_3PC:
             traj = self.loadTrajectory("side-upper-v02", r.onRedSide)
 
-            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            # initialPose = traj.getInitialState().getTargetHolonomicPose()
+            initialPose = traj.getInitialState().pose
             auto.addTelemetryStage(AUTO_SIDE_UPPER)
             auto.addIntakeStage()
             auto.addOdometryResetWithLimelightStage(r, robot.ODOMETRY_RESET_PIPELINE)
@@ -226,7 +262,8 @@ class RobotAutos():
         elif self.autoChooser.getSelected() == AUTO_SIDE_LOWER:
             traj = self.loadTrajectory('side-lower', r.onRedSide)
 
-            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            # initialPose = traj.getInitialState().getTargetHolonomicPose()
+            initialPose = traj.getInitialState().pose
             auto.addTelemetryStage(AUTO_SIDE_LOWER)
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)
@@ -240,7 +277,8 @@ class RobotAutos():
 
         elif self.autoChooser.getSelected() == AUTO_TROLL:
             traj = self.loadTrajectory("troll", r.onRedSide)
-            initialPose = traj.getInitialState().getTargetHolonomicPose()
+            # initialPose = traj.getInitialState().getTargetHolonomicPose()
+            initialPose = traj.getInitialState().pose
             auto.addTelemetryStage(AUTO_TROLL)
             auto.addIntakeStage()
             auto.addShooterPrepStage(ShooterTarget.SUBWOOFER, True)

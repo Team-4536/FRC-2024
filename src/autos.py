@@ -92,9 +92,12 @@ class AutoBuilder:
             goal = t.sample(r.time.timeSinceInit - r.auto.stageStart)
 
             table = NetworkTableInstance.getDefault().getTable("autos")
-            table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
-            table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
-            table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
+            # table.putNumber("pathGoalX", goal.getTargetHolonomicPose().X())
+            # table.putNumber("pathGoalY", goal.getTargetHolonomicPose().Y())
+            # table.putNumber("pathGoalR", goal.getTargetHolonomicPose().rotation().radians())
+            table.putNumber("pathGoalX", goal.pose.X())
+            table.putNumber("pathGoalY", goal.pose.Y())
+            table.putNumber("pathGoalR", goal.pose.rotation().radians())
 
             table.putNumber("odomR", r.drive.odometry.getPose().rotation().radians())
             adjustedSpeeds = r.holonomicController.calculateRobotRelativeSpeeds(r.drive.odometry.getPose(), goal)
