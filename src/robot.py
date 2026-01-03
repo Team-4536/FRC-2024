@@ -22,6 +22,7 @@ from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition
 
 
+
 class RobotInputs():
     TARGET_NONE = 0
     TARGET_LEFT = 1
