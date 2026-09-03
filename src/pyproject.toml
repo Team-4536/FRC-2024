@@ -27,3 +27,8 @@ requires = [
     "numpy",
     "robotpy-ctre",
 ]
+
+[dependency-groups]
+dev = [
+    "certifi>=2026.7.22",
+]
