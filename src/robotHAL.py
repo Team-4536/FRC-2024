@@ -6,8 +6,7 @@ import ntcore
 import profiler
 import rev
 import wpilib
-from phoenix5.led import CANdle
-from phoenix6.hardware import CANcoder
+from phoenix6.hardware import CANcoder, CANdle
 from timing import TimeData
 
 
@@ -263,7 +262,8 @@ class RobotHAL():
         self.climbEncoder.setPosition(nPos)
 
     def setLEDs(self, r: int, g: int, b: int, w: int = 0, startIdx: int = 0, count: int = 512) -> None:
-        self.ledController.setLEDs(r, g, b, w, startIdx, count)
+        # self.ledController.setLEDs(r, g, b, w, startIdx, count)
+        pass
 
     def update(self, buf: RobotHALBuffer, time: TimeData) -> None:
         prev = self.prev

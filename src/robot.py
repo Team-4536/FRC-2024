@@ -1,7 +1,6 @@
 import math
 
 from numpy import short
-from phoenix5 import ControlMode
 
 import profiler
 import robotAutos

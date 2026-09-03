@@ -1,7 +1,6 @@
 import math
 from time import time
 import ntcore
-from phoenix5.led import CANdle  #only use for LEDs
 from timing import TimeData
 import robotHAL
 from simHAL import RobotSimHAL
@@ -54,7 +53,7 @@ class LightControl():
         wpilib.SmartDashboard.putData('light toggle', self.lightToggle)
         wpilib.SmartDashboard.putData('light toggle 2', self.lightToggle2)
 
-    def setLights(self, leds: CANdle, yaw: float):
+    def setLights(self, leds, yaw: float):
         #leds.setLEDs(0, 0, 0, 0, 0, totalLights)
 
         while yaw < 2 * math.pi:
