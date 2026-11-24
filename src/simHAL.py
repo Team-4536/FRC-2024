@@ -2,14 +2,15 @@ import copy
 import math
 
 from ntcore import NetworkTableInstance
+from wpimath.geometry import Rotation2d, Translation2d
+
 from real import angleWrap, lerp
 from robotHAL import RobotHALBuffer
 from swerveDrive import SwerveDrive
 from timing import TimeData
-from wpimath.geometry import Rotation2d, Translation2d
 
 
-class RobotSimHAL():
+class RobotSimHAL:
     def __init__(self):
         self.prev = RobotHALBuffer()
         self.drivePositions = [0.0, 0.0, 0.0, 0.0]
@@ -34,7 +35,9 @@ class RobotSimHAL():
         # UPDATE WHEEL VELOCITIES
         prefs = ["FL", "FR", "BL", "BR"]
         for i in range(4):
-            self.driveVels[i] = lerp(self.driveVels[i], buf.driveVolts[i] * 1/0.2, 0.2)
+            self.driveVels[i] = lerp(
+                self.driveVels[i], buf.driveVolts[i] * 1 / 0.2, 0.2
+            )
             self.steerVels[i] = lerp(self.steerVels[i], buf.steeringVolts[i] * 20, 0.3)
             self.table.putNumber(prefs[i] + "SimSteerVel", self.steerVels[i])
             self.table.putNumber(prefs[i] + "SimDriveVel", self.driveVels[i])
@@ -62,9 +65,7 @@ class RobotSimHAL():
             buf.intakeSensor = False
             buf.shooterSensor = False
             if buf.intakeSpeeds[0] > 0.001:
-
                 if self.ringTransitionStart == -1:
-
                     self.ringTransitionStart = time.timeSinceInit
                 else:
                     if (time.timeSinceInit - self.ringTransitionStart) > 0.4:
@@ -76,9 +77,7 @@ class RobotSimHAL():
             buf.intakeSensor = True
             buf.shooterSensor = False
             if buf.shooterIntakeSpeed > 0.001:
-
                 if self.ringTransitionStart == -1:
-
                     self.ringTransitionStart = time.timeSinceInit
                 else:
                     if (time.timeSinceInit - self.ringTransitionStart) > 0.4:
@@ -90,9 +89,7 @@ class RobotSimHAL():
             buf.intakeSensor = False
             buf.shooterSensor = True
             if buf.shooterIntakeSpeed > 0.001:
-
                 if self.ringTransitionStart == -1:
-
                     self.ringTransitionStart = time.timeSinceInit
                 else:
                     if (time.timeSinceInit - self.ringTransitionStart) > 0.2:
@@ -104,7 +101,9 @@ class RobotSimHAL():
         self.table.putNumber("ringTransitionStart", self.ringTransitionStart)
 
         # SHOOTER VELOCITY, ARM POSITION
-        self.shooterAngVel = lerp(self.shooterAngVel, buf.shooterSpeed * 1/0.00181, 0.4)
+        self.shooterAngVel = lerp(
+            self.shooterAngVel, buf.shooterSpeed * 1 / 0.00181, 0.4
+        )
         self.shooterAimVel = lerp(self.shooterAimVel, buf.shooterAimSpeed * 1, 0.1)
         self.shooterAimVel -= 0.005 * math.cos(self.shooterAimPos + 0.1)
 
@@ -116,7 +115,6 @@ class RobotSimHAL():
 
         # TODO: cam sim
 
-
     # TODO: gyro yaw sim
     def resetGyroToAngle(self, ang: float) -> None:
         self.yaw = ang
@@ -126,11 +124,13 @@ class RobotSimHAL():
 
     def resetClimbEncoderPos(self, nPos: float) -> None:
         pass
-    
+
     def resetAimEncoderPos(self, nPos: float) -> None:
         pass
 
-    def setLEDs(self, r: int, g: int, b: int, w: int = 0, startIdx: int = 0, count: int = 0) -> None:
+    def setLEDs(
+        self, r: int, g: int, b: int, w: int = 0, startIdx: int = 0, count: int = 0
+    ) -> None:
         pass
 
     # TODO: test to verify that this and the actual hal have the same signature

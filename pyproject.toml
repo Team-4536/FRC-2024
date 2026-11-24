@@ -1,13 +1,27 @@
 [project]
-name = "FRC-2025"
+name = "FRC-2024"
 version = "1.0"
-requires-python = ">=3.13.9,<=3.13.9"
+requires-python = ">=3.14,<3.15"
 dependencies = [
-    "robotpy[navx,rev,phoenix6,pathplannerlib]==2025.3.2.2",
+    "robotpy==2026.2.2",
+    "robotpy-navx",
+    "robotpy-pathplannerlib",
+    "robotpy-rev",
+    "certifi>=2026.1.4",
+    "limelightlib-python",
+    "line-profiler>=5.0.2",
+    "ntcore",
+    "phoenix6",
     "photonlibpy",
-    "mypy",
+    "pre-commit",
+    "ruff",
+    "ty",
 ]
 
 
 [tool.uv]
-python-preference = "managed"
+python-preference = "only-managed"
+
+
+[tool.ty.environment]
+python-version = "3.14"

@@ -1,13 +1,17 @@
 import math
 
 from ntcore import NetworkTable, NetworkTableInstance
+
 from real import signum
 
-createdControllers: list['PIDController'] = []
+createdControllers: list[PIDController] = []
 pidTable: NetworkTable = NetworkTableInstance.getDefault().getTable("pid")
 
+
 class PIDController:
-    def __init__(self, name: str, kp: float = 0, ki: float = 0, kd: float = 0, kff: float = 0) -> None:
+    def __init__(
+        self, name: str, kp: float = 0, ki: float = 0, kd: float = 0, kff: float = 0
+    ) -> None:
         self.name = name
         self.kp: float = kp
         self.ki: float = ki
@@ -33,8 +37,14 @@ class PIDController:
         derivative = (error - self.prevErr) / dt
         self.integral += self.ki * error * dt
         if abs(self.integral) > self.integralZone:
-            self.integral = (self.integralZone * signum(self.integral))
-        out = (self.kp * error) + (self.integral) + (self.kd * derivative) + (self.kff * target) + self.ktest
+            self.integral = self.integralZone * signum(self.integral)
+        out = (
+            (self.kp * error)
+            + (self.integral)
+            + (self.kd * derivative)
+            + (self.kff * target)
+            + self.ktest
+        )
         self.prevErr = error
         return out
 
@@ -60,9 +70,19 @@ class PIDController:
             self.ktest = t.getNumber("Ktest", 0)
             self.integralZone = t.getNumber("integralZone", 0)
 
+
 class PIDControllerForArm(PIDController):
-    def __init__(self, name: str, kp: float = 0, ki: float = 0, kd: float = 0, kff: float = 0, kg: float = 0, balanceAngle: float = 0.1) -> None:
-        super().__init__(name = name, kp = kp, ki = ki, kd = kd, kff = kff)
+    def __init__(
+        self,
+        name: str,
+        kp: float = 0,
+        ki: float = 0,
+        kd: float = 0,
+        kff: float = 0,
+        kg: float = 0,
+        balanceAngle: float = 0.1,
+    ) -> None:
+        super().__init__(name=name, kp=kp, ki=ki, kd=kd, kff=kff)
         self.balanceAngle = balanceAngle
         self.kg = kg
 
@@ -79,9 +99,17 @@ class PIDControllerForArm(PIDController):
             self.kg = t.getNumber("Kg", 0)
         super()._publish()
 
+
 class PIDControllerForCam(PIDController):
-    def __init__(self, name: str, kp: float = 0, ki: float = 0, ks: float = 0, intigralZone: float = 0) -> None:
-        super().__init__(name = name, kp = kp, ki = ki, kd = 0, kff = 0)
+    def __init__(
+        self,
+        name: str,
+        kp: float = 0,
+        ki: float = 0,
+        ks: float = 0,
+        intigralZone: float = 0,
+    ) -> None:
+        super().__init__(name=name, kp=kp, ki=ki, kd=0, kff=0)
         self.ks = ks
         self.integralZone = intigralZone
 
@@ -97,6 +125,7 @@ class PIDControllerForCam(PIDController):
         else:
             self.ks = t.getNumber("Ks", 0)
         super()._publish()
+
 
 def updatePIDsInNT():
     for c in createdControllers:

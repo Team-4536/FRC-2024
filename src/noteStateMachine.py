@@ -1,7 +1,7 @@
 from enum import Enum
 
 from ntcore import NetworkTableInstance
-from wpiutil import ControlRecordType
+
 from PIDController import PIDController, PIDControllerForArm, PIDControllerForCam
 from robotHAL import RobotHALBuffer
 
@@ -13,7 +13,8 @@ class ShooterTarget(Enum):
     SUBWOOFER = 3
     LOB = 4
 
-class NoteStateMachine():
+
+class NoteStateMachine:
     START = 0
     INTAKING = 1
     STORED_IN_SHOOTER = 2
@@ -30,7 +31,9 @@ class NoteStateMachine():
     lobSetpoint = (0.4, 250, 0)
 
     def __init__(self):
-        self.table = NetworkTableInstance.getDefault().getTable("ShooterStateMachineSettings")
+        self.table = NetworkTableInstance.getDefault().getTable(
+            "ShooterStateMachineSettings"
+        )
         self.table.putNumber("kff", 0.00181)
         self.table.putNumber("kp", 0.0008)
 
@@ -49,7 +52,7 @@ class NoteStateMachine():
         self.PIDcamSetpoint = 0
         self.state = self.START
 
-        self.onTarget: bool = False # variable for autos to check in on this, as well as for not firing to early
+        self.onTarget: bool = False  # variable for autos to check in on this, as well as for not firing to early
 
         self.inputAim: ShooterTarget = ShooterTarget.NONE
         self.inputRev: bool = False
@@ -63,15 +66,19 @@ class NoteStateMachine():
     def aim(self, target: ShooterTarget):
         self.table.putNumber("aimed", target.value)
         self.inputAim = target
+
     def rev(self, rev: bool):
         self.table.putBoolean("revved", rev)
         self.inputRev = rev
+
     def shoot(self, shoot: bool):
         self.table.putBoolean("shooting", shoot)
         self.inputShoot = shoot
+
     def feed(self, feed: bool):
-        self.table.putBoolean("feeding (shooter)", feed) #untested
+        self.table.putBoolean("feeding (shooter)", feed)  # untested
         self.inputFeed = feed
+
     def intake(self, feed: bool):
         self.table.putBoolean("intaking", feed)
         self.beIntaking = feed
@@ -84,7 +91,6 @@ class NoteStateMachine():
         self.table.putNumber("targetAimSmoothed", self.PIDaimSetpoint)
         self.table.putNumber("targetCam", self.camSetpoint)
         self.table.putBoolean("onTarget", self.onTarget)
-
 
     # To send commands to the state machine, use aim(), rev(), and shoot() before calling this
     # Note that calling aim from READY_FOR_RING will feed and then aim
@@ -106,54 +112,56 @@ class NoteStateMachine():
             self.lobSetpoint = (0.4, 250, 0)
             self.ampSetpoint = (1.7, 100, 0)
 
-
-        if(self.inputAim != ShooterTarget.NONE):
-            if(self.inputAim == ShooterTarget.AMP):
+        if self.inputAim != ShooterTarget.NONE:
+            if self.inputAim == ShooterTarget.AMP:
                 self.aimSetpoint = self.ampSetpoint[0]
                 self.speedSetpoint = self.ampSetpoint[1]
                 self.camSetpoint = self.ampSetpoint[2]
-            elif(self.inputAim == ShooterTarget.PODIUM):
+            elif self.inputAim == ShooterTarget.PODIUM:
                 self.aimSetpoint = self.podiumSetpoint[0]
                 self.speedSetpoint = self.podiumSetpoint[1]
                 self.camSetpoint = self.podiumSetpoint[2]
-            elif(self.inputAim == ShooterTarget.SUBWOOFER):
+            elif self.inputAim == ShooterTarget.SUBWOOFER:
                 self.aimSetpoint = self.subwooferSetpoint[0]
                 self.speedSetpoint = self.subwooferSetpoint[1]
                 self.camSetpoint = self.subwooferSetpoint[2]
-            elif(self.inputAim == ShooterTarget.LOB):
+            elif self.inputAim == ShooterTarget.LOB:
                 self.aimSetpoint = self.lobSetpoint[0]
                 self.speedSetpoint = self.lobSetpoint[1]
                 self.camSetpoint = self.lobSetpoint[2]
 
         self.onTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:
-            self.onTarget = abs(hal.shooterAimPos - self.aimSetpoint) < 0.1 and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 60
+            self.onTarget = (
+                abs(hal.shooterAimPos - self.aimSetpoint) < 0.1
+                and abs(hal.shooterAngVelocityMeasured - self.speedSetpoint) < 60
+            )
 
         self.onCamTarget = False
         if self.state == self.AIMING or self.state == self.SHOOTING:
             self.onCamTarget = abs(hal.camPos - self.camSetpoint) < 0.05
 
-        if(self.state == self.START):
+        if self.state == self.START:
             hal.shooterIntakeSpeed = 0
             hal.intakeSpeeds = [0, 0]
             aimTarget = 0
             speedTarget = 0
             camTarget = 0
-            if(self.beIntaking):
+            if self.beIntaking:
                 self.state = self.INTAKING
 
-        elif(self.state == self.INTAKING):
+        elif self.state == self.INTAKING:
             hal.intakeSpeeds = [0.7, 0.7]
             hal.shooterIntakeSpeed = 0.05
             aimTarget = 0
             speedTarget = 0
             camTarget = 0
-            if(not self.beIntaking):
+            if not self.beIntaking:
                 self.state = self.START
-            if(hal.shooterSensor):
+            if hal.shooterSensor:
                 self.state = self.STORED_IN_SHOOTER
 
-        elif(self.state == self.STORED_IN_SHOOTER):
+        elif self.state == self.STORED_IN_SHOOTER:
             hal.shooterIntakeSpeed = 0
             hal.intakeSpeeds = [0, 0]
             aimTarget = 0
@@ -162,24 +170,23 @@ class NoteStateMachine():
             if self.inputAim != ShooterTarget.NONE:
                 self.state = self.AIMING
 
-        elif(self.state == self.AIMING):
+        elif self.state == self.AIMING:
             aimTarget = self.aimSetpoint
             speedTarget = 0
             camTarget = self.camSetpoint
             if self.inputRev:
                 speedTarget = self.speedSetpoint
-            if self.inputShoot:
-                if self.onTarget and self.onCamTarget:
-                    self.state = self.SHOOTING
-                    self.time = time
+            if self.inputShoot and self.onTarget and self.onCamTarget:
+                self.state = self.SHOOTING
+                self.time = time
 
-        elif(self.state == self.SHOOTING):
+        elif self.state == self.SHOOTING:
             aimTarget = self.aimSetpoint
             speedTarget = self.speedSetpoint
             camTarget = self.camSetpoint
             hal.shooterIntakeSpeed = 0.8
             hal.intakeSpeeds[1] = 0.4
-            if(time - self.time > 1.0):
+            if time - self.time > 1.0:
                 self.state = self.START
 
         else:
@@ -187,12 +194,20 @@ class NoteStateMachine():
             speedTarget = 0
             camTarget = 0
 
-        self.PIDaimSetpoint = (aimTarget - self.PIDaimSetpoint) * self.AIM_SMOOTH_SCALAR + self.PIDaimSetpoint
-        hal.shooterAimSpeed = self.aimPID.tick(self.PIDaimSetpoint, hal.shooterAimPos, dt)
+        self.PIDaimSetpoint = (
+            aimTarget - self.PIDaimSetpoint
+        ) * self.AIM_SMOOTH_SCALAR + self.PIDaimSetpoint
+        hal.shooterAimSpeed = self.aimPID.tick(
+            self.PIDaimSetpoint, hal.shooterAimPos, dt
+        )
         # TODO: profile to improve perf
 
-        self.PIDspeedSetpoint = (speedTarget - self.PIDspeedSetpoint) * self.SPEED_SMOOTH_SCALAR + self.PIDspeedSetpoint
-        hal.shooterSpeed = self.shooterPID.tick(self.PIDspeedSetpoint, hal.shooterAngVelocityMeasured, dt)
+        self.PIDspeedSetpoint = (
+            speedTarget - self.PIDspeedSetpoint
+        ) * self.SPEED_SMOOTH_SCALAR + self.PIDspeedSetpoint
+        hal.shooterSpeed = self.shooterPID.tick(
+            self.PIDspeedSetpoint, hal.shooterAngVelocityMeasured, dt
+        )
 
         hal.camSpeed = self.camPID.tick(camTarget, hal.camPos, dt)
 
