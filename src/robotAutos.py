@@ -4,7 +4,7 @@ from pathplannerlib.config import DCMotor, ModuleConfig, RobotConfig
 # from pathplannerlib.trajectory import PathPlannerTrajectory
 from pathplannerlib.path import PathPlannerPath, PathPlannerTrajectory
 from wpimath import units
-from wpimath.geometry import Pose2d, Translation2d
+from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.kinematics import ChassisSpeeds
 
 import robot
@@ -79,7 +79,9 @@ class RobotAutos:
         if flipped:
             p = p.flipPath()
         t = p.generateTrajectory(
-            ChassisSpeeds(), p.getStartingHolonomicPose().rotation(), RConfig
+            ChassisSpeeds(),
+            (p.getStartingHolonomicPose() or Rotation2d()).rotation(),
+            RConfig,
         )
         return t
 

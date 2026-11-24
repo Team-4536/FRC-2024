@@ -81,6 +81,7 @@ class RobotInputs:
         self.driveX, self.driveY = self.driveScalar.Scale(
             -self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX()
         )
+        print(self.driveCtrlr.getLeftX())
         self.turningX, self.turningY = self.turningScalar.Scale(
             self.driveCtrlr.getRightX(), -self.driveCtrlr.getRightY()
         )

@@ -178,8 +178,8 @@ class RobotHAL:
             # d.setSmartCurrentLimit(40)
             d.configure(
                 self.config,
-                rev.SparkMax.ResetMode.kNoResetSafeParameters,
-                rev.SparkMax.PersistMode.kPersistParameters,
+                rev.ResetMode.kNoResetSafeParameters,
+                rev.PersistMode.kPersistParameters,
             )
 
         self.steerMotors = [
@@ -194,8 +194,8 @@ class RobotHAL:
             # m.setSmartCurrentLimit(40)
             m.configure(
                 self.config,
-                rev.SparkMax.ResetMode.kNoResetSafeParameters,
-                rev.SparkMax.PersistMode.kPersistParameters,
+                rev.ResetMode.kNoResetSafeParameters,
+                rev.PersistMode.kPersistParameters,
             )
 
         self.steerEncoders = [CANcoder(21), CANcoder(22), CANcoder(23), CANcoder(24)]
@@ -217,8 +217,8 @@ class RobotHAL:
         for motor in self.intakeMotors:
             motor.configure(
                 self.intakeConfig,
-                rev.SparkMax.ResetMode.kNoResetSafeParameters,
-                rev.SparkMax.PersistMode.kPersistParameters,
+                rev.ResetMode.kNoResetSafeParameters,
+                rev.PersistMode.kPersistParameters,
             )
 
         # self.intakeEncoders = [c.getEncoder() for c in self.intakeMotors]
@@ -233,8 +233,8 @@ class RobotHAL:
         # self.shooterTopMotor.openLoopRampRate(0.2)
         self.shooterTopMotor.configure(
             self.shooterConfig,
-            rev.SparkMax.ResetMode.kNoResetSafeParameters,
-            rev.SparkMax.PersistMode.kPersistParameters,
+            rev.ResetMode.kNoResetSafeParameters,
+            rev.PersistMode.kPersistParameters,
         )
         self.shooterBottomMotor = rev.SparkMax(
             12, rev.SparkMax.MotorType.kBrushless
@@ -242,23 +242,23 @@ class RobotHAL:
         # self.shooterBottomMotor.setOpenLoopRampRate(0.2)
         self.shooterBottomMotor.configure(
             self.shooterConfig,
-            rev.SparkMax.ResetMode.kNoResetSafeParameters,
-            rev.SparkMax.PersistMode.kPersistParameters,
+            rev.ResetMode.kNoResetSafeParameters,
+            rev.PersistMode.kPersistParameters,
         )
         self.shooterAimMotor = rev.SparkMax(14, rev.SparkMax.MotorType.kBrushless)
         self.shooterAimMotor.setInverted(True)
         # self.shooterAimMotor.setOpenLoopRampRate(0.2)
         self.shooterAimMotor.configure(
             self.shooterConfig,
-            rev.SparkMax.ResetMode.kNoResetSafeParameters,
-            rev.SparkMax.PersistMode.kPersistParameters,
+            rev.ResetMode.kNoResetSafeParameters,
+            rev.PersistMode.kPersistParameters,
         )
         self.shooterIntakeMotor = rev.SparkMax(13, rev.SparkMax.MotorType.kBrushless)
         # self.shooterIntakeMotor.setOpenLoopRampRate(0.2)
         self.shooterIntakeMotor.configure(
             self.shooterConfig,
-            rev.SparkMax.ResetMode.kNoResetSafeParameters,
-            rev.SparkMax.PersistMode.kPersistParameters,
+            rev.ResetMode.kNoResetSafeParameters,
+            rev.PersistMode.kPersistParameters,
         )
         # shooter encoders
         self.shooterTopEncoder = self.shooterTopMotor.getEncoder()

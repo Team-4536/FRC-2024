@@ -19,7 +19,7 @@ from real import angleWrap
 class SwerveDrive:
     # meters, relative to robot center
     oneFtInMeters = 0.305
-    modulePositions: list[Translation2d] = [
+    modulePositions: list[Translation2d] = [  # noqa: RUF012
         Translation2d(oneFtInMeters, oneFtInMeters),
         Translation2d(oneFtInMeters, -oneFtInMeters),
         Translation2d(-oneFtInMeters, oneFtInMeters),
@@ -35,7 +35,10 @@ class SwerveDrive:
 
         self.kinematics = SwerveDrive4Kinematics(*self.modulePositions)
         self.odometry = SwerveDrive4Odometry(
-            self.kinematics, angle, tuple(wheelStates), pose
+            self.kinematics,
+            angle,
+            tuple(wheelStates),  # type: ignore
+            pose,  # type: ignore
         )  # type: ignore // because of tuple type mismatch, which is assert gaurded
 
         prefs = ["FL", "FR", "BL", "BR"]
