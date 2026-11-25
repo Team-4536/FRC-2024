@@ -17,6 +17,7 @@ from real import angleWrap
 
 # adapted from here: https://github.com/wpilibsuite/allwpilib/blob/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples/swervebot/Drivetrain.java
 class SwerveDrive:
+    driveSpeed = ChassisSpeeds()
     # meters, relative to robot center
     oneFtInMeters = 0.305
     modulePositions: list[Translation2d] = [  # noqa: RUF012
@@ -71,6 +72,7 @@ class SwerveDrive:
             self.turningPIDs[i].kp = self.turningPIDs[0].kp
 
         speed = ChassisSpeeds.discretize(speed.vx, speed.vy, speed.omega, dt * 8)
+        self.driveSpeed = speed
 
         wheelPositions = [
             SwerveModulePosition(

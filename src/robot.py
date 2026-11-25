@@ -81,7 +81,6 @@ class RobotInputs:
         self.driveX, self.driveY = self.driveScalar.Scale(
             -self.driveCtrlr.getLeftY(), -self.driveCtrlr.getLeftX()
         )
-        print(self.driveCtrlr.getLeftX())
         self.turningX, self.turningY = self.turningScalar.Scale(
             self.driveCtrlr.getRightX(), -self.driveCtrlr.getRightY()
         )
@@ -120,7 +119,6 @@ class RobotInputs:
                 self.aim = ShooterTarget.AMP
             elif self.armCtrlr.getPOV() < 100 and self.armCtrlr.getPOV() > 80:  # right
                 self.aim = ShooterTarget.LOB
-                print("pob pressed")
 
         self.rev = self.armCtrlr.getLeftTriggerAxis() > 0.2
         self.shoot = self.armCtrlr.getLeftBumper()
@@ -166,6 +164,8 @@ SUBWOOFER_LINEUP_BLUE_PIPLINE = 2
 
 
 class Robot(wpilib.TimedRobot):
+    driveSpeed = ChassisSpeeds()
+
     def robotInit(self) -> None:
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
@@ -471,6 +471,8 @@ class Robot(wpilib.TimedRobot):
             # for i in range(4):
             #     self.hal.driveVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED DRIVE", 0)
             #     self.hal.steeringVolts[i] = self.table.getNumber("ctrl/SWERVE ADDED STEER", 0)
+
+        self.driveSpeed = speed
 
         self.drive.update(self.time.dt, self.hal, speed)
         profiler.end("drive updates")
