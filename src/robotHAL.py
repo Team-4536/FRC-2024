@@ -1,3 +1,21 @@
+from rev import (
+    ClosedLoopConfig,
+    ClosedLoopSlot,
+    FeedbackSensor,
+    FeedForwardConfig,
+    LimitSwitchConfig,
+    MAXMotionConfig,
+    PersistMode,
+    ResetMode,
+    SoftLimitConfig,
+    SparkBaseConfig,
+    SparkClosedLoopController,
+    SparkLimitSwitch,
+    SparkMax,
+    SparkMaxConfig,
+    SparkRelativeEncoder,
+    SparkSoftLimit,
+)
 import copy
 import math
 
@@ -19,6 +37,7 @@ class RobotHALBuffer:
             0,
             0,
         ]  # -1 to 1 // volts to motor controller
+        self.allowShoot = False
         self.steeringVolts: list[float] = [0, 0, 0, 0]  # -1 to 1
         self.drivePositions: list[float] = [0, 0, 0, 0]  # in meters
         self.driveSpeedMeasured: list[float] = [
@@ -161,6 +180,8 @@ class RobotHAL:
     def __init__(self) -> None:
         self.prev = RobotHALBuffer()
 
+        self.allowShoot = False
+
         self.driveMotors = [
             rev.SparkMax(2, rev.SparkMax.MotorType.kBrushless),
             rev.SparkMax(4, rev.SparkMax.MotorType.kBrushless),
@@ -177,7 +198,23 @@ class RobotHAL:
             # d.setOpenLoopRampRate(0.2)
             # d.setSmartCurrentLimit(40)
             d.configure(
-                self.config,
+                SparkMaxConfig()
+                .smartCurrentLimit(40, 40)
+                .disableFollowerMode()
+                .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
+                .voltageCompensation(12)
+                .apply(
+                    ClosedLoopConfig()
+                    .pidf(0.00019, 0, 0, 0.00205)
+                    .setFeedbackSensor(FeedbackSensor.kPrimaryEncoder)
+                    .outputRange(-1, 1, ClosedLoopSlot.kSlot0)
+                    .apply(
+                        MAXMotionConfig()
+                        .maxVelocity(2000, ClosedLoopSlot.kSlot0)
+                        .maxAcceleration(50000, ClosedLoopSlot.kSlot0)
+                        .allowedClosedLoopError(1)
+                    )
+                ),
                 rev.ResetMode.kNoResetSafeParameters,
                 rev.PersistMode.kPersistParameters,
             )

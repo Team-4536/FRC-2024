@@ -34,6 +34,7 @@ class RobotInputs:
 
         self.driveScalar = CircularScalar(0.06, 1)
         self.turningScalar = CircularScalar(0.1, 1)
+        self.allowShoot = False
         self.manualAimScalar = Scalar(deadZone=0.1)
 
         self.driveX: float = 0.0
@@ -94,14 +95,16 @@ class RobotInputs:
         self.absToggle = self.driveCtrlr.getBackButtonPressed()
 
         self.angleTarget = self.TARGET_NONE
-        if self.driveCtrlr.getAButton():  # down
-            self.angleTarget = self.TARGET_SUBWOOFER
-        elif self.driveCtrlr.getBButton():  # right
-            self.angleTarget = self.TARGET_RIGHT
-        elif self.driveCtrlr.getYButton():  # up
-            self.angleTarget = self.TARGET_SOURCE
-        elif self.driveCtrlr.getXButton():  # left
-            self.angleTarget = self.TARGET_LEFT
+        # if self.driveCtrlr.getAButton():  # down
+        #     self.angleTarget = self.TARGET_SUBWOOFER
+        # elif self.driveCtrlr.getBButton():  # right
+        #     self.angleTarget = self.TARGET_RIGHT
+        # elif self.driveCtrlr.getYButton():  # up
+        #     self.angleTarget = self.TARGET_SOURCE
+        # elif self.driveCtrlr.getXButton():  # left
+        #     self.angleTarget = self.TARGET_LEFT
+
+        self.allowShoot = self.armCtrlr.getXButton()
 
         # arm controller
         self.intake = self.armCtrlr.getAButton()
@@ -128,7 +131,7 @@ class RobotInputs:
         self.climb = float(self.armCtrlr.getRightBumper() * 2.5) - (
             self.armCtrlr.getRightTriggerAxis() * 3
         )
-        self.climbEncoderReset = self.armCtrlr.getXButtonPressed()
+        # self.climbEncoderReset = self.armCtrlr.getXButtonPressed()
 
         # manual mode controls
         if self.armCtrlr.getYButton() and not self.overrideWasPressed:
@@ -167,6 +170,7 @@ class Robot(wpilib.TimedRobot):
     driveSpeed = ChassisSpeeds()
 
     def robotInit(self) -> None:
+
         self.time = TimeData(None)
         self.hal = robotHAL.RobotHALBuffer()
         self.hardware: robotHAL.RobotHAL | RobotSimHAL
@@ -238,6 +242,8 @@ class Robot(wpilib.TimedRobot):
 
     def robotPeriodic(self) -> None:
         profiler.start()
+
+        self.hal.allowShoot = self.input.allowShoot
 
         self.time = TimeData(self.time)
 

@@ -158,7 +158,7 @@ class NoteStateMachine:
             camTarget = 0
             if not self.beIntaking:
                 self.state = self.START
-            if hal.shooterSensor:
+            if hal.allowShoot:
                 self.state = self.STORED_IN_SHOOTER
 
         elif self.state == self.STORED_IN_SHOOTER:
